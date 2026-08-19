@@ -100,7 +100,7 @@ function render(){
         </div>
       </div>`;
     grid.appendChild(card);
-    renderScreen(card.querySelector("[data-thumb]"), s, { scale:0.42, chrome:true });
+    renderScreen(card.querySelector("[data-thumb]"), s, { scale:0.42, chrome:true, qr:false });
   });
 }
 async function boot(){
