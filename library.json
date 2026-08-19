@@ -1,0 +1,77 @@
+{
+  "library": {
+    "name": "Visual Wellness Library",
+    "version": "1.0",
+    "note": "Add a new screen by appending an object to \"screens\". No code changes needed. See README.md.",
+    "tagVocabulary": {
+      "subject": ["stress", "sleep", "heat", "mental-health", "movement", "nutrition", "hydration", "prevention", "burnout"],
+      "month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+      "setting": ["floor", "breakroom", "office", "any"],
+      "aspect": ["16:9", "9:16"],
+      "tone": ["calm", "action"],
+      "format": ["still", "video"]
+    }
+  },
+  "screens": [
+    {
+      "id": "mh-worker-factory-01",
+      "title": "Some days weigh more than others.",
+      "subtitle": "If the load's too much to carry alone, that's not weakness. Talking helps. So does asking.",
+      "eyebrow": "You're not the only one",
+      "cta": "Confidential support — one call away",
+      "background": "images/worker_factory_01.png",
+      "format": "still",
+      "treatment": "left-scrim",
+      "accent": "#d9b98f",
+      "qrUrl": "https://go.mymedwellness.com/s/mh-worker-01",
+      "tags": {
+        "subject": "mental-health",
+        "month": "May",
+        "setting": "floor",
+        "aspect": "16:9",
+        "tone": "calm",
+        "format": "still"
+      }
+    },
+    {
+      "id": "stress-forest-01",
+      "title": "Stress is normal. Carrying it alone isn't.",
+      "subtitle": "Breathe in for four. Hold for four. Out for four. Then get back to it.",
+      "eyebrow": "Take a minute",
+      "cta": "Talk to someone — call the EAP line",
+      "background": "gradient:forest",
+      "format": "still",
+      "treatment": "left-scrim",
+      "accent": "#7fbfac",
+      "qrUrl": "https://go.mymedwellness.com/s/stress-forest-01",
+      "tags": {
+        "subject": "stress",
+        "month": "Apr",
+        "setting": "floor",
+        "aspect": "16:9",
+        "tone": "calm",
+        "format": "still"
+      }
+    },
+    {
+      "id": "heat-water-01",
+      "title": "Drink before you're thirsty.",
+      "subtitle": "By the time you feel it, you're already behind. Headache, cramps, dizziness — that's heat talking.",
+      "eyebrow": "On the floor today",
+      "cta": "Feel off in the heat? Tell your supervisor",
+      "background": "gradient:water",
+      "format": "still",
+      "treatment": "left-scrim",
+      "accent": "#5dcaa5",
+      "qrUrl": "https://go.mymedwellness.com/s/heat-water-01",
+      "tags": {
+        "subject": "heat",
+        "month": "Jul",
+        "setting": "floor",
+        "aspect": "16:9",
+        "tone": "action",
+        "format": "still"
+      }
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screen preview</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  html,body{height:100%;background:#000;}
+  .stage{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;}
+  .frame{width:min(100vw,177.78vh);aspect-ratio:16/9;}
+  .frame .vwl-screen{border-radius:0;}
+  .miss{color:#fff;font-family:var(--font-sans);text-align:center;padding:40px;}
+</style>
+</head>
+<body>
+<div class="stage"><div class="frame"><div id="screen" class="vwl-screen"></div></div></div>
+<script src="assets/overlay.js"></script>
+<script>
+async function boot(){
+  const id = new URLSearchParams(location.search).get("id");
+  const data = await (await fetch("library.json")).json();
+  const s = data.screens.find(x=>x.id===id) || data.screens[0];
+  if(!s){ document.getElementById("screen").outerHTML = '<p class="miss">Screen not found.</p>'; return; }
+  document.title = s.title;
+  // Font sizing keys off the frame width so text scales with the 16:9 stage.
+  const frame = document.querySelector(".frame");
+  const setScale = ()=>{ frame.style.fontSize = (frame.clientWidth/100) + "px"; };
+  setScale(); addEventListener("resize", setScale);
+  renderScreen(document.getElementById("screen"), s, { scale:1, chrome:true });
+}
+boot();
+</script>
+</body>
+</html>

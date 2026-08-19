@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visual Wellness Library</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .thumb .vwl-screen{border-radius:0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1 id="libname">Visual Wellness Library</h1>
+      <p class="sub" id="libsub">Workplace-screen content · loading…</p>
+    </div>
+  </div>
+
+  <input id="q" class="searchbar" type="text" placeholder="Search screens — try 'stress', 'heat', 'sleep'…" oninput="render()">
+
+  <div class="filtrow"><span class="filtlabel">Subject</span><span id="f-subject"></span></div>
+  <div class="filtrow"><span class="filtlabel">Month</span><span id="f-month"></span></div>
+  <div class="filtrow"><span class="filtlabel">Setting</span><span id="f-setting"></span></div>
+  <div class="filtrow"><span class="filtlabel">Tone</span><span id="f-tone"></span></div>
+  <div class="filtrow"><span class="filtlabel">Format</span><span id="f-format"></span></div>
+
+  <p class="count" id="count">Loading library…</p>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script src="assets/overlay.js"></script>
+<script>
+let DATA = { screens: [] };
+const sel = { subject:new Set(), month:new Set(), setting:new Set(), tone:new Set(), format:new Set() };
+
+// --- Download tracking hook -------------------------------------------
+// Every download pings the backend before the file is served, so MedWell
+// sees which screens each client actually uses. Point BEACON at your
+// n8n webhook (same pattern as the translation tool).
+const BEACON = "https://n8n.mymedwellness.com/webhook/vwl-download";
+function trackDownload(screen){
+  try{
+    navigator.sendBeacon(BEACON, JSON.stringify({
+      id: screen.id, title: screen.title, tags: screen.tags,
+      ts: new Date().toISOString(), client: DATA.client || "demo"
+    }));
+  }catch(e){ /* non-blocking */ }
+}
+// ----------------------------------------------------------------------
+
+function chip(group, value){
+  return `<span class="chip" data-g="${group}" data-v="${value}" onclick="tog(this)">${value}</span>`;
+}
+function buildFilters(){
+  const vocab = DATA.library.tagVocabulary;
+  const present = g => [...new Set(DATA.screens.map(s => s.tags[g]).filter(Boolean))];
+  for(const g of ["subject","month","setting","tone","format"]){
+    const order = vocab[g] || [];
+    const vals = present(g).sort((a,b)=> order.indexOf(a)-order.indexOf(b));
+    document.getElementById("f-"+g).innerHTML = vals.map(v=>chip(g,v)).join("");
+  }
+}
+function tog(el){
+  const g=el.dataset.g, v=el.dataset.v, on=el.dataset.on==="1";
+  el.dataset.on = on ? "0":"1";
+  on ? sel[g].delete(v) : sel[g].add(v);
+  render();
+}
+function matches(s){
+  for(const g in sel){ if(sel[g].size && !sel[g].has(s.tags[g])) return false; }
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  if(q){
+    const hay = [s.title, s.subtitle, s.eyebrow, ...Object.values(s.tags)].join(" ").toLowerCase();
+    if(!hay.includes(q)) return false;
+  }
+  return true;
+}
+function render(){
+  const out = DATA.screens.filter(matches);
+  const active = Object.values(sel).some(x=>x.size) || document.getElementById("q").value.trim();
+  document.getElementById("count").textContent =
+    active ? `Showing ${out.length} of ${DATA.screens.length} screens` : `${DATA.screens.length} screens`;
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  if(!out.length){ grid.innerHTML = `<p class="empty">No screens match those filters. Clear one to see more.</p>`; return; }
+  out.forEach(s=>{
+    const card = document.createElement("div");
+    card.className = "card";
+    const badges = Object.entries(s.tags).map(([k,v])=>`<span class="tag">${v}</span>`).join("");
+    card.innerHTML = `
+      <div class="thumb"><div class="vwl-screen" data-thumb></div></div>
+      <div class="meta">
+        <p class="mt">${s.title}</p>
+        <div class="tags">${badges}</div>
+        <div class="rowbtns">
+          <a class="btn" href="screen.html?id=${encodeURIComponent(s.id)}" target="_blank" rel="noopener">Preview</a>
+          <a class="btn btn-primary" href="${s.background.startsWith('gradient')?'#':s.background}" download onclick="trackDownload(${JSON.stringify(s).replace(/"/g,'&quot;')})">Download</a>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+    renderScreen(card.querySelector("[data-thumb]"), s, { scale:0.42, chrome:true });
+  });
+}
+async function boot(){
+  try{
+    const res = await fetch("library.json");
+    DATA = await res.json();
+  }catch(e){
+    document.getElementById("count").textContent = "Could not load library.json (serve over http, not file://).";
+    return;
+  }
+  document.getElementById("libname").textContent = DATA.library.name;
+  document.getElementById("libsub").textContent = `Workplace-screen content · ${DATA.screens.length} screens · white-label ready`;
+  buildFilters();
+  render();
+}
+boot();
+</script>
+</body>
+</html>
