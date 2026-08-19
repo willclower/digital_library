@@ -72,6 +72,26 @@
         "tone": "action",
         "format": "still"
       }
+
+          {
+      "id": "heat-water-01",
+      "title": "Beat the heat. Drink up.",
+      "subtitle": "If you wait until you're thirsty, you're already behind. Keep the bottle close.",
+      "eyebrow": "On the clock, in the heat",
+      "cta": "Feeling the heat? Take five and hydrate",
+      "background": "images/police_hydration_01.png",
+      "format": "still",
+      "treatment": "left-scrim",
+      "accent": "#e8c48a",
+      "qrUrl": "https://go.mymedwellness.com/s/heat-police-01",
+      "tags": {
+        "subject": "heat",
+        "month": "Jul",
+        "setting": "floor",
+        "aspect": "16:9",
+        "tone": "action",
+        "format": "still"
+      }
     }
   ]
 }
