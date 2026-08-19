@@ -56,6 +56,7 @@ function renderScreen(el, screen, opts = {}) {
   const scrim = SCRIMS[screen.treatment] || SCRIMS["left-scrim"];
   const accent = screen.accent || "#d9b98f";
   const showChrome = opts.chrome !== false; // false = thumbnail (headline only)
+  const showQr = opts.qr !== false;         // false = hide QR (used on library thumbnails)
   el.innerHTML = `
     ${bgLayer(screen)}
     <div class="vwl-scrim" style="background:${scrim};"></div>
@@ -65,7 +66,7 @@ function renderScreen(el, screen, opts = {}) {
       ${showChrome ? `<div class="vwl-sub" style="font-size:${1.05*scale}em;">${screen.subtitle || ""}</div>` : ""}
       ${showChrome ? `<span class="vwl-cta" style="font-size:${0.95*scale}em;">${screen.cta || ""}</span>` : ""}
     </div>
-    ${showChrome ? `<div class="vwl-qr"><div class="vwl-qrbox">${qrPlaceholder("#111")}</div><span class="vwl-qrlabel">Scan for support</span></div>` : ""}
+    ${showQr ? `<div class="vwl-qr"><div class="vwl-qrbox">${qrPlaceholder("#111")}</div><span class="vwl-qrlabel">Scan for support</span></div>` : ""}
   `;
 }
 
