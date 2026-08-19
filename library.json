@@ -73,10 +73,10 @@
         "format": "still"
       }
 
-          {
+    {
       "id": "heat-water-01",
-      "title": "Beat the heat. Drink up.",
-      "subtitle": "If you wait until you're thirsty, you're already behind. Keep the bottle close.",
+      "title": "Thirsty is already too late.",
+      "subtitle": "By the time you feel it, you're behind. A few sips now beats a headache later.",
       "eyebrow": "On the clock, in the heat",
       "cta": "Feeling the heat? Take five and hydrate",
       "background": "images/police_hydration_01.png",
