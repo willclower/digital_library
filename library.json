@@ -34,46 +34,6 @@
       }
     },
     {
-      "id": "stress-forest-01",
-      "title": "Stress is normal. Carrying it alone isn't.",
-      "subtitle": "Breathe in for four. Hold for four. Out for four. Then get back to it.",
-      "eyebrow": "Take a minute",
-      "cta": "Talk to someone — call the EAP line",
-      "background": "gradient:forest",
-      "format": "still",
-      "treatment": "left-scrim",
-      "accent": "#7fbfac",
-      "qrUrl": "https://go.mymedwellness.com/s/stress-forest-01",
-      "tags": {
-        "subject": "stress",
-        "month": "Apr",
-        "setting": "floor",
-        "aspect": "16:9",
-        "tone": "calm",
-        "format": "still"
-      }
-    },
-    {
-      "id": "heat-water-01",
-      "title": "Drink before you're thirsty.",
-      "subtitle": "By the time you feel it, you're already behind. Headache, cramps, dizziness — that's heat talking.",
-      "eyebrow": "On the floor today",
-      "cta": "Feel off in the heat? Tell your supervisor",
-      "background": "gradient:water",
-      "format": "still",
-      "treatment": "left-scrim",
-      "accent": "#5dcaa5",
-      "qrUrl": "https://go.mymedwellness.com/s/heat-water-01",
-      "tags": {
-        "subject": "heat",
-        "month": "Jul",
-        "setting": "floor",
-        "aspect": "16:9",
-        "tone": "action",
-        "format": "still"
-      }
-
-    {
       "id": "heat-water-01",
       "title": "Thirsty is already too late.",
       "subtitle": "By the time you feel it, you're behind. A few sips now beats a headache later.",
@@ -88,6 +48,26 @@
         "subject": "heat",
         "month": "Jul",
         "setting": "floor",
+        "aspect": "16:9",
+        "tone": "action",
+        "format": "still"
+      }
+    },
+    {
+      "id": "prevention-screening-01",
+      "title": "The screening you skip is the one that matters.",
+      "subtitle": "Most serious conditions are quiet until they aren't. Catching them early is the whole game.",
+      "eyebrow": "A few minutes, once a year",
+      "cta": "Book your screening — ask your clinic how",
+      "background": "images/screening_clinic_01.png",
+      "format": "still",
+      "treatment": "left-scrim",
+      "accent": "#7fb5c4",
+      "qrUrl": "https://go.mymedwellness.com/s/prevention-screening-01",
+      "tags": {
+        "subject": "prevention",
+        "month": "Oct",
+        "setting": "office",
         "aspect": "16:9",
         "tone": "action",
         "format": "still"
