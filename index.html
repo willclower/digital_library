@@ -7,7 +7,93 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- styles.css carries the .vwl-* SCREEN render rules (shared with screen.html).
+     The library INTERFACE chrome is inlined below so this page is self-contained
+     and never depends on the asset path resolving. -->
 <link rel="stylesheet" href="assets/styles.css">
+<style>
+  :root{
+    --brand-blue:#236192; --brand-navy:#002855; --brand-orange:#ED8B00; --brand-spruce:#126e46;
+    --accent:var(--brand-orange); --accent-text:#B5811F;
+    --library:#17402F; --library-hover:#1F5B41; --chip-lib-bg:#E7EFEA;
+    --ink:#0E2A44; --ink-deep:#0C2135;
+    --paper:#EFEBE2; --paper-lt:#F6F3ED; --panel:#FFFDF9;
+    --border:#E0D9CB; --border-lt:#EFE9DE; --border-st:#C9C2B3;
+    --muted:#5F6B77; --muted-2:#6B7885; --subtle:#8A9199; --faint:#A9A192;
+    --cream:#F1EADC; --chip-bg:#F1ECE1;
+    --r-input:5px; --r-card:8px; --r-pill:20px;
+    --shadow-asset:0 18px 40px -26px rgba(14,42,68,0.5);
+    --font-ui:"Instrument Sans",system-ui,-apple-system,sans-serif;
+    --font-voice:"Newsreader",Georgia,serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{font-family:var(--font-ui);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;}
+
+  .topbar{display:flex;align-items:center;gap:12px;padding:16px 34px;background:#fbfaf7;border-bottom:1px solid var(--border);}
+  .topbar img{height:26px;display:none;}
+  .topbar .brand{font-weight:600;color:var(--brand-blue);font-size:15px;}
+  .topbar .back{margin-left:auto;font-size:12.5px;color:var(--muted);text-decoration:none;}
+  .topbar .back:hover{color:var(--accent-text);}
+
+  .shell{display:grid;grid-template-columns:236px minmax(0,1fr);align-items:start;}
+
+  .rail{padding:30px 22px 60px;border-right:1px solid var(--border);position:sticky;top:0;}
+  .rail .refine{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--subtle);margin-bottom:14px;}
+  .rail .searchbar{width:100%;height:38px;border:1px solid var(--border);border-radius:var(--r-input);padding:0 12px;font:inherit;font-size:13px;background:var(--panel);margin-bottom:20px;}
+  .rail .searchbar:focus{outline:none;border-color:var(--library);box-shadow:0 0 0 3px var(--chip-lib-bg);}
+  .fgroup{margin-bottom:22px;}
+  .fgroup .flabel{font-size:12px;font-weight:600;margin-bottom:9px;}
+  .subj{display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:var(--muted);}
+  .subj label{display:flex;align-items:center;gap:8px;cursor:pointer;}
+  .subj input{accent-color:var(--library);}
+  .subj .cnt{margin-left:auto;color:var(--faint);}
+  .pills{display:flex;flex-wrap:wrap;gap:6px;}
+  .pill{font-size:11.5px;padding:5px 11px;border-radius:var(--r-pill);border:1px solid var(--border);background:var(--panel);color:var(--muted);cursor:pointer;user-select:none;}
+  .pill[data-on="1"]{border-color:var(--library);background:var(--library);color:var(--cream);}
+  .clear{display:inline-block;margin-top:6px;font-size:12px;color:var(--accent-text);background:none;border:0;padding:0;cursor:pointer;}
+
+  .content{padding:30px 34px 70px;}
+  .chead{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:8px;flex-wrap:wrap;}
+  .chead .titleblock{min-width:0;}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-text);margin-bottom:12px;}
+  .eyebrow>span{width:22px;height:1px;background:var(--accent);}
+  h1{font-family:var(--font-voice);font-weight:300;font-size:42px;line-height:1.05;margin:0 0 8px;letter-spacing:-.015em;}
+  h1 em{font-style:italic;color:#1D5B7E;}
+  .sub{margin:0;font-size:13.5px;color:var(--muted);}
+
+  .active{display:flex;gap:8px;margin:22px 0 20px;flex-wrap:wrap;align-items:center;min-height:24px;}
+  .active .lbl{font-size:11.5px;color:var(--subtle);}
+  .achip{font-size:11.5px;padding:5px 10px;border-radius:var(--r-pill);background:var(--chip-lib-bg);color:var(--library);display:inline-flex;gap:7px;align-items:center;cursor:pointer;border:0;font-family:inherit;}
+  .achip .x{opacity:.6;}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:20px;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-card);overflow:hidden;display:flex;flex-direction:column;transition:border-color .13s,box-shadow .13s;}
+  .card:hover{border-color:var(--ink);box-shadow:var(--shadow-asset);}
+  .card .thumb{position:relative;aspect-ratio:16/9;background:#111;overflow:hidden;}
+  .card .thumb .vwl-screen{border-radius:0;height:100%;}
+  .fmt-badge{position:absolute;top:12px;right:12px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;background:rgba(255,253,249,.9);color:var(--library);padding:4px 8px;border-radius:3px;}
+  .card .meta{padding:16px 18px 18px;}
+  .card .mrow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+  .card .mt{font-family:var(--font-voice);font-weight:400;font-size:17.5px;margin:0 0 8px;line-height:1.2;}
+  .card .stat{font-size:11px;color:var(--faint);white-space:nowrap;padding-top:3px;}
+  .tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;}
+  .tag{font-size:10.5px;padding:3px 8px;border-radius:var(--r-pill);background:var(--chip-bg);color:var(--muted-2);}
+  .rowbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .btn{font:inherit;font-size:12.5px;padding:9px;border-radius:var(--r-input);border:1px solid var(--border-st);background:var(--panel);color:var(--ink);cursor:pointer;text-align:center;text-decoration:none;}
+  .btn:hover{border-color:var(--ink);background:var(--paper-lt);}
+  .btn-primary{background:var(--library);color:var(--cream);border-color:var(--library);font-weight:600;}
+  .btn-primary:hover{background:var(--library-hover);border-color:var(--library-hover);}
+
+  .count{font-size:12px;color:var(--subtle);margin:0 0 12px;}
+  .empty{grid-column:1/-1;background:var(--paper-lt);border:1px dashed var(--border-st);border-radius:var(--r-card);min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:13.5px;text-align:center;padding:30px;}
+
+  @media(max-width:820px){
+    .shell{grid-template-columns:1fr;}
+    .rail{position:static;border-right:0;border-bottom:1px solid var(--border);}
+    h1{font-size:34px;}
+  }
+</style>
 </head>
 <body>
 <div class="topbar">
@@ -17,10 +103,9 @@
 </div>
 
 <div class="shell">
-  <!-- filter rail -->
   <aside class="rail">
     <div class="refine">Refine</div>
-    <input id="q" class="searchbar" type="text" placeholder="Search screens\u2026" oninput="render()">
+    <input id="q" class="searchbar" type="text" placeholder="Search screens — try 'stress', 'heat', 'sleep'…" oninput="render()">
 
     <div class="fgroup">
       <div class="flabel">Subject</div>
@@ -46,7 +131,6 @@
     <button class="clear" id="clearAll" onclick="clearAll()">Clear all filters</button>
   </aside>
 
-  <!-- content -->
   <div class="content">
     <div class="chead">
       <div class="titleblock">
@@ -67,9 +151,7 @@
 let DATA = { screens: [] };
 const sel = { subject:new Set(), month:new Set(), setting:new Set(), tone:new Set(), format:new Set() };
 
-// --- Download tracking hook -------------------------------------------
-// Every download pings the backend before the file is served, so MedWell
-// sees which screens each client actually uses. Host confirmed by Alex.
+// --- Download tracking hook (host per Alex; unchanged) ---
 const BEACON = "https://n8n.mymedwellness.com/webhook/vwl-download";
 function trackDownload(screen){
   try{
@@ -79,13 +161,9 @@ function trackDownload(screen){
     }));
   }catch(e){ /* non-blocking */ }
 }
-// ----------------------------------------------------------------------
 
-// friendly labels for a few tag values (display only; filtering uses raw values)
 const LABELS = { "mental-health":"Mental health", "heat":"Heat & hydration" };
 const label = v => LABELS[v] || (v.charAt(0).toUpperCase()+v.slice(1));
-
-// count of screens carrying a given tag value (respects nothing else — total in library)
 function countFor(g, v){ return DATA.screens.filter(s=>s.tags[g]===v).length; }
 
 function buildFilters(){
@@ -93,12 +171,10 @@ function buildFilters(){
   const present = g => [...new Set(DATA.screens.map(s => s.tags[g]).filter(Boolean))];
   const ordered = g => { const order=vocab[g]||[]; return present(g).sort((a,b)=>order.indexOf(a)-order.indexOf(b)); };
 
-  // Subject = checkbox rows with counts
   document.getElementById("f-subject").innerHTML = ordered("subject").map(v=>`
     <label><input type="checkbox" data-g="subject" data-v="${v}" onchange="togCheck(this)">${label(v)}<span class="cnt">${countFor("subject",v)}</span></label>
   `).join("");
 
-  // the rest = pill chips
   for(const g of ["format","setting","tone","month"]){
     document.getElementById("f-"+g).innerHTML = ordered(g).map(v=>
       `<span class="pill" data-g="${g}" data-v="${v}" data-on="0" onclick="togPill(this)">${label(v)}</span>`
@@ -106,17 +182,8 @@ function buildFilters(){
   }
 }
 
-function togCheck(el){
-  const g=el.dataset.g, v=el.dataset.v;
-  el.checked ? sel[g].add(v) : sel[g].delete(v);
-  render();
-}
-function togPill(el){
-  const g=el.dataset.g, v=el.dataset.v, on=el.dataset.on==="1";
-  el.dataset.on = on ? "0":"1";
-  on ? sel[g].delete(v) : sel[g].add(v);
-  render();
-}
+function togCheck(el){ const g=el.dataset.g, v=el.dataset.v; el.checked ? sel[g].add(v) : sel[g].delete(v); render(); }
+function togPill(el){ const g=el.dataset.g, v=el.dataset.v, on=el.dataset.on==="1"; el.dataset.on = on?"0":"1"; on ? sel[g].delete(v) : sel[g].add(v); render(); }
 function clearAll(){
   for(const g in sel) sel[g].clear();
   document.getElementById("q").value="";
@@ -124,7 +191,6 @@ function clearAll(){
   document.querySelectorAll('.pill').forEach(p=>p.dataset.on="0");
   render();
 }
-// remove a single active filter (from the active-chip row)
 function removeFilter(g,v){
   sel[g].delete(v);
   const cb=document.querySelector(`.subj input[data-g="${g}"][data-v="${v}"]`); if(cb) cb.checked=false;
@@ -146,7 +212,7 @@ function renderActive(){
   const el=document.getElementById("active");
   const chips=[];
   for(const g in sel){ for(const v of sel[g]){ chips.push(
-    `<button class="achip" onclick="removeFilter('${g}','${v}')">${label(v)} <span class="x">\u2715</span></button>`
+    `<button class="achip" onclick="removeFilter('${g}','${v}')">${label(v)} <span class="x">&#10005;</span></button>`
   ); } }
   el.innerHTML = chips.length ? `<span class="lbl">Active:</span>${chips.join("")}` : "";
 }
@@ -192,7 +258,6 @@ function render(){
   });
 }
 
-// hub/config branding (best-effort; keeps the library white-label)
 function applyBrand(bc){
   if(!bc) return;
   const c=bc.colors||{}, r=document.documentElement.style;
@@ -210,8 +275,8 @@ async function loadBranding(){
     applyBrand(cfg.brand_config);
     const nm=(cfg.brand_config&&cfg.brand_config.name)||cfg.name;
     if(nm) document.getElementById('brandname').textContent=nm;
-    if(cfg.vwl_client) DATA.client=cfg.vwl_client;   // used by the download beacon
-  }catch(e){ /* branding best-effort; library renders with token defaults */ }
+    if(cfg.vwl_client) DATA.client=cfg.vwl_client;
+  }catch(e){ /* branding best-effort */ }
 }
 
 async function boot(){
@@ -219,7 +284,7 @@ async function boot(){
   try{
     const res = await fetch("library.json");
     const lib = await res.json();
-    DATA = Object.assign(lib, { client: DATA.client });   // keep vwl_client from hub/config
+    DATA = Object.assign(lib, { client: DATA.client });
   }catch(e){
     document.getElementById("count").textContent = "Could not load library.json (serve over http, not file://).";
     return;
