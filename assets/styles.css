@@ -1,45 +1,20 @@
 /* ============================================================================
-   Visual Wellness Library — shared styles
-   TWO halves:
-     1. .vwl-* SCREEN styles  — the TV output + thumbnails. DO NOT RE-SKIN.
-        overlay.js renders into these; changing them changes what clients
-        download. Left exactly as the working tool had them.
-     2. Library INTERFACE     — re-skinned to the Wellness Tools design system
-        (paper palette, Newsreader/Instrument Sans, filter rail, asset cards).
-        Tokens mirror wellness-tools-tokens.css; --brand-* can be overridden
-        at runtime from hub/config for white-label.
+   Visual Wellness Library — SCREEN render styles
+   These style the TV output (.vwl-*) rendered by overlay.js, shared by:
+     - screen.html   (full-screen render → MP4)
+     - index.html    (scaled-down live thumbnails)
+   DO NOT re-skin these: changing them changes what clients download.
+   The library INTERFACE chrome is inlined in index.html and is not here.
    ============================================================================ */
 
 :root{
-  /* ---- SCREEN render vars (unchanged — used by .vwl-* only) ---- */
   --font-sans:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --font-voice:"Newsreader",Georgia,"Times New Roman",serif;
-
-  /* ---- Interface design tokens (from the shared system) ---- */
-  --brand-blue:#236192; --brand-navy:#002855; --brand-orange:#ED8B00; --brand-spruce:#126e46;
-  --accent:var(--brand-orange);
-  --accent-text:#B5811F;
-  --library:#17402F;            /* library action green (Design) */
-  --library-hover:#1F5B41;
-  --chip-lib-bg:#E7EFEA;        /* active library filter chip */
-
-  --ink:#0E2A44; --ink-deep:#0C2135;
-  --paper:#EFEBE2; --paper-lt:#F6F3ED; --panel:#FFFDF9;
-  --border:#E0D9CB; --border-lt:#EFE9DE; --border-st:#C9C2B3;
-  --muted:#5F6B77; --muted-2:#6B7885; --subtle:#8A9199; --faint:#A9A192;
-  --cream:#F1EADC;
-  --chip-bg:#F1ECE1;
-
-  --r-input:5px; --r-card:8px; --r-pill:20px;
-  --shadow-asset:0 18px 40px -26px rgba(14,42,68,0.5);
 }
 *{box-sizing:border-box;}
-html,body{margin:0;}
-body{font-family:var(--font-sans);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;}
+body{margin:0;font-family:var(--font-sans);}
 
-/* ============================================================================
-   1. SCREEN (TV output) — UNCHANGED. Do not edit; overlay.js depends on this.
-   ============================================================================ */
+/* ---------- Screen (TV output) ---------- */
 .vwl-screen{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#111;}
 .vwl-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background-size:cover;background-position:center;}
 @keyframes vwl-ken{0%{transform:scale(1)}100%{transform:scale(1.1)}}
@@ -53,82 +28,3 @@ body{font-family:var(--font-sans);color:var(--ink);background:var(--paper);-webk
 .vwl-qr{position:absolute;right:3.5%;bottom:6%;display:flex;flex-direction:column;align-items:center;gap:5px;}
 .vwl-qrbox{width:clamp(38px,4vw,64px);aspect-ratio:1;padding:5px;border-radius:6px;background:#fff;line-height:0;}
 .vwl-qrlabel{font-size:clamp(8px,1vw,12px);color:#fff;text-shadow:0 1px 6px rgba(0,0,0,0.7);}
-
-/* ============================================================================
-   2. LIBRARY INTERFACE — re-skinned
-   ============================================================================ */
-
-/* top bar (matches launcher / reports) */
-.topbar{display:flex;align-items:center;gap:12px;padding:16px 34px;background:#fbfaf7;border-bottom:1px solid var(--border);}
-.topbar img{height:26px;display:none;}
-.topbar .brand{font-weight:600;color:var(--brand-blue);font-size:15px;}
-.topbar .back{margin-left:auto;font-size:12.5px;color:var(--muted);text-decoration:none;}
-.topbar .back:hover{color:var(--accent-text);}
-
-/* two-column shell: sticky filter rail + content */
-.shell{display:grid;grid-template-columns:236px minmax(0,1fr);align-items:start;}
-
-/* ---- filter rail ---- */
-.rail{padding:30px 22px 60px;border-right:1px solid var(--border);position:sticky;top:0;}
-.rail .refine{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--subtle);margin-bottom:14px;}
-.rail .searchbar{width:100%;height:38px;border:1px solid var(--border);border-radius:var(--r-input);padding:0 12px;font:inherit;font-size:13px;background:var(--panel);margin-bottom:20px;}
-.rail .searchbar:focus{outline:none;border-color:var(--library);box-shadow:0 0 0 3px var(--chip-lib-bg);}
-.fgroup{margin-bottom:22px;}
-.fgroup .flabel{font-size:12px;font-weight:600;margin-bottom:9px;}
-
-/* Subject = checkbox rows with counts */
-.subj{display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:var(--muted);}
-.subj label{display:flex;align-items:center;gap:8px;cursor:pointer;}
-.subj input{accent-color:var(--library);}
-.subj .cnt{margin-left:auto;color:var(--faint);}
-
-/* pill chips (Month / Setting / Tone / Format) */
-.pills{display:flex;flex-wrap:wrap;gap:6px;}
-.pill{font-size:11.5px;padding:5px 11px;border-radius:var(--r-pill);border:1px solid var(--border);background:var(--panel);color:var(--muted);cursor:pointer;user-select:none;}
-.pill[data-on="1"]{border-color:var(--library);background:var(--library);color:var(--cream);}
-.clear{display:inline-block;margin-top:6px;font-size:12px;color:var(--accent-text);background:none;border:0;padding:0;cursor:pointer;}
-
-/* ---- content column ---- */
-.content{padding:30px 34px 70px;}
-.chead{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:8px;flex-wrap:wrap;}
-.chead .titleblock{min-width:0;}
-.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-text);margin-bottom:12px;}
-.eyebrow span{width:22px;height:1px;background:var(--accent);}
-h1{font-family:var(--font-voice);font-weight:300;font-size:42px;line-height:1.05;margin:0 0 8px;letter-spacing:-.015em;}
-h1 em{font-style:italic;color:#1D5B7E;}
-.sub{margin:0;font-size:13.5px;color:var(--muted);}
-
-/* active-filter row */
-.active{display:flex;gap:8px;margin:22px 0 20px;flex-wrap:wrap;align-items:center;min-height:24px;}
-.active .lbl{font-size:11.5px;color:var(--subtle);}
-.achip{font-size:11.5px;padding:5px 10px;border-radius:var(--r-pill);background:var(--chip-lib-bg);color:var(--library);display:inline-flex;gap:7px;align-items:center;cursor:pointer;border:0;font-family:inherit;}
-.achip .x{opacity:.6;}
-
-/* asset grid */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:20px;}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-card);overflow:hidden;display:flex;flex-direction:column;transition:border-color .13s,box-shadow .13s;}
-.card:hover{border-color:var(--ink);box-shadow:var(--shadow-asset);}
-.card .thumb{position:relative;aspect-ratio:16/9;background:#111;overflow:hidden;}
-.card .thumb .vwl-screen{border-radius:0;height:100%;}
-.fmt-badge{position:absolute;top:12px;right:12px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;background:rgba(255,253,249,.9);color:var(--library);padding:4px 8px;border-radius:3px;}
-.card .meta{padding:16px 18px 18px;}
-.card .mrow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
-.card .mt{font-family:var(--font-voice);font-weight:400;font-size:17.5px;margin:0 0 8px;line-height:1.2;}
-.card .stat{font-size:11px;color:var(--faint);white-space:nowrap;padding-top:3px;}
-.tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;}
-.tag{font-size:10.5px;padding:3px 8px;border-radius:var(--r-pill);background:var(--chip-bg);color:var(--muted-2);}
-.rowbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.btn{font:inherit;font-size:12.5px;padding:9px;border-radius:var(--r-input);border:1px solid var(--border-st);background:var(--panel);color:var(--ink);cursor:pointer;text-align:center;text-decoration:none;}
-.btn:hover{border-color:var(--ink);background:var(--paper-lt);}
-.btn-primary{background:var(--library);color:var(--cream);border-color:var(--library);font-weight:600;}
-.btn-primary:hover{background:var(--library-hover);border-color:var(--library-hover);}
-
-.count{font-size:12px;color:var(--subtle);margin:0 0 12px;}
-.empty{grid-column:1/-1;background:var(--paper-lt);border:1px dashed var(--border-st);border-radius:var(--r-card);min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:13.5px;text-align:center;padding:30px;}
-
-/* responsive: collapse the rail above the grid */
-@media(max-width:820px){
-  .shell{grid-template-columns:1fr;}
-  .rail{position:static;border-right:0;border-bottom:1px solid var(--border);}
-  h1{font-size:34px;}
-}
