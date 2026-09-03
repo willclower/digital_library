@@ -151,6 +151,31 @@
 let DATA = { screens: [] };
 const sel = { subject:new Set(), month:new Set(), setting:new Set(), tone:new Set(), format:new Set() };
 
+// ---- Screen data API (DRL) ----
+const DRL_API   = "https://n8n-admin.willclower.com/webhook/drl";
+function resolveImage(s){
+  if (s.background_ref) return s.background_ref;      // "gradient:night" etc.
+  if (!s.image_url) return null;
+  return DRL_API + "/image/" + s.image_url.split("/").pop();
+}
+// API returns tags as arrays + flat columns; this index expects s.tags[g] as a string.
+// Normalize each API row into the shape this page already knows.
+function normalize(row){
+  const first = a => Array.isArray(a) ? a[0] : a;
+  return {
+    id: row.id, title: row.title, subtitle: row.subtitle,
+    eyebrow: row.eyebrow, cta: row.cta,
+    treatment: row.treatment, accent: row.accent, format: row.format,
+    qrUrl: row.qr_url,
+    background: resolveImage(row) || "gradient:night",
+    tags: {
+      subject: first(row.subject), month: first(row.month),
+      setting: first(row.setting), aspect: first(row.aspect),
+      tone: first(row.tone), format: row.format
+    }
+  };
+}
+     
 // --- Download tracking hook (host per Alex; unchanged) ---
 const BEACON = "https://n8n.mymedwellness.com/webhook/vwl-download";
 function trackDownload(screen){
@@ -282,11 +307,20 @@ async function loadBranding(){
 async function boot(){
   await loadBranding();
   try{
-    const res = await fetch("library.json");
+    const res = await fetch(DRL_API + "/library");
     const lib = await res.json();
+    lib.screens = (lib.screens || []).map(normalize);
+    // rebuild the tagVocabulary this page expects, from what's present
+    lib.library = lib.library || {};
+    lib.library.tagVocabulary = {
+      subject:["stress","sleep","heat","mental-health","movement","nutrition","hydration","prevention","burnout","heart-health","connection"],
+      month:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+      setting:["floor","breakroom","office","any"],
+      aspect:["16:9","9:16"], tone:["calm","action"], format:["still","video"]
+    };
     DATA = Object.assign(lib, { client: DATA.client });
   }catch(e){
-    document.getElementById("count").textContent = "Could not load library.json (serve over http, not file://).";
+    document.getElementById("count").textContent = "Could not load library from API.";
     return;
   }
   document.getElementById("libsub").textContent =
