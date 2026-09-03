@@ -33,6 +33,26 @@
         "format": "still"
       }
     },
+   {
+      "id": "heart-bp-check-01",
+      "title": "Know your numbers.",
+      "subtitle": "Blood pressure and cholesterol don't announce themselves. A quick check tells you where you stand.",
+      "eyebrow": "American Heart Month",
+      "cta": "Get your numbers checked — ask your clinic",
+      "background": "images/heart_bp_check_01.png",
+      "format": "still",
+      "treatment": "left-scrim",
+      "accent": "#c98a7a",
+      "qrUrl": "https://go.mymedwellness.com/s/heart-bp-check-01",
+      "tags": {
+        "subject": "prevention",
+        "month": "Feb",
+        "setting": "office",
+        "aspect": "16:9",
+        "tone": "action",
+        "format": "still"
+      }
+    },
     {
       "id": "heat-water-01",
       "title": "Thirsty is already too late.",
