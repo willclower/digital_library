@@ -67,8 +67,29 @@
   <!-- ================= FORM ================= -->
   <div>
     <div class="eyebrow"><span></span>Admin</div>
-    <h1>Add a screen</h1>
-    <p class="sub">Fill in the copy, tag it, drop in an image. Preview updates live. Publishing saves straight to the library.</p>
+    <h1>Add a resource</h1>
+    <p class="sub">Pick the type, drop in the finished asset. The system drafts the copy and tags — you review, edit, and publish.</p>
+
+    <!-- ===== Asset type ===== -->
+    <div class="field">
+      <label>Asset type</label>
+      <div class="pills" id="assetTypePills">
+        <span class="pill" data-t="screen"     data-on="1" onclick="setAssetType('screen')">Screen</span>
+        <span class="pill" data-t="flyer"      data-on="0" onclick="setAssetType('flyer')">Flyer</span>
+        <span class="pill" data-t="newsletter" data-on="0" onclick="setAssetType('newsletter')">Newsletter</span>
+      </div>
+    </div>
+
+    <!-- ===== Upload + AI draft ===== -->
+    <div class="field">
+      <label>Upload asset <span class="hint" id="uploadHint">16:9 image (PNG/JPEG)</span></label>
+      <label class="drop" id="assetDrop" for="assetFile">Click to choose a file, or drag one here</label>
+      <input type="file" id="assetFile" style="display:none" onchange="onAsset(event)">
+    </div>
+    <div class="actions" style="margin:-6px 0 18px;">
+      <button class="btn" id="draftBtn" onclick="runDraft()" disabled>Draft with AI</button>
+      <span class="msg" id="draftMsg"></span>
+    </div>
 
     <div class="field">
       <label>Headline <span class="hint">the big line</span></label>
@@ -89,7 +110,19 @@
       </div>
     </div>
 
-    <div class="row3">
+    <!-- ===== Doc-only fields (flyer / newsletter) ===== -->
+    <div class="doc-only" style="display:none">
+      <div class="field">
+        <label>Description <span class="hint">short summary</span></label>
+        <textarea id="description" placeholder="What this covers…"></textarea>
+      </div>
+      <div class="field">
+        <label>Issue date <span class="hint">YYYY-MM-DD (optional)</span></label>
+        <input type="text" id="issue_date" placeholder="2026-02-01">
+      </div>
+    </div>
+
+    <div class="row3 screen-only">
       <div class="field">
         <label>Treatment</label>
         <select id="treatment" onchange="draw()">
@@ -112,12 +145,6 @@
     </div>
 
     <div class="field">
-      <label>Image <span class="hint">16:9, ≥1920×1080 ideal</span></label>
-      <label class="drop" id="drop" for="file">Click to choose an image, or drag one here</label>
-      <input type="file" id="file" accept="image/png,image/jpeg" style="display:none" onchange="onFile(event)">
-    </div>
-
-    <div class="field">
       <label>Subject <span class="hint">choose one or more</span></label>
       <div class="pills" id="t-subject"></div>
     </div>
@@ -136,17 +163,17 @@
         <label>Tone</label>
         <div class="pills" id="t-tone"></div>
       </div>
-      <div class="field">
+      <div class="field screen-only">
         <label>Aspect</label>
         <div class="pills" id="t-aspect"></div>
       </div>
     </div>
 
     <div class="field">
-      <label>Screen ID <span class="hint">auto from headline; edit if needed</span></label>
+      <label id="idLabel">Screen ID <span class="hint">auto from headline; edit if needed</span></label>
       <input type="text" id="id" placeholder="heart-bp-check-01">
     </div>
-    <div class="field">
+    <div class="field screen-only">
       <label>QR URL <span class="hint">auto from ID</span></label>
       <input type="text" id="qr_url" placeholder="https://go.mymedwellness.com/s/heart-bp-check-01">
     </div>
@@ -170,7 +197,12 @@
 <script>
 // ---- Endpoints ----
 const DRL_API = "https://n8n-admin.willclower.com/webhook/drl";   // write: DRL_API + "/screen"
+const DRAFT_URL = DRL_API + "/draft";                             // AI draft-on-upload
 const VOCAB_URL = DRL_API + "/vocab";                              // optional; falls back to built-in list
+
+// ---- Asset type + uploaded asset bytes (base64) ----
+let assetType = "screen";               // screen | flyer | newsletter
+let assetB64 = null, assetMime = null, assetName = null;
 
 // ---- Tag vocabulary (fallback if /vocab endpoint not built) ----
 const FALLBACK_VOCAB = {
@@ -182,6 +214,8 @@ const FALLBACK_VOCAB = {
 };
 const sel = { subject:new Set(), month:new Set(), setting:new Set(), tone:new Set(), aspect:new Set(["16:9"]) };
 let imageDataUrl = null, imageDims = null;
+let VOCAB = Object.assign({}, FALLBACK_VOCAB);   // live vocab (fallback until /vocab loads)
+function currentVocab(){ return VOCAB; }
 
 function buildPills(vocab){
   for(const g of ["subject","month","setting","tone","aspect"]){
@@ -229,30 +263,104 @@ function draw(){
   renderScreen(document.getElementById("preview"), currentScreen(), { scale:0.5, chrome:true });
 }
 
-function onFile(ev){
+// ===== Asset type switch =====
+function setAssetType(t){
+  assetType = t;
+  document.querySelectorAll("#assetTypePills .pill").forEach(p=>p.dataset.on = (p.dataset.t===t)?"1":"0");
+  const isScreen = t==="screen";
+  document.querySelectorAll(".screen-only").forEach(el=>el.style.display = isScreen?"":"none");
+  document.querySelectorAll(".doc-only").forEach(el=>el.style.display = isScreen?"none":"");
+  // relabel headline/id + accept filter + preview visibility
+  document.getElementById("uploadHint").textContent = isScreen ? "16:9 image (PNG/JPEG)" : "PDF document";
+  document.getElementById("assetFile").setAttribute("accept", isScreen ? "image/png,image/jpeg" : "application/pdf");
+  document.getElementById("idLabel").innerHTML = isScreen
+    ? 'Screen ID <span class="hint">auto from headline; edit if needed</span>'
+    : 'Resource ID <span class="hint">auto from title; edit if needed</span>';
+  document.querySelector(".previewwrap").style.display = isScreen ? "" : "none";
+  // clear the loaded asset when switching type (mime/format differ)
+  clearAsset();
+  buildPills(currentVocab());
+}
+
+function clearAsset(){
+  assetB64=null; assetMime=null; assetName=null; imageDataUrl=null; imageDims=null;
+  const d=document.getElementById("assetDrop");
+  d.classList.remove("hasfile"); d.textContent="Click to choose a file, or drag one here";
+  document.getElementById("draftBtn").disabled=true;
+  document.getElementById("dims").textContent="No image yet — showing a neutral background.";
+}
+
+// ===== Upload (asset = the thing being catalogued) =====
+function onAsset(ev){
   const f=ev.target.files[0]; if(!f) return;
+  assetName=f.name; assetMime=f.type || (assetType==="screen"?"image/png":"application/pdf");
   const reader=new FileReader();
   reader.onload=()=>{
-    imageDataUrl=reader.result;
-    document.getElementById("drop").classList.add("hasfile");
-    document.getElementById("drop").textContent = f.name + " ✓  (click to replace)";
-    const img=new Image();
-    img.onload=()=>{
-      imageDims={w:img.naturalWidth,h:img.naturalHeight};
-      const under = img.naturalHeight < 1080;
-      document.getElementById("dims").innerHTML =
-        `Image: ${img.naturalWidth}×${img.naturalHeight}` +
-        (under ? ` <span class="warn">— below 1080p; fine for demo, upscale for production TV.</span>` : ` — good for TV.`);
-      draw();
-    };
-    img.src=imageDataUrl;
+    const dataUrl=reader.result;
+    assetB64 = dataUrl.split(",")[1];               // strip data: prefix for the API
+    document.getElementById("assetDrop").classList.add("hasfile");
+    document.getElementById("assetDrop").textContent = f.name + " ✓  (click to replace)";
+    document.getElementById("draftBtn").disabled=false;
+    if(assetType==="screen"){
+      imageDataUrl=dataUrl;                          // feeds the live overlay preview
+      const img=new Image();
+      img.onload=()=>{
+        imageDims={w:img.naturalWidth,h:img.naturalHeight};
+        const under=img.naturalHeight<1080;
+        document.getElementById("dims").innerHTML =
+          `Image: ${img.naturalWidth}×${img.naturalHeight}` +
+          (under ? ` <span class="warn">— below 1080p; fine for demo, upscale for production TV.</span>` : ` — good for TV.`);
+        draw();
+      };
+      img.src=dataUrl;
+    }
   };
   reader.readAsDataURL(f);
 }
-// drag & drop onto the box
-const drop=document.getElementById("drop");
-["dragover","dragenter"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add("hasfile");}));
-drop.addEventListener("drop",ev=>{ ev.preventDefault(); const f=ev.dataTransfer.files[0]; if(f){ document.getElementById("file").files=ev.dataTransfer.files; onFile({target:{files:[f]}}); }});
+const assetDrop=document.getElementById("assetDrop");
+["dragover","dragenter"].forEach(e=>assetDrop.addEventListener(e,ev=>{ev.preventDefault();assetDrop.classList.add("hasfile");}));
+assetDrop.addEventListener("drop",ev=>{ ev.preventDefault(); const f=ev.dataTransfer.files[0]; if(f){ document.getElementById("assetFile").files=ev.dataTransfer.files; onAsset({target:{files:[f]}}); }});
+
+// ===== AI draft =====
+function setDraftMsg(text,cls){ const m=document.getElementById("draftMsg"); m.textContent=text; m.className="msg "+(cls||""); }
+
+async function runDraft(){
+  if(!assetB64){ setDraftMsg("Upload a file first.","err"); return; }
+  const btn=document.getElementById("draftBtn"); btn.disabled=true; setDraftMsg("Drafting…","");
+  try{
+    const res=await fetch(DRAFT_URL,{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ asset_type:assetType, mime:assetMime, file_base64:assetB64 })
+    });
+    if(!res.ok) throw new Error("draft "+res.status);
+    const d=await res.json();
+    applyDraft(d);
+    setDraftMsg("Drafted — review and edit below.","ok");
+  }catch(e){
+    setDraftMsg("Draft failed — check the draft workflow / CORS.","err");
+  }finally{ btn.disabled=false; }
+}
+
+function applyDraft(d){
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v||""; };
+  set("title", d.title);
+  set("subtitle", d.subtitle);
+  set("eyebrow", d.eyebrow);
+  set("cta", d.cta);
+  set("description", d.description);
+  set("issue_date", d.issue_date);
+  // id/qr auto-fill from title unless the user already touched them
+  onTitle();
+  // tags: replace selections with validated draft tags
+  const tags=d.tags||{};
+  for(const g of Object.keys(sel)){
+    sel[g].clear();
+    (Array.isArray(tags[g])?tags[g]:[]).forEach(v=>sel[g].add(v));
+  }
+  if(assetType==="screen" && sel.aspect.size===0) sel.aspect.add("16:9");
+  buildPills(currentVocab());
+  draw();
+}
 
 function setMsg(text,cls){ const m=document.getElementById("msg"); m.textContent=text; m.className="msg "+(cls||""); }
 
@@ -263,7 +371,7 @@ async function save(){
   if(!title){ setMsg("Need a headline.","err"); return; }
 
   const payload = {
-    id, title,
+    id, title, asset_type: assetType,
     subtitle:document.getElementById("subtitle").value.trim(),
     eyebrow:document.getElementById("eyebrow").value.trim(),
     cta:document.getElementById("cta").value.trim(),
@@ -271,9 +379,14 @@ async function save(){
     accent:document.getElementById("accent").value.trim(),
     format:document.getElementById("format").value,
     qr_url:document.getElementById("qr_url").value.trim(),
+    description:document.getElementById("description").value.trim(),
+    issue_date:document.getElementById("issue_date").value.trim() || null,
     subject:[...sel.subject], month:[...sel.month], setting:[...sel.setting],
     tone:[...sel.tone], aspect:[...sel.aspect],
-    image: imageDataUrl || null
+    // screens send the background image; docs send the PDF bytes. Both ride image_base64.
+    image: imageDataUrl || null,
+    file_base64: assetB64 || null,
+    mime: assetMime || null
   };
 
   const btn=document.getElementById("save"); btn.disabled=true; setMsg("Publishing…","");
@@ -293,29 +406,29 @@ async function save(){
 }
 
 function resetForm(){
-  ["title","subtitle","eyebrow","cta","qr_url","id"].forEach(k=>{const el=document.getElementById(k);el.value="";el.dataset.touched="";});
+  ["title","subtitle","eyebrow","cta","qr_url","id","description","issue_date"].forEach(k=>{const el=document.getElementById(k);if(el){el.value="";el.dataset.touched="";}});
   document.getElementById("accent").value="#d9b98f";
   document.getElementById("treatment").value="left-scrim";
   document.getElementById("format").value="still";
-  imageDataUrl=null; imageDims=null;
-  document.getElementById("drop").classList.remove("hasfile");
-  document.getElementById("drop").textContent="Click to choose an image, or drag one here";
-  document.getElementById("dims").textContent="No image yet — showing a neutral background.";
+  clearAsset();
   for(const g in sel){ sel[g].clear(); } sel.aspect.add("16:9");
-  buildPills(FALLBACK_VOCAB); loadVocab(); draw(); setMsg("","");
+  buildPills(currentVocab()); draw(); setMsg("","");
+  setDraftMsg("","");
 }
 
 async function loadVocab(){
   try{
     const res=await fetch(VOCAB_URL); if(!res.ok) throw 0;
     const v=await res.json();
-    buildPills(Object.assign({}, FALLBACK_VOCAB, v));
-  }catch(e){ buildPills(FALLBACK_VOCAB); }
+    VOCAB=Object.assign({}, FALLBACK_VOCAB, v);
+    buildPills(VOCAB);
+  }catch(e){ VOCAB=Object.assign({}, FALLBACK_VOCAB); buildPills(VOCAB); }
 }
 
 // init
 buildPills(FALLBACK_VOCAB);
 loadVocab();
+setAssetType("screen");
 draw();
 </script>
 </body>
