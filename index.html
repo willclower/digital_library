@@ -73,6 +73,7 @@
   .card .thumb{position:relative;aspect-ratio:16/9;background:#111;overflow:hidden;}
   .card .thumb .vwl-screen{border-radius:0;height:100%;}
   .card .doc-thumb{display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#f4f1ea,#e6e0d4);}
+  .card .doc-img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;}
   .card .doc-icon{font-family:var(--font-voice);font-weight:600;font-size:26px;letter-spacing:2px;color:var(--ink);border:2px solid var(--ink);border-radius:6px;padding:14px 20px;opacity:.72;}
   .card .doc-desc{font-size:12.5px;color:var(--muted);line-height:1.45;margin:0 0 10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .fmt-badge{position:absolute;top:12px;right:12px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;background:rgba(255,253,249,.9);color:var(--library);padding:4px 8px;border-radius:3px;}
@@ -166,6 +167,12 @@ function resolveImage(s){
   const id = m ? m[2] : s.image_url.split("/").pop();
   return DRL_API + "/" + kind + "?id=" + encodeURIComponent(id);
 }
+function resolveThumb(marker){
+  // marker is "/api/thumb/{id}"; rewrite to the live /thumb?id= endpoint.
+  const m = /\/api\/thumb\/(.+)$/.exec(marker);
+  const id = m ? m[1] : marker.split("/").pop();
+  return DRL_API + "/thumb?id=" + encodeURIComponent(id);
+}
 // API returns tags as arrays + flat columns; this index expects s.tags[g] as a string.
 // Normalize each API row into the shape this page already knows.
 function normalize(row){
@@ -179,6 +186,7 @@ function normalize(row){
     qrUrl: row.qr_url,
     assetType: at, isDoc,
     description: row.description, issueDate: row.issue_date,
+    thumbUrl: row.thumb_url ? resolveThumb(row.thumb_url) : null,
     // For docs the "background" is the /file endpoint (preview + download both use it).
     background: isDoc ? resolveImage(row) : (resolveImage(row) || "gradient:night"),
     tags: {
@@ -279,9 +287,12 @@ function render(){
       // both point at the /file endpoint (s.background).
       const kind = s.assetType==='newsletter' ? 'Newsletter' : 'Flyer';
       const fileUrl = s.background || '#';
+      const thumbInner = s.thumbUrl
+        ? `<img class="doc-img" src="${s.thumbUrl}" alt="" loading="lazy" onerror="this.parentNode.innerHTML='<div class=&quot;doc-icon&quot;>PDF</div>'">`
+        : `<div class="doc-icon">PDF</div>`;
       card.innerHTML = `
         <div class="thumb doc-thumb">
-          <div class="doc-icon">PDF</div>
+          ${thumbInner}
           <span class="fmt-badge">${kind}</span>
         </div>
         <div class="meta">
