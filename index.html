@@ -72,6 +72,9 @@
   .card:hover{border-color:var(--ink);box-shadow:var(--shadow-asset);}
   .card .thumb{position:relative;aspect-ratio:16/9;background:#111;overflow:hidden;}
   .card .thumb .vwl-screen{border-radius:0;height:100%;}
+  .card .doc-thumb{display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#f4f1ea,#e6e0d4);}
+  .card .doc-icon{font-family:var(--font-voice);font-weight:600;font-size:26px;letter-spacing:2px;color:var(--ink);border:2px solid var(--ink);border-radius:6px;padding:14px 20px;opacity:.72;}
+  .card .doc-desc{font-size:12.5px;color:var(--muted);line-height:1.45;margin:0 0 10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .fmt-badge{position:absolute;top:12px;right:12px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;background:rgba(255,253,249,.9);color:var(--library);padding:4px 8px;border-radius:3px;}
   .card .meta{padding:16px 18px 18px;}
   .card .mrow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
@@ -167,12 +170,17 @@ function resolveImage(s){
 // Normalize each API row into the shape this page already knows.
 function normalize(row){
   const first = a => Array.isArray(a) ? a[0] : a;
+  const at = row.asset_type || "screen";
+  const isDoc = at !== "screen";
   return {
     id: row.id, title: row.title, subtitle: row.subtitle,
     eyebrow: row.eyebrow, cta: row.cta,
     treatment: row.treatment, accent: row.accent, format: row.format,
     qrUrl: row.qr_url,
-    background: resolveImage(row) || "gradient:night",
+    assetType: at, isDoc,
+    description: row.description, issueDate: row.issue_date,
+    // For docs the "background" is the /file endpoint (preview + download both use it).
+    background: isDoc ? resolveImage(row) : (resolveImage(row) || "gradient:night"),
     tags: {
       subject: first(row.subject), month: first(row.month),
       setting: first(row.setting), aspect: first(row.aspect),
@@ -263,10 +271,36 @@ function render(){
   out.forEach(s=>{
     const card = document.createElement("article");
     card.className = "card";
-    const fmt = (s.tags.aspect || (s.tags.format==='video'?'Video':'16:9'));
-    const stat = s.tags.format==='video' ? 'Video loop' : '';
     const badges = ["subject","setting","month"].map(k=>s.tags[k]).filter(Boolean)
       .map(v=>`<span class="tag">${label(v)}</span>`).join("");
+
+    if(s.isDoc){
+      // Document card (flyer / newsletter): no screen overlay; Preview + Download
+      // both point at the /file endpoint (s.background).
+      const kind = s.assetType==='newsletter' ? 'Newsletter' : 'Flyer';
+      const fileUrl = s.background || '#';
+      card.innerHTML = `
+        <div class="thumb doc-thumb">
+          <div class="doc-icon">PDF</div>
+          <span class="fmt-badge">${kind}</span>
+        </div>
+        <div class="meta">
+          <div class="mrow">
+            <h3 class="mt">${s.title}</h3>
+          </div>
+          ${s.description?`<p class="doc-desc">${s.description}</p>`:''}
+          <div class="tags">${badges}</div>
+          <div class="rowbtns">
+            <a class="btn" href="${fileUrl}" target="_blank" rel="noopener">Preview</a>
+            <a class="btn btn-primary" href="${fileUrl}" download onclick="trackDownload(${JSON.stringify(s).replace(/"/g,'&quot;')})">Download</a>
+          </div>
+        </div>`;
+      grid.appendChild(card);
+      return;
+    }
+
+    const fmt = (s.tags.aspect || (s.tags.format==='video'?'Video':'16:9'));
+    const stat = s.tags.format==='video' ? 'Video loop' : '';
     card.innerHTML = `
       <div class="thumb">
         <div class="vwl-screen" data-thumb></div>
@@ -329,7 +363,7 @@ async function boot(){
     return;
   }
   document.getElementById("libsub").textContent =
-    `Workplace-screen content \u00B7 ${DATA.screens.length} screens \u00B7 white-label ready`;
+    `Workplace wellness resources \u00B7 ${DATA.screens.length} items \u00B7 white-label ready`;
   buildFilters();
   render();
 }
