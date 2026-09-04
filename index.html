@@ -156,7 +156,12 @@ const DRL_API   = "https://n8n-admin.willclower.com/webhook/drl";
 function resolveImage(s){
   if (s.background_ref) return s.background_ref;      // "gradient:night" etc.
   if (!s.image_url) return null;
-  return DRL_API + "/image/" + s.image_url.split("/").pop();
+  // image_url is "/api/image/{id}" or "/api/file/{id}"; live endpoints take
+  // the id as a query param: DRL_API + "/image?id={id}".
+  const m = /\/api\/(image|file)\/(.+)$/.exec(s.image_url);
+  const kind = m ? m[1] : "image";
+  const id = m ? m[2] : s.image_url.split("/").pop();
+  return DRL_API + "/" + kind + "?id=" + encodeURIComponent(id);
 }
 // API returns tags as arrays + flat columns; this index expects s.tags[g] as a string.
 // Normalize each API row into the shape this page already knows.
