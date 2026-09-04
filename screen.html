@@ -17,12 +17,49 @@
 <div class="stage"><div class="frame"><div id="screen" class="vwl-screen"></div></div></div>
 <script src="assets/overlay.js"></script>
 <script>
+const DRL_API = "https://n8n-admin.willclower.com/webhook/drl";  // read: /library, image: /image/:id, file: /file/:id
+
+// API returns arrays for tag fields + flat columns; overlay.js expects a single
+// screen object with a background. Normalize: arrays -> first value, map the
+// image_url the API gives (/api/image/{id} or /api/file/{id}) to the real endpoint.
+function firstOf(v){ return Array.isArray(v) ? (v[0]||"") : (v||""); }
+function resolveImage(u){
+  if(!u) return "gradient:night";
+  if(/^https?:|^data:|^gradient:/.test(u)) return u;
+  // API hands back "/api/image/{id}" (or /api/file/{id}); rebuild against DRL_API host.
+  const m = /\/api\/(image|file)\/(.+)$/.exec(u);
+  if(m) return DRL_API + "/" + m[1] + "/" + m[2];
+  return u;
+}
+function normalize(s){
+  return Object.assign({}, s, {
+    subject:firstOf(s.subject), month:firstOf(s.month), setting:firstOf(s.setting),
+    aspect:firstOf(s.aspect), tone:firstOf(s.tone),
+    background: resolveImage(s.image_url || s.image || s.background)
+  });
+}
+
 async function boot(){
   const id = new URLSearchParams(location.search).get("id");
-  const data = await (await fetch("library.json")).json();
-  const s = data.screens.find(x=>x.id===id) || data.screens[0];
+  let list;
+  try{
+    const raw = await (await fetch(DRL_API + "/library")).json();
+    const rows = Array.isArray(raw) ? raw : (raw.screens || []);
+    list = rows.map(normalize);
+  }catch(e){
+    document.getElementById("screen").outerHTML = '<p class="miss">Could not load the library.</p>';
+    return;
+  }
+  const s = list.find(x=>x.id===id);
   if(!s){ document.getElementById("screen").outerHTML = '<p class="miss">Screen not found.</p>'; return; }
   document.title = s.title;
+
+  // Docs (flyer/newsletter) have no overlay — show the file, don't render a screen.
+  if(s.asset_type && s.asset_type !== "screen"){
+    location.replace(resolveImage(s.image_url));
+    return;
+  }
+
   // Font sizing keys off the frame width so text scales with the 16:9 stage.
   const frame = document.querySelector(".frame");
   const setScale = ()=>{ frame.style.fontSize = (frame.clientWidth/100) + "px"; };
