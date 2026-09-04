@@ -92,14 +92,14 @@
     </div>
 
     <div class="field">
-      <label>Headline <span class="hint">the big line</span></label>
+      <label id="titleLabel">Headline <span class="hint">the big line</span></label>
       <input type="text" id="title" oninput="onTitle()" placeholder="Know your numbers.">
     </div>
-    <div class="field">
+    <div class="field screen-only">
       <label>Subtitle</label>
       <textarea id="subtitle" oninput="draw()" placeholder="Blood pressure and cholesterol don't announce themselves…"></textarea>
     </div>
-    <div class="row2">
+    <div class="row2 screen-only">
       <div class="field">
         <label>Eyebrow <span class="hint">small line above</span></label>
         <input type="text" id="eyebrow" oninput="draw()" placeholder="American Heart Month">
@@ -276,6 +276,9 @@ function setAssetType(t){
   document.getElementById("idLabel").innerHTML = isScreen
     ? 'Screen ID <span class="hint">auto from headline; edit if needed</span>'
     : 'Resource ID <span class="hint">auto from title; edit if needed</span>';
+  document.getElementById("titleLabel").innerHTML = isScreen
+    ? 'Headline <span class="hint">the big line</span>'
+    : 'Title <span class="hint">the document title</span>';
   document.querySelector(".previewwrap").style.display = isScreen ? "" : "none";
   // clear the loaded asset when switching type (mime/format differ)
   clearAsset();
