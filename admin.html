@@ -194,7 +194,12 @@
 </div>
 
 <script src="assets/overlay.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
 // ---- Endpoints ----
 const DRL_API = "https://n8n-admin.willclower.com/webhook/drl";   // write: DRL_API + "/screen"
 const DRAFT_URL = DRL_API + "/draft";                             // AI draft-on-upload
@@ -203,6 +208,7 @@ const VOCAB_URL = DRL_API + "/vocab";                              // optional; 
 // ---- Asset type + uploaded asset bytes (base64) ----
 let assetType = "screen";               // screen | flyer | newsletter
 let assetB64 = null, assetMime = null, assetName = null;
+let docThumbB64 = null;   // page-1 JPEG thumbnail for flyer/newsletter (B2, browser-rendered)
 
 // ---- Tag vocabulary (fallback if /vocab endpoint not built) ----
 const FALLBACK_VOCAB = {
@@ -286,7 +292,7 @@ function setAssetType(t){
 }
 
 function clearAsset(){
-  assetB64=null; assetMime=null; assetName=null; imageDataUrl=null; imageDims=null;
+  assetB64=null; assetMime=null; assetName=null; imageDataUrl=null; imageDims=null; docThumbB64=null;
   const d=document.getElementById("assetDrop");
   d.classList.remove("hasfile"); d.textContent="Click to choose a file, or drag one here";
   document.getElementById("draftBtn").disabled=true;
@@ -316,9 +322,32 @@ function onAsset(ev){
         draw();
       };
       img.src=dataUrl;
+    } else {
+      // Doc (flyer/newsletter): render page 1 to a small JPEG for the library thumbnail.
+      docThumbB64 = null;
+      makeDocThumb(dataUrl).then(b64 => { docThumbB64 = b64; })
+        .catch(() => { docThumbB64 = null; /* falls back to PDF placeholder */ });
     }
   };
   reader.readAsDataURL(f);
+}
+
+// Render page 1 of a PDF data URL to a JPEG (max 640px wide), return bare base64.
+async function makeDocThumb(pdfDataUrl){
+  if(!window.pdfjsLib) return null;
+  const b64 = pdfDataUrl.split(",")[1];
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+  const page = await pdf.getPage(1);
+  const vp0 = page.getViewport({ scale: 1 });
+  const scale = Math.min(640 / vp0.width, 2);
+  const vp = page.getViewport({ scale });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+  return canvas.toDataURL("image/jpeg", 0.8).split(",")[1];
 }
 const assetDrop=document.getElementById("assetDrop");
 ["dragover","dragenter"].forEach(e=>assetDrop.addEventListener(e,ev=>{ev.preventDefault();assetDrop.classList.add("hasfile");}));
@@ -389,10 +418,19 @@ async function save(){
     // screens send the background image; docs send the PDF bytes. Both ride image_base64.
     image: imageDataUrl || null,
     file_base64: assetB64 || null,
+    thumb_base64: docThumbB64 || null,
     mime: assetMime || null
   };
 
   const btn=document.getElementById("save"); btn.disabled=true; setMsg("Publishing…","");
+
+  // If a doc was uploaded but its thumbnail is still rendering, wait briefly.
+  if(assetType!=="screen" && assetB64 && !docThumbB64){
+    for(let i=0;i<20 && !docThumbB64;i++){ await new Promise(r=>setTimeout(r,150)); }
+    // if it never rendered, publish anyway — card falls back to the PDF placeholder
+    payload.thumb_base64 = docThumbB64 || null;
+  }
+
   try{
     const res=await fetch(DRL_API+"/screen",{
       method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
