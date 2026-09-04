@@ -26,9 +26,10 @@ function firstOf(v){ return Array.isArray(v) ? (v[0]||"") : (v||""); }
 function resolveImage(u){
   if(!u) return "gradient:night";
   if(/^https?:|^data:|^gradient:/.test(u)) return u;
-  // API hands back "/api/image/{id}" (or /api/file/{id}); rebuild against DRL_API host.
+  // API hands back "/api/image/{id}" or "/api/file/{id}"; the live endpoints
+  // take the id as a query param: DRL_API + "/image?id={id}" (and /file?id=).
   const m = /\/api\/(image|file)\/(.+)$/.exec(u);
-  if(m) return DRL_API + "/" + m[1] + "/" + m[2];
+  if(m) return DRL_API + "/" + m[1] + "?id=" + encodeURIComponent(m[2]);
   return u;
 }
 function normalize(s){
