@@ -193,19 +193,6 @@
   </div>
 </div>
 
-<!-- ================= MANAGE / DELETE ================= -->
-<div class="editor" style="margin-top:28px;">
-  <div class="col" style="width:100%;">
-    <p class="eyebrow">Manage</p>
-    <h2 style="margin:2px 0 4px;">Published resources</h2>
-    <p class="sub">Remove test items or anything published by mistake. Deletion is permanent and by exact ID.</p>
-    <div class="actions" style="margin:6px 0 14px;">
-      <button class="btn" onclick="loadManage()">Refresh list</button>
-      <span class="msg" id="manageMsg"></span>
-    </div>
-    <div id="manageList" style="display:flex;flex-direction:column;gap:8px;"></div>
-  </div>
-</div>
 <script src="assets/overlay.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
@@ -479,54 +466,11 @@ async function loadVocab(){
   }catch(e){ VOCAB=Object.assign({}, FALLBACK_VOCAB); buildPills(VOCAB); }
 }
 
-// ===== Manage / delete =====
-function setManageMsg(text,cls){ const m=document.getElementById("manageMsg"); m.textContent=text; m.className="msg "+(cls||""); }
-
-async function loadManage(){
-  const host=document.getElementById("manageList");
-  setManageMsg("Loading…","");
-  host.innerHTML="";
-  try{
-    const res=await fetch(DRL_API+"/library"); if(!res.ok) throw 0;
-    const rows=await res.json();
-    if(!rows.length){ host.innerHTML='<p class="sub">Nothing published yet.</p>'; setManageMsg("",""); return; }
-    rows.sort((a,b)=> String(a.asset_type).localeCompare(b.asset_type) || String(a.title).localeCompare(b.title));
-    host.innerHTML = rows.map(r=>{
-      const t=(r.asset_type||"screen");
-      const idJs=JSON.stringify(r.id), titleJs=JSON.stringify(r.title||r.id);
-      return `<div style="display:flex;align-items:center;gap:10px;border:1px solid var(--border-st);border-radius:8px;padding:8px 10px;background:var(--panel);">
-        <span class="pill" data-on="0" style="text-transform:capitalize;cursor:default;">${t}</span>
-        <span style="flex:1;min-width:0;">
-          <strong style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.title||"(untitled)"}</strong>
-          <span class="sub" style="font-size:11.5px;">${r.id}</span>
-        </span>
-        <button class="btn" style="border-color:#b3423a;color:#b3423a;" onclick='deleteItem(${idJs}, ${titleJs}, this)'>Delete</button>
-      </div>`;
-    }).join("");
-    setManageMsg(rows.length+" item"+(rows.length>1?"s":""),"");
-  }catch(e){ host.innerHTML=""; setManageMsg("Could not load the library. Check the /library endpoint.","err"); }
-}
-
-async function deleteItem(id, title, btn){
-  if(!confirm(`Delete “${title}”?\n\nID: ${id}\n\nThis is permanent.`)) return;
-  btn.disabled=true; setManageMsg("Deleting…","");
-  try{
-    const res=await fetch(DRL_API+"/delete",{
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ id })
-    });
-    const out=await res.json();
-    if(out.ok){ setManageMsg(`Deleted “${title}”.`,"ok"); loadManage(); }
-    else { setManageMsg(`Nothing deleted — no item with ID ${id}.`,"err"); btn.disabled=false; }
-  }catch(e){ setManageMsg("Delete failed — check the /delete workflow / CORS.","err"); btn.disabled=false; }
-}
-
 // init
 buildPills(FALLBACK_VOCAB);
 loadVocab();
 setAssetType("screen");
 draw();
-loadManage();
 </script>
 </body>
 </html>
