@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DRL · Add a Screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  :root{
+    --ink:#0E2A44; --paper:#EFEBE2; --panel:#FFFDF9; --border:#E0D9CB; --border-st:#C9C2B3;
+    --muted:#5F6B77; --subtle:#8A9199; --library:#17402F; --library-hover:#1F5B41;
+    --chip-lib-bg:#E7EFEA; --cream:#F1EADC; --accent-text:#B5811F; --danger:#b23b3b;
+    --font-ui:"Instrument Sans",system-ui,sans-serif; --font-voice:"Newsreader",Georgia,serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{font-family:var(--font-ui);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;}
+  .topbar{display:flex;align-items:center;gap:12px;padding:16px 34px;background:#fbfaf7;border-bottom:1px solid var(--border);}
+  .topbar .brand{font-weight:600;color:var(--library);font-size:15px;}
+  .topbar .back{margin-left:auto;font-size:12.5px;color:var(--muted);text-decoration:none;}
+  .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px;padding:30px 34px 70px;align-items:start;max-width:1300px;}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-text);margin-bottom:10px;}
+  .eyebrow>span{width:22px;height:1px;background:var(--accent-text);}
+  h1{font-family:var(--font-voice);font-weight:300;font-size:32px;line-height:1.05;margin:0 0 6px;}
+  .sub{margin:0 0 22px;font-size:13px;color:var(--muted);}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12px;font-weight:600;margin-bottom:6px;}
+  .field .hint{font-weight:400;color:var(--subtle);font-size:11px;margin-left:6px;}
+  input[type=text],textarea,select{width:100%;font:inherit;font-size:13px;background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:9px 11px;color:var(--ink);}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--library);box-shadow:0 0 0 3px var(--chip-lib-bg);}
+  textarea{resize:vertical;min-height:52px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  .pills{display:flex;flex-wrap:wrap;gap:6px;}
+  .pill{font-size:11.5px;padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:var(--panel);color:var(--muted);cursor:pointer;user-select:none;}
+  .pill[data-on="1"]{border-color:var(--library);background:var(--library);color:var(--cream);}
+  .drop{border:1px dashed var(--border-st);border-radius:8px;background:var(--panel);padding:18px;text-align:center;font-size:12.5px;color:var(--muted);cursor:pointer;}
+  .drop.hasfile{border-style:solid;border-color:var(--library);color:var(--library);}
+  .swatch{display:inline-block;width:22px;height:22px;border-radius:5px;border:1px solid var(--border-st);vertical-align:middle;margin-left:8px;}
+  .actions{display:flex;gap:10px;align-items:center;margin-top:8px;}
+  .btn{font:inherit;font-size:13px;padding:10px 18px;border-radius:6px;border:1px solid var(--border-st);background:var(--panel);color:var(--ink);cursor:pointer;}
+  .btn-primary{background:var(--library);color:var(--cream);border-color:var(--library);font-weight:600;}
+  .btn-primary:hover{background:var(--library-hover);}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+  .msg{font-size:12.5px;margin-left:4px;}
+  .msg.ok{color:var(--library);}
+  .msg.err{color:var(--danger);}
+  .previewwrap{position:sticky;top:24px;}
+  .plabel{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);margin-bottom:10px;}
+  .frame{width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#111;box-shadow:0 18px 40px -26px rgba(14,42,68,.5);}
+  .frame .vwl-screen{border-radius:0;height:100%;}
+  .dims{font-size:11.5px;color:var(--muted);margin-top:10px;}
+  .dims .warn{color:var(--danger);}
+  @media(max-width:900px){ .wrap{grid-template-columns:1fr;} .previewwrap{position:static;} }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Digital Resource Library</span>
+  <a class="back" href="index.html">&larr; Back to library</a>
+</div>
+
+<div class="wrap">
+  <!-- ================= FORM ================= -->
+  <div>
+    <div class="eyebrow"><span></span>Admin</div>
+    <h1>Add a screen</h1>
+    <p class="sub">Fill in the copy, tag it, drop in an image. Preview updates live. Publishing saves straight to the library.</p>
+
+    <div class="field">
+      <label>Headline <span class="hint">the big line</span></label>
+      <input type="text" id="title" oninput="onTitle()" placeholder="Know your numbers.">
+    </div>
+    <div class="field">
+      <label>Subtitle</label>
+      <textarea id="subtitle" oninput="draw()" placeholder="Blood pressure and cholesterol don't announce themselves…"></textarea>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Eyebrow <span class="hint">small line above</span></label>
+        <input type="text" id="eyebrow" oninput="draw()" placeholder="American Heart Month">
+      </div>
+      <div class="field">
+        <label>CTA</label>
+        <input type="text" id="cta" oninput="draw()" placeholder="Get your numbers checked — ask your clinic">
+      </div>
+    </div>
+
+    <div class="row3">
+      <div class="field">
+        <label>Treatment</label>
+        <select id="treatment" onchange="draw()">
+          <option value="left-scrim">left-scrim (subject right)</option>
+          <option value="right-scrim">right-scrim (subject left)</option>
+          <option value="bottom-band">bottom-band</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Accent <span class="hint" id="accentHint"></span></label>
+        <input type="text" id="accent" value="#d9b98f" oninput="draw()" placeholder="#d9b98f">
+      </div>
+      <div class="field">
+        <label>Format</label>
+        <select id="format" onchange="draw()">
+          <option value="still">still</option>
+          <option value="video">video</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Image <span class="hint">16:9, ≥1920×1080 ideal</span></label>
+      <label class="drop" id="drop" for="file">Click to choose an image, or drag one here</label>
+      <input type="file" id="file" accept="image/png,image/jpeg" style="display:none" onchange="onFile(event)">
+    </div>
+
+    <div class="field">
+      <label>Subject <span class="hint">choose one or more</span></label>
+      <div class="pills" id="t-subject"></div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Month</label>
+        <div class="pills" id="t-month"></div>
+      </div>
+      <div class="field">
+        <label>Setting</label>
+        <div class="pills" id="t-setting"></div>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Tone</label>
+        <div class="pills" id="t-tone"></div>
+      </div>
+      <div class="field">
+        <label>Aspect</label>
+        <div class="pills" id="t-aspect"></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Screen ID <span class="hint">auto from headline; edit if needed</span></label>
+      <input type="text" id="id" placeholder="heart-bp-check-01">
+    </div>
+    <div class="field">
+      <label>QR URL <span class="hint">auto from ID</span></label>
+      <input type="text" id="qr_url" placeholder="https://go.mymedwellness.com/s/heart-bp-check-01">
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary" id="save" onclick="save()">Publish screen</button>
+      <button class="btn" onclick="resetForm()">Clear</button>
+      <span class="msg" id="msg"></span>
+    </div>
+  </div>
+
+  <!-- ================= PREVIEW ================= -->
+  <div class="previewwrap">
+    <div class="plabel">Live preview</div>
+    <div class="frame"><div id="preview" class="vwl-screen"></div></div>
+    <div class="dims" id="dims">No image yet — showing a neutral background.</div>
+  </div>
+</div>
+
+<script src="assets/overlay.js"></script>
+<script>
+// ---- Endpoints ----
+const DRL_API = "https://n8n-admin.willclower.com/webhook/drl";   // write: DRL_API + "/screen"
+const VOCAB_URL = DRL_API + "/vocab";                              // optional; falls back to built-in list
+
+// ---- Tag vocabulary (fallback if /vocab endpoint not built) ----
+const FALLBACK_VOCAB = {
+  subject:["stress","sleep","heat","mental-health","movement","nutrition","hydration","prevention","burnout","heart-health","connection"],
+  month:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+  setting:["floor","breakroom","office","any"],
+  tone:["calm","action"],
+  aspect:["16:9","9:16"]
+};
+const sel = { subject:new Set(), month:new Set(), setting:new Set(), tone:new Set(), aspect:new Set(["16:9"]) };
+let imageDataUrl = null, imageDims = null;
+
+function buildPills(vocab){
+  for(const g of ["subject","month","setting","tone","aspect"]){
+    const host = document.getElementById("t-"+g);
+    host.innerHTML = (vocab[g]||[]).map(v=>
+      `<span class="pill" data-g="${g}" data-v="${v}" data-on="${sel[g].has(v)?1:0}" onclick="togPill(this)">${v}</span>`
+    ).join("");
+  }
+}
+function togPill(el){
+  const g=el.dataset.g, v=el.dataset.v, on=el.dataset.on==="1";
+  el.dataset.on = on?"0":"1"; on ? sel[g].delete(v) : sel[g].add(v);
+  draw();
+}
+
+function slugify(s){
+  return s.toLowerCase().replace(/[^\w\s-]/g,"").trim().replace(/\s+/g,"-").replace(/-+/g,"-").slice(0,40);
+}
+function onTitle(){
+  const t=document.getElementById("title").value;
+  const idEl=document.getElementById("id"), qrEl=document.getElementById("qr_url");
+  if(!idEl.dataset.touched){ idEl.value = slugify(t); }
+  if(!qrEl.dataset.touched){ qrEl.value = idEl.value ? "https://go.mymedwellness.com/s/"+idEl.value : ""; }
+  draw();
+}
+document.getElementById("id").addEventListener("input",e=>{ e.target.dataset.touched="1"; const q=document.getElementById("qr_url"); if(!q.dataset.touched) q.value="https://go.mymedwellness.com/s/"+e.target.value; });
+document.getElementById("qr_url").addEventListener("input",e=>{ e.target.dataset.touched="1"; });
+
+function currentScreen(){
+  const bg = imageDataUrl ? imageDataUrl : "gradient:night";
+  return {
+    title:document.getElementById("title").value,
+    subtitle:document.getElementById("subtitle").value,
+    eyebrow:document.getElementById("eyebrow").value,
+    cta:document.getElementById("cta").value,
+    treatment:document.getElementById("treatment").value,
+    accent:document.getElementById("accent").value,
+    format:document.getElementById("format").value,
+    background:bg
+  };
+}
+function draw(){
+  document.getElementById("accentHint").innerHTML =
+    `<span class="swatch" style="background:${document.getElementById("accent").value||"#000"}"></span>`;
+  renderScreen(document.getElementById("preview"), currentScreen(), { scale:0.5, chrome:true });
+}
+
+function onFile(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    imageDataUrl=reader.result;
+    document.getElementById("drop").classList.add("hasfile");
+    document.getElementById("drop").textContent = f.name + " ✓  (click to replace)";
+    const img=new Image();
+    img.onload=()=>{
+      imageDims={w:img.naturalWidth,h:img.naturalHeight};
+      const under = img.naturalHeight < 1080;
+      document.getElementById("dims").innerHTML =
+        `Image: ${img.naturalWidth}×${img.naturalHeight}` +
+        (under ? ` <span class="warn">— below 1080p; fine for demo, upscale for production TV.</span>` : ` — good for TV.`);
+      draw();
+    };
+    img.src=imageDataUrl;
+  };
+  reader.readAsDataURL(f);
+}
+// drag & drop onto the box
+const drop=document.getElementById("drop");
+["dragover","dragenter"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add("hasfile");}));
+drop.addEventListener("drop",ev=>{ ev.preventDefault(); const f=ev.dataTransfer.files[0]; if(f){ document.getElementById("file").files=ev.dataTransfer.files; onFile({target:{files:[f]}}); }});
+
+function setMsg(text,cls){ const m=document.getElementById("msg"); m.textContent=text; m.className="msg "+(cls||""); }
+
+async function save(){
+  const id=document.getElementById("id").value.trim();
+  const title=document.getElementById("title").value.trim();
+  if(!id){ setMsg("Need a screen ID.","err"); return; }
+  if(!title){ setMsg("Need a headline.","err"); return; }
+
+  const payload = {
+    id, title,
+    subtitle:document.getElementById("subtitle").value.trim(),
+    eyebrow:document.getElementById("eyebrow").value.trim(),
+    cta:document.getElementById("cta").value.trim(),
+    treatment:document.getElementById("treatment").value,
+    accent:document.getElementById("accent").value.trim(),
+    format:document.getElementById("format").value,
+    qr_url:document.getElementById("qr_url").value.trim(),
+    subject:[...sel.subject], month:[...sel.month], setting:[...sel.setting],
+    tone:[...sel.tone], aspect:[...sel.aspect],
+    image: imageDataUrl || null
+  };
+
+  const btn=document.getElementById("save"); btn.disabled=true; setMsg("Publishing…","");
+  try{
+    const res=await fetch(DRL_API+"/screen",{
+      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
+    });
+    const out=await res.json();
+    if(out.ok){
+      setMsg(`Saved “${out.saved}”${out.width?` (${out.width}×${out.height})`:""}. It's in the library now.`,"ok");
+    }else{
+      setMsg("Server responded but not OK — check the workflow.","err");
+    }
+  }catch(e){
+    setMsg("Could not reach the write API. Check the endpoint/CORS.","err");
+  }finally{ btn.disabled=false; }
+}
+
+function resetForm(){
+  ["title","subtitle","eyebrow","cta","qr_url","id"].forEach(k=>{const el=document.getElementById(k);el.value="";el.dataset.touched="";});
+  document.getElementById("accent").value="#d9b98f";
+  document.getElementById("treatment").value="left-scrim";
+  document.getElementById("format").value="still";
+  imageDataUrl=null; imageDims=null;
+  document.getElementById("drop").classList.remove("hasfile");
+  document.getElementById("drop").textContent="Click to choose an image, or drag one here";
+  document.getElementById("dims").textContent="No image yet — showing a neutral background.";
+  for(const g in sel){ sel[g].clear(); } sel.aspect.add("16:9");
+  buildPills(FALLBACK_VOCAB); loadVocab(); draw(); setMsg("","");
+}
+
+async function loadVocab(){
+  try{
+    const res=await fetch(VOCAB_URL); if(!res.ok) throw 0;
+    const v=await res.json();
+    buildPills(Object.assign({}, FALLBACK_VOCAB, v));
+  }catch(e){ buildPills(FALLBACK_VOCAB); }
+}
+
+// init
+buildPills(FALLBACK_VOCAB);
+loadVocab();
+draw();
+</script>
+</body>
+</html>
