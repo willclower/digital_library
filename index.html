@@ -157,6 +157,33 @@ const sel = { subject:new Set(), month:new Set(), setting:new Set(), tone:new Se
 
 // ---- Screen data API (DRL) ----
 const DRL_API   = "https://n8n-admin.willclower.com/webhook/drl";
+
+// Admin mode: append ?admin=1 to the URL to reveal delete controls.
+// Lightweight gate for internal use during testing — NOT security.
+// Replaced by real role-based auth in the v2 tenant/auth pass.
+const ADMIN = new URLSearchParams(location.search).get("admin") === "1";
+
+async function deleteRow(id, title, btn){
+  if(!confirm(`Delete “${title}”?\n\nID: ${id}\n\nThis is permanent.`)) return;
+  btn.disabled = true; btn.textContent = "Deleting…";
+  try{
+    const res = await fetch(DRL_API + "/delete", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ id })
+    });
+    const out = await res.json();
+    if(out.ok){
+      const card = btn.closest(".card");
+      if(card) card.remove();
+    } else {
+      alert(`Nothing deleted — no item with ID ${id}.`);
+      btn.disabled = false; btn.textContent = "Delete";
+    }
+  }catch(e){
+    alert("Delete failed — check the /delete workflow / CORS.");
+    btn.disabled = false; btn.textContent = "Delete";
+  }
+}
 function resolveImage(s){
   if (s.background_ref) return s.background_ref;      // "gradient:night" etc.
   if (!s.image_url) return null;
@@ -307,6 +334,7 @@ function render(){
           </div>
         </div>`;
       grid.appendChild(card);
+      if(ADMIN) addDeleteBtn(card, s);
       return;
     }
 
@@ -329,8 +357,21 @@ function render(){
         </div>
       </div>`;
     grid.appendChild(card);
+    if(ADMIN) addDeleteBtn(card, s);
     renderScreen(card.querySelector("[data-thumb]"), s, { scale:0.42, chrome:true, qr:false });
   });
+}
+
+// Admin-only: add a full-width Delete button under a card's buttons.
+function addDeleteBtn(card, s){
+  const row = card.querySelector(".rowbtns");
+  if(!row) return;
+  const b = document.createElement("button");
+  b.className = "btn";
+  b.style.cssText = "grid-column:1 / -1;border-color:#b3423a;color:#b3423a;margin-top:2px;";
+  b.textContent = "Delete";
+  b.onclick = () => deleteRow(s.id, s.title || s.id, b);
+  row.appendChild(b);
 }
 
 function applyBrand(bc){
@@ -374,7 +415,8 @@ async function boot(){
     return;
   }
   document.getElementById("libsub").textContent =
-    `Workplace wellness resources \u00B7 ${DATA.screens.length} items \u00B7 white-label ready`;
+    `Workplace wellness resources \u00B7 ${DATA.screens.length} items \u00B7 white-label ready`
+    + (ADMIN ? " \u00B7 ADMIN MODE (delete enabled)" : "");
   buildFilters();
   render();
 }
