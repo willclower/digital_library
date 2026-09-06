@@ -56,7 +56,9 @@ function renderScreen(el, screen, opts = {}) {
   const scrim = SCRIMS[screen.treatment] || SCRIMS["left-scrim"];
   const accent = screen.accent || "#d9b98f";
   const showChrome = opts.chrome !== false; // false = thumbnail (headline only)
-  const showQr = opts.qr !== false;         // false = hide QR (used on library thumbnails)
+  const hasQrLink = !!(screen.qrUrl || screen.qr_url);
+  const showQr = opts.qr !== false && hasQrLink; // no link = no QR
+  el.classList.toggle("vwl-right", screen.treatment === "right-scrim");
   el.innerHTML = `
     ${bgLayer(screen)}
     <div class="vwl-scrim" style="background:${scrim};"></div>
