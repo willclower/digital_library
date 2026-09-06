@@ -28,3 +28,7 @@ body{margin:0;font-family:var(--font-sans);}
 .vwl-qr{position:absolute;right:3.5%;bottom:6%;display:flex;flex-direction:column;align-items:center;gap:5px;}
 .vwl-qrbox{width:clamp(38px,4vw,64px);aspect-ratio:1;padding:5px;border-radius:6px;background:#fff;line-height:0;}
 .vwl-qrlabel{font-size:clamp(8px,1vw,12px);color:#fff;text-shadow:0 1px 6px rgba(0,0,0,0.7);}
+
+.vwl-right .vwl-copy{left:auto;right:0;align-items:flex-end;text-align:right;}
+.vwl-right .vwl-cta{align-self:flex-end;}
+.vwl-right .vwl-qr{right:auto;left:3.5%;}
