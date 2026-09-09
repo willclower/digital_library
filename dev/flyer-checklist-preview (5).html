@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flyer — Checklist template (preview)</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --font-sans:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-voice:"Newsreader",Georgia,"Times New Roman",serif;
+    /* white-label brand tokens — overridden per client via the form */
+    --brand-primary:#123a52;    /* header band / headings / checkbox */
+    --brand-secondary:#e08a00;  /* eyebrow pill / accents */
+    --cta-bg:#3f7d55;           /* CTA footer band */
+    --ink:#1e2d35; --ink-soft:#4a5e66; --tile:#f4f6f7; --tile-border:#e3e8ea;
+    --page:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#e9e6df;font-family:var(--font-sans);color:var(--ink);
+       display:flex;gap:28px;padding:28px;align-items:flex-start;}
+
+  /* ---------- editor ---------- */
+  .editor{width:360px;flex:0 0 360px;background:#fff;border:1px solid #d9d5cc;border-radius:10px;
+          padding:22px;position:sticky;top:28px;max-height:calc(100vh - 56px);overflow:auto;}
+  .editor h2{font-family:var(--font-voice);font-size:20px;margin:0 0 4px;}
+  .editor .hint{color:#8a8478;font-size:12px;margin:0 0 16px;}
+  .fld{margin-bottom:13px;}
+  .fld label{display:block;font-size:11.5px;font-weight:600;letter-spacing:.04em;
+             text-transform:uppercase;color:#6b6459;margin-bottom:4px;}
+  .fld label .sub{font-weight:400;text-transform:none;letter-spacing:0;color:#a39a8b;}
+  .fld input[type=text],.fld textarea{width:100%;border:1.5px solid #d5d0c6;border-radius:6px;
+        padding:7px 9px;font:inherit;font-size:13px;color:var(--ink);background:#fff;}
+  .fld textarea{resize:vertical;min-height:44px;line-height:1.4;}
+  .fld input:focus,.fld textarea:focus{outline:none;border-color:var(--brand-primary);
+        box-shadow:0 0 0 3px rgba(18,58,82,.14);}
+  .row2{display:flex;gap:9px;} .row2 .fld{flex:1;}
+  .colorwrap{display:flex;align-items:center;gap:7px;}
+  .colorwrap input[type=color]{width:34px;height:34px;padding:0;border:1px solid #d5d0c6;border-radius:6px;background:#fff;cursor:pointer;}
+  .colorwrap input[type=text]{flex:1;}
+  .tile-block{border:1px solid #ece8df;border-radius:7px;padding:10px;margin-bottom:9px;background:#faf8f3;}
+  .tile-block .tnum{font-size:10.5px;font-weight:700;color:#a39a8b;letter-spacing:.06em;margin-bottom:6px;}
+  .drop{border:1.5px dashed #cfc9bd;border-radius:7px;padding:14px;text-align:center;font-size:12.5px;
+        color:#8a8478;cursor:pointer;background:#faf8f3;}
+  .drop.have{color:var(--ink);border-style:solid;border-color:#b9d3c4;background:#f1f7f3;}
+  .seg-label{font-family:var(--font-voice);font-size:15px;margin:20px 0 8px;color:#3a352c;
+             border-top:1px solid #ece8df;padding-top:14px;}
+
+  /* ---------- Draft Copy panel ---------- */
+  .draftbox{border:1.5px solid #cdd7d0;background:#f2f7f3;border-radius:9px;padding:14px;margin:0 0 18px;}
+  .draftbox h3{font-family:var(--font-voice);font-size:16px;margin:0 0 3px;color:#2c4433;}
+  .draftbox .dhint{font-size:11.5px;color:#6f7f74;margin:0 0 10px;line-height:1.35;}
+  .draftbox textarea{width:100%;border:1.5px solid #bcd0c2;border-radius:6px;padding:8px 9px;
+        font:inherit;font-size:13px;line-height:1.4;resize:vertical;min-height:60px;background:#fff;color:var(--ink);}
+  .draftbox textarea:focus{outline:none;border-color:var(--cta-bg);box-shadow:0 0 0 3px rgba(63,125,85,.15);}
+  .draftbox .dbanner{font-size:11.5px;color:#6f7f74;margin:8px 0 0;}
+  .draftbox .dbanner b{color:#3a352c;font-weight:600;}
+  .draftbtn{margin-top:11px;width:100%;border:0;border-radius:7px;padding:10px;cursor:pointer;
+        background:var(--cta-bg);color:#fff;font:inherit;font-size:13.5px;font-weight:600;letter-spacing:.01em;}
+  .draftbtn:hover{filter:brightness(1.05);}
+  .draftbtn:disabled{opacity:.6;cursor:default;}
+  .draftmsg{font-size:11.5px;margin-top:8px;min-height:14px;}
+  .draftmsg.err{color:#b23b2e;} .draftmsg.ok{color:#2c7a4b;}
+
+  /* ---------- flyer (US Letter 8.5x11 @ ~72dpi preview) ---------- */
+  .flyer-wrap{flex:1;min-width:0;display:flex;justify-content:center;}
+  .flyer{width:612px;min-height:792px;background:var(--page);
+         box-shadow:0 10px 40px rgba(0,0,0,.18);position:relative;overflow:hidden;
+         display:flex;flex-direction:column;}
+
+  /* header banner: photo fills it; left-scrim keeps white text readable */
+  .fl-header{position:relative;min-height:250px;background:var(--brand-primary);overflow:hidden;flex:0 0 auto;}
+  .fl-header .bg{position:absolute;inset:0;background-size:cover;background-position:center;}
+  .fl-header .scrim{position:absolute;inset:0;
+    background:linear-gradient(90deg, rgba(6,20,30,.92) 0%, rgba(6,20,30,.75) 40%, rgba(6,20,30,.35) 68%, rgba(6,20,30,.1) 100%);}
+  .fl-header .htexture{position:absolute;inset:0;opacity:.16;
+    background:repeating-linear-gradient(135deg, #fff 0 2px, transparent 2px 22px);}
+  .fl-header .hcontent{position:relative;min-height:250px;padding:34px 40px 32px;color:#fff;
+    display:flex;flex-direction:column;}
+  .h-toprow{display:flex;justify-content:space-between;align-items:flex-start;}
+  .photo-tag{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);
+    padding:5px 9px;border-radius:5px;color:#eaf1f4;}
+  .issue-chip{text-align:right;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);
+    border-radius:6px;padding:7px 12px;line-height:1.35;}
+  .issue-chip .m{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#cfe0e8;}
+  .issue-chip .s{font-size:13px;font-weight:700;}
+  .h-logo{max-height:34px;max-width:150px;object-fit:contain;}
+  .eyebrow-pill{align-self:flex-start;margin-top:14px;background:var(--brand-secondary);
+    color:#fff;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    padding:6px 16px;border-radius:100px;}
+  .fl-head{font-family:var(--font-voice);font-weight:700;font-size:38px;line-height:1.08;
+    margin:12px 0 0;text-shadow:0 2px 18px rgba(0,0,0,.45);max-width:78%;}
+  .fl-sub{font-size:14px;line-height:1.5;margin-top:11px;max-width:80%;color:#eaf1f4;
+    text-shadow:0 1px 10px rgba(0,0,0,.5);}
+
+  /* body */
+  .fl-body{padding:26px 40px 0;flex:1 1 auto;}
+  .fl-lead{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:0 0 20px;max-width:92%;}
+  .tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+  .tile{display:flex;gap:11px;background:var(--tile);border:1px solid var(--tile-border);
+    border-radius:9px;padding:14px 15px;}
+  .tile .box{flex:0 0 auto;width:26px;height:26px;border-radius:6px;border:2.5px solid var(--brand-primary);}
+  .tile .tbody h4{margin:0 0 3px;font-size:14.5px;font-weight:700;color:var(--brand-primary);}
+  .tile .tbody p{margin:0;font-size:12px;line-height:1.42;color:var(--ink-soft);}
+
+  /* CTA footer */
+  .fl-cta{margin:24px 0 0;}
+  .cta-head{background:var(--cta-bg);color:#fff;padding:11px 26px;display:flex;
+    justify-content:space-between;align-items:center;}
+  .cta-head .l{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;}
+  .cta-head .edition{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    background:rgba(255,255,255,.18);padding:4px 11px;border-radius:100px;}
+  .cta-body{background:color-mix(in srgb, var(--cta-bg) 12%, #fff);padding:20px 26px;
+    display:flex;justify-content:space-between;align-items:center;gap:20px;}
+  .cta-body .txt{flex:1;}
+  .cta-body h3{font-family:var(--font-voice);font-size:19px;margin:0 0 5px;color:var(--brand-primary);}
+  .cta-body .meta{font-size:11.5px;color:var(--ink-soft);margin:0 0 6px;}
+  .cta-body p{font-size:12.5px;line-height:1.45;color:var(--ink-soft);margin:0;max-width:88%;}
+  .cta-btn{flex:0 0 auto;background:var(--brand-secondary);color:#fff;text-align:center;
+    border-radius:9px;padding:14px 20px;min-width:118px;}
+  .cta-btn .big{font-weight:700;font-size:14px;line-height:1.2;}
+  .cta-btn .sm{font-size:10px;opacity:.9;margin-top:3px;}
+
+  /* footer strip */
+  .fl-foot{margin-top:auto;border-top:1px solid #e7e3da;padding:14px 40px;
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:10.5px;color:#8a8478;}
+  .fl-foot .powered b{color:var(--ink);}
+  .fl-foot .code{color:#b3ab9c;font-size:9.5px;}
+</style>
+</head>
+<body>
+
+<!-- ============ EDITOR ============ -->
+<div class="editor">
+  <h2>Checklist flyer</h2>
+  <p class="hint">Fill the fields — preview updates live. (PDF export comes later.)</p>
+
+  <div class="draftbox">
+    <h3>Start with a brief</h3>
+    <p class="dhint">Describe the flyer in a line or two. Claude drafts the eyebrow, headline, lead, all six tiles, and the CTA — then edit anything below.</p>
+    <textarea id="briefText" placeholder="e.g. October immune-support checklist, tie it to the office hydration challenge"></textarea>
+    <p class="dbanner">Banner photo (optional): <b id="briefBannerState">none set</b> — used for tone only. Set it in Branding below.</p>
+    <button class="draftbtn" id="draftBtn">Draft Copy</button>
+    <div class="draftmsg" id="draftMsg"></div>
+  </div>
+
+  <div class="seg-label" style="margin-top:0;border-top:0;padding-top:0;">Branding</div>
+  <div class="row2">
+    <div class="fld"><label>Primary <span class="sub">header</span></label>
+      <div class="colorwrap"><input type="color" id="c_primary" value="#123a52">
+        <input type="text" id="c_primary_hex" value="#123a52"></div></div>
+    <div class="fld"><label>Secondary <span class="sub">accent</span></label>
+      <div class="colorwrap"><input type="color" id="c_secondary" value="#e08a00">
+        <input type="text" id="c_secondary_hex" value="#e08a00"></div></div>
+  </div>
+  <div class="fld"><label>CTA band color</label>
+    <div class="colorwrap"><input type="color" id="c_cta" value="#3f7d55">
+      <input type="text" id="c_cta_hex" value="#3f7d55"></div></div>
+  <div class="fld"><label>Client logo <span class="sub">optional — sits top-right of banner</span></label>
+    <div class="drop" id="logoDrop">Click to add a logo (PNG)</div>
+    <input type="file" id="logoFile" accept="image/png,image/svg+xml,image/jpeg" hidden></div>
+
+  <div class="seg-label">Banner</div>
+  <div class="fld"><label>Banner photo <span class="sub">MidJourney 5:2, dark on the left</span></label>
+    <div class="drop" id="bannerDrop">Click to add the banner image</div>
+    <input type="file" id="bannerFile" accept="image/*" hidden></div>
+  <div class="fld"><label>Photo tag <span class="sub">tiny label, top-left</span></label>
+    <input type="text" id="photoTag" value="Photo: colorful fall plate"></div>
+  <div class="row2">
+    <div class="fld"><label>Issue line 1</label><input type="text" id="issue1" value="October 2027"></div>
+    <div class="fld"><label>Issue line 2</label><input type="text" id="issue2" value="Immune Series"></div>
+  </div>
+  <div class="fld"><label>Eyebrow</label><input type="text" id="eyebrow" value="This week's checklist"></div>
+  <div class="fld"><label>Headline</label><textarea id="headline">The Fall Flu-Fighter Plate</textarea></div>
+  <div class="fld"><label>Subtitle</label><textarea id="subtitle">Your immune system runs on what you feed it. Hit these six habits most days this week.</textarea></div>
+
+  <div class="seg-label">Body</div>
+  <div class="fld"><label>Lead paragraph</label><textarea id="lead">Check the box each time you land one. Six simple moves that give your body the raw material to hold the line through cold-and-flu season.</textarea></div>
+  <div id="tiles"></div>
+
+  <div class="seg-label">Next step (CTA)</div>
+  <div class="fld"><label>Section label</label><input type="text" id="ctaLabel" value="Your next step"></div>
+  <div class="fld"><label>Edition tag <span class="sub">right side of band</span></label><input type="text" id="ctaEdition" value="Program-connected client"></div>
+  <div class="fld"><label>CTA title</label><input type="text" id="ctaTitle" value="Hydration Challenge"></div>
+  <div class="fld"><label>CTA meta line</label><input type="text" id="ctaMeta" value="3 weeks · daily ounces tracking · Nutrition track"></div>
+  <div class="fld"><label>CTA description</label><textarea id="ctaDesc">Hydration drives so many of your body's defenses — most people feel the difference within three weeks.</textarea></div>
+  <div class="row2">
+    <div class="fld"><label>Button big</label><input type="text" id="ctaBtnBig" value="Start on your portal"></div>
+    <div class="fld"><label>Button small</label><input type="text" id="ctaBtnSm" value="my.medwell"></div>
+  </div>
+
+  <div class="seg-label">Footer</div>
+  <div class="fld"><label>Powered-by line</label><input type="text" id="footPowered" value="Concentra Onsite Health · Wellness powered by Mediterranean Wellness"></div>
+  <div class="fld"><label>Asset code</label><input type="text" id="footCode" value="CW-2710-02 · Flu-Fighter Plate"></div>
+
+  <div class="seg-label">Export</div>
+  <button class="draftbtn" id="pdfBtn" style="background:var(--brand-primary);">Export PDF (print quality)</button>
+  <div class="draftmsg" id="pdfMsg"></div>
+</div>
+
+<!-- ============ FLYER ============ -->
+<div class="flyer-wrap">
+  <div class="flyer" id="flyer">
+    <div class="fl-header">
+      <div class="bg" id="fl_bg"></div>
+      <div class="htexture"></div>
+      <div class="scrim"></div>
+      <div class="hcontent">
+        <div class="h-toprow">
+          <span class="photo-tag" id="fl_phototag"></span>
+          <span id="fl_topright"></span>
+        </div>
+        <span class="eyebrow-pill" id="fl_eyebrow"></span>
+        <div class="fl-head" id="fl_head"></div>
+        <div class="fl-sub" id="fl_sub"></div>
+      </div>
+    </div>
+    <div class="fl-body">
+      <p class="fl-lead" id="fl_lead"></p>
+      <div class="tile-grid" id="fl_tiles"></div>
+      <div class="fl-cta">
+        <div class="cta-head">
+          <span class="l" id="fl_ctaLabel"></span>
+          <span class="edition" id="fl_ctaEdition"></span>
+        </div>
+        <div class="cta-body">
+          <div class="txt">
+            <h3 id="fl_ctaTitle"></h3>
+            <div class="meta" id="fl_ctaMeta"></div>
+            <p id="fl_ctaDesc"></p>
+          </div>
+          <div class="cta-btn">
+            <div class="big" id="fl_ctaBtnBig"></div>
+            <div class="sm" id="fl_ctaBtnSm"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="fl-foot">
+      <span class="powered" id="fl_footPowered"></span>
+      <span class="code" id="fl_footCode"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const TILES = [
+  {h:"Eat the fall colors",   p:"Squash, carrots, corn, dark leafy greens — seasonal produce packed with immune-supporting nutrients."},
+  {h:"Add a vitamin-C source",p:"Citrus, peppers, broccoli. A little at most meals beats a big dose once."},
+  {h:"Hydrate on schedule",   p:"Dry fall air and heated buildings dehydrate you fast. Keep a bottle within reach and refill it."},
+  {h:"Lean into protein",     p:"Your body builds immune cells from protein. Include a source at each meal."},
+  {h:"Go easy on the sugar",  p:"Heavy sugar loads can blunt immune response for hours. Save treats for a moment, not the whole day."},
+  {h:"Warm up with soup",     p:"Broth-based soups with veg and lean protein are hydration, nutrients, and comfort in one bowl."},
+];
+let bannerData=null, logoData=null;
+
+// build tile editor rows
+const tilesEd=document.getElementById("tiles");
+TILES.forEach((t,i)=>{
+  const b=document.createElement("div"); b.className="tile-block";
+  b.innerHTML=`<div class="tnum">TILE ${i+1}</div>
+    <div class="fld"><input type="text" id="t${i}_h" value="${t.h.replace(/"/g,'&quot;')}"></div>
+    <div class="fld"><textarea id="t${i}_p">${t.p}</textarea></div>`;
+  tilesEd.appendChild(b);
+});
+
+const $=id=>document.getElementById(id);
+const set=(id,v)=>{ $(id).textContent=v; };
+
+function syncColor(colorId, hexId, cssVar){
+  const c=$(colorId), h=$(hexId);
+  c.addEventListener("input",()=>{ h.value=c.value; document.documentElement.style.setProperty(cssVar,c.value); });
+  h.addEventListener("input",()=>{ if(/^#[0-9a-fA-F]{6}$/.test(h.value)){ c.value=h.value; document.documentElement.style.setProperty(cssVar,h.value);} });
+}
+syncColor("c_primary","c_primary_hex","--brand-primary");
+syncColor("c_secondary","c_secondary_hex","--brand-secondary");
+syncColor("c_cta","c_cta_hex","--cta-bg");
+
+function fileToData(input,cb){
+  const f=input.files[0]; if(!f)return; const r=new FileReader();
+  r.onload=()=>cb(r.result); r.readAsDataURL(f);
+}
+$("bannerDrop").onclick=()=>$("bannerFile").click();
+$("bannerFile").onchange=()=>fileToData($("bannerFile"),d=>{bannerData=d;
+  $("fl_bg").style.backgroundImage=`url('${d}')`; $("bannerDrop").textContent="✓ banner set (click to replace)";
+  $("bannerDrop").classList.add("have");
+  $("briefBannerState").textContent="banner set ✓"; });
+$("logoDrop").onclick=()=>$("logoFile").click();
+$("logoFile").onchange=()=>fileToData($("logoFile"),d=>{logoData=d;
+  $("logoDrop").textContent="✓ logo set (click to replace)"; $("logoDrop").classList.add("have"); draw(); });
+
+function draw(){
+  set("fl_phototag", $("photoTag").value);
+  // top-right: logo if present, else issue chip
+  const tr=$("fl_topright");
+  if(logoData){ tr.innerHTML=`<img class="h-logo" src="${logoData}">`; }
+  else { tr.innerHTML=`<span class="issue-chip"><span class="m">${$("issue1").value}</span><br><span class="s">${$("issue2").value}</span></span>`; }
+  set("fl_eyebrow",$("eyebrow").value);
+  set("fl_head",$("headline").value);
+  set("fl_sub",$("subtitle").value);
+  set("fl_lead",$("lead").value);
+  // tiles
+  const g=$("fl_tiles"); g.innerHTML="";
+  TILES.forEach((_,i)=>{
+    const h=$(`t${i}_h`).value, p=$(`t${i}_p`).value;
+    if(!h && !p) return;
+    const el=document.createElement("div"); el.className="tile";
+    el.innerHTML=`<div class="box"></div><div class="tbody"><h4>${h}</h4><p>${p}</p></div>`;
+    g.appendChild(el);
+  });
+  set("fl_ctaLabel",$("ctaLabel").value);
+  set("fl_ctaEdition",$("ctaEdition").value);
+  set("fl_ctaTitle",$("ctaTitle").value);
+  set("fl_ctaMeta",$("ctaMeta").value);
+  set("fl_ctaDesc",$("ctaDesc").value);
+  set("fl_ctaBtnBig",$("ctaBtnBig").value);
+  set("fl_ctaBtnSm",$("ctaBtnSm").value);
+  set("fl_footPowered",$("footPowered").value);
+  set("fl_footCode",$("footCode").value);
+}
+// live-wire every text input
+document.querySelectorAll(".editor input[type=text], .editor textarea").forEach(el=>el.addEventListener("input",draw));
+
+/* ---------- Draft Copy: brief (+ optional banner) -> fill fields ---------- */
+const DRAFT_ENDPOINT = "https://n8n-admin.willclower.com/webhook/drl/draft-flyer";
+
+function setFld(id, val){                 // set an <input>/<textarea> value + fire input so preview updates
+  const el = $(id); if(!el) return;
+  el.value = (val==null ? "" : String(val));
+}
+
+// Downscale a data-URL image to a small JPEG for the DRAFT call only (tone reference,
+// doesn't need full res). Leaves the original bannerData (used by preview/PDF) untouched.
+// Returns { mime, base64 } or null on failure.
+function shrinkForDraft(dataUrl, maxW=1024, quality=0.85){
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.onload = ()=>{
+      try{
+        const scale = Math.min(1, maxW / img.naturalWidth);
+        const w = Math.round(img.naturalWidth * scale);
+        const h = Math.round(img.naturalHeight * scale);
+        const c = document.createElement("canvas"); c.width=w; c.height=h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        const out = c.toDataURL("image/jpeg", quality); // JPEG keeps payload small
+        resolve({ mime:"image/jpeg", base64: out.slice(out.indexOf(",")+1) });
+      }catch(e){ resolve(null); }
+    };
+    img.onerror = ()=>resolve(null);
+    img.src = dataUrl;
+  });
+}
+
+async function draftCopy(){
+  const brief = $("briefText").value.trim();
+  const msg = $("draftMsg"); const btn = $("draftBtn");
+  msg.className = "draftmsg"; msg.textContent = "";
+  if(!brief){ msg.className="draftmsg err"; msg.textContent="Type a brief first."; return; }
+
+  const payload = { brief, tile_count: TILES.length };
+  // reuse the banner already loaded in Branding, downscaled so the payload stays small.
+  if (bannerData && /^data:image\/(png|jpe?g|gif|webp);base64,/.test(bannerData)) {
+    const small = await shrinkForDraft(bannerData);
+    if (small) { payload.banner_mime = small.mime; payload.banner_base64 = small.base64; }
+  }
+
+  btn.disabled = true; const label = btn.textContent; btn.textContent = "Drafting…";
+  try{
+    const res = await fetch(DRAFT_ENDPOINT, {
+      method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload)
+    });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const d = await res.json();
+    if(!d || d.ok!==true) throw new Error("Unexpected response");
+
+    setFld("eyebrow",  d.eyebrow);
+    setFld("headline", d.headline);
+    setFld("subtitle", d.subtitle);
+    setFld("lead",     d.lead);
+    (d.tiles||[]).forEach((t,i)=>{ setFld(`t${i}_h`, t.h); setFld(`t${i}_p`, t.p); });
+    setFld("ctaTitle", d.cta_title);
+    setFld("ctaMeta",  d.cta_meta);
+    setFld("ctaDesc",  d.cta_desc);
+
+    draw();
+    msg.className="draftmsg ok"; msg.textContent="Drafted — edit any field below.";
+  }catch(err){
+    msg.className="draftmsg err";
+    msg.textContent="Draft failed: "+err.message+". Check the workflow is active and try again.";
+  }finally{
+    btn.disabled=false; btn.textContent=label;
+  }
+}
+$("draftBtn").onclick = draftCopy;
+
+/* ---------- Export PDF: render .flyer at 300dpi -> single-page US-Letter PDF ---------- */
+// .flyer is 612x792 CSS px = US Letter at 72dpi. scale 4.1667 -> 2550x3300 = 300dpi.
+const PDF_SCALE = 300/72;
+
+async function exportPDF(){
+  const btn = $("pdfBtn"), msg = $("pdfMsg");
+  msg.className = "draftmsg"; msg.textContent = "";
+  if(typeof html2canvas==="undefined" || !window.jspdf){
+    msg.className="draftmsg err"; msg.textContent="PDF libraries didn't load (check network)."; return;
+  }
+  const flyer = $("flyer");
+  btn.disabled = true; const label = btn.textContent; btn.textContent = "Rendering…";
+
+  // Neutralize on-screen chrome so the capture is clean-edged.
+  const prevShadow = flyer.style.boxShadow;
+  flyer.style.boxShadow = "none";
+
+  try{
+    // Wait for fonts so type is sharp (not fallback) in the raster.
+    if(document.fonts && document.fonts.ready) await document.fonts.ready;
+
+    const canvas = await html2canvas(flyer, {
+      scale: PDF_SCALE,
+      backgroundColor: "#ffffff",
+      useCORS: true,          // banner is a data URL (same-origin-safe), logo too
+      logging: false,
+      width: 612,
+      height: flyer.offsetHeight,   // capture true rendered height (header grows with content)
+      windowWidth: 612
+    });
+
+    const img = canvas.toDataURL("image/jpeg", 0.92);  // JPEG keeps the photo-heavy file reasonable
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit:"pt", format:"letter" }); // 612x792 pt
+    const pageW = 612, pageH = 792;
+
+    // Fit the captured image to the page width; if content is taller than one page,
+    // it still lands on ONE page scaled to fit height (flyers are single-page by design).
+    const imgW = pageW;
+    const imgH = canvas.height * (pageW / canvas.width);
+    if(imgH <= pageH){
+      pdf.addImage(img, "JPEG", 0, 0, imgW, imgH);
+    } else {
+      // taller than a page: scale down to fit height, center horizontally
+      const h = pageH, w = canvas.width * (pageH / canvas.height);
+      pdf.addImage(img, "JPEG", (pageW - w)/2, 0, w, h);
+      msg.className="draftmsg"; // note but don't block
+    }
+
+    const code = ($("footCode").value || "flyer").split("·")[0].trim().replace(/[^\w-]+/g,"_") || "flyer";
+    pdf.save(`${code}.pdf`);
+    msg.className="draftmsg ok"; msg.textContent="PDF exported.";
+  }catch(err){
+    msg.className="draftmsg err"; msg.textContent="Export failed: "+err.message;
+  }finally{
+    flyer.style.boxShadow = prevShadow;
+    btn.disabled=false; btn.textContent=label;
+  }
+}
+$("pdfBtn").onclick = exportPDF;
+
+draw();
+</script>
+</body>
+</html>
