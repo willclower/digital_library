@@ -273,6 +273,9 @@
 
     <!-- ===== Flyer BUILD composer (flyer + build mode only) ===== -->
     <div id="flyerBuild" class="flyer-scope flyer-build-only" style="display:none">
+<div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+  <button id="fl_startNew" style="font:inherit;font-size:11.5px;font-weight:600;border:1px solid #d5d0c6;border-radius:6px;padding:6px 12px;cursor:pointer;background:#fff;color:#1e2d35;">↻ Start new flyer</button>
+</div>
 <div class="draftbox">
     <h3>Start with a brief</h3>
     <p class="dhint">Describe the flyer in a line or two. Claude drafts the eyebrow, headline, lead, all six tiles, and the CTA — then edit anything below.</p>
@@ -404,7 +407,7 @@
 
     <div class="actions">
       <button class="btn-primary" id="save" onclick="save()">Publish screen</button>
-      <button class="btn" onclick="resetForm()">Clear</button>
+      <button class="btn" id="clearBtn" onclick="resetForm()">Clear</button>
       <span class="msg" id="msg"></span>
     </div>
   </div>
@@ -574,6 +577,7 @@ function setAssetType(t){
     if(screenPrev) screenPrev.style.display = isScreen ? "" : "none";
     const saveBtn=document.getElementById("save");
     if(saveBtn){ saveBtn.style.display=""; saveBtn.textContent = isScreen ? "Publish screen" : "Publish resource"; }
+    const clearBtn=document.getElementById("clearBtn"); if(clearBtn) clearBtn.style.display="";
   }
 }
 
@@ -1000,6 +1004,8 @@ function setFlyerMode(m){
     saveBtn.style.display = build ? "none" : "";
     saveBtn.textContent = (assetType==="screen") ? "Publish screen" : "Publish resource";
   }
+  const clearBtn=document.getElementById("clearBtn");
+  if(clearBtn) clearBtn.style.display = build ? "none" : "";
   if(build) fl_draw();
 }
 
@@ -1198,6 +1204,34 @@ function fl_updateFinalizeGate(){
 
 document.getElementById("fl_qcBtn").onclick = fl_sendToQC;
 document.getElementById("fl_finalizeBtn").onclick = ()=>{ save(); };
+
+// Reset the build composer to a clean slate for a new flyer: copy fields, brief, banner/logo,
+// QC state, and the resource ID/description. Branding colors and issue lines are left as-is
+// (they're per-client config a user typically keeps between flyers).
+function fl_startNewFlyer(){
+  // copy fields (all reviewed fields + brief)
+  Object.values(FL_QC_MAP).forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
+  ["fl_in_briefText","fl_in_lead","fl_in_photoTag","fl_in_ctaLabel","fl_in_ctaEdition",
+   "fl_in_ctaBtnBig","fl_in_ctaBtnSm","fl_in_footPowered","fl_in_footCode"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
+  // banner + logo
+  fl_bannerData=null; fl_logoData=null;
+  const bg=document.getElementById("fl_bg"); if(bg) bg.style.backgroundImage="";
+  const bd=document.getElementById("fl_in_bannerDrop"); if(bd){ bd.textContent="Click to add the banner image"; bd.classList.remove("have"); }
+  const ld=document.getElementById("fl_in_logoDrop"); if(ld){ ld.textContent="Click to add a logo (PNG)"; ld.classList.remove("have"); }
+  const bs=document.getElementById("fl_in_briefBannerState"); if(bs) bs.textContent="none set";
+  // shared row fields
+  const idEl=document.getElementById("id"); if(idEl){ idEl.value=""; idEl.dataset.touched=""; }
+  const desc=document.getElementById("description"); if(desc) desc.value="";
+  // QC state + messages
+  flQcReview=null;
+  const qr=document.getElementById("fl_qcResult"); if(qr) qr.style.display="none";
+  fl_qcSetMsg("",""); 
+  const dm=document.getElementById("fl_in_draftMsg"); if(dm){ dm.textContent=""; dm.className="draftmsg"; }
+  const fm=document.getElementById("fl_finalizeMsg"); if(fm){ fm.textContent=""; fm.className="draftmsg"; }
+  fl_updateFinalizeGate();
+  fl_draw();
+}
+document.getElementById("fl_startNew").onclick = fl_startNewFlyer;
 
 // Wire copy-field edits (only the reviewed fields) to invalidate a prior QC run.
 function fl_qcWireInvalidation(){
