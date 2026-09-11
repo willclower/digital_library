@@ -784,6 +784,12 @@ async function loadVocab(){
 let flyerMode = "upload";   // upload | build  (only meaningful when assetType==='flyer')
 
 
+// --- composer state (hoisted: touched by init-time counter/gate/relocate before their
+//     original declaration points, which threw a temporal-dead-zone ReferenceError) ---
+var flQcReview = null;          // last QC review object (schema), or null if none/stale
+var _tagHome = null, _tagAfter = null;
+var fl_suppressInvalidate = false;
+
 const fl_TILES = [
   {h:"Eat the fall colors",   p:"Squash, carrots, corn, dark leafy greens — seasonal produce packed with immune-supporting nutrients."},
   {h:"Add a vitamin-C source",p:"Citrus, peppers, broccoli. A little at most meals beats a big dose once."},
@@ -915,7 +921,7 @@ document.querySelectorAll(".flyer-scope input[type=text], .flyer-scope textarea"
 /* ---------- Draft Copy: brief (+ optional banner) -> fill fields ---------- */
 const fl_DRAFT_ENDPOINT = "https://n8n-admin.willclower.com/webhook/drl/draft-flyer";
 
-let fl_suppressInvalidate=false;
+// fl_suppressInvalidate declared at top of composer script (hoisted)
 function fl_setFld(id, val){                 // set an <input>/<textarea> value + fire input so preview + counters + gate update
   const el = fl_$(id); if(!el) return;
   el.value = (val==null ? "" : String(val));
@@ -1036,7 +1042,7 @@ async function fl_buildFlyerPDF(){
 // Move the shared tag block (Subject/Month/Setting/Tone) into the flyer-build composer
 // (right after the logo/Tags seg-label) when build mode is active; return it to its
 // screen/upload home otherwise. One DOM node, no duplication — buildPills stays valid.
-let _tagHome = null, _tagAfter = null;
+// _tagHome/_tagAfter declared at top of composer script (hoisted)
 function relocateTagBlock(intoBuild){
   const block = document.getElementById("tagBlock");
   const slot  = document.getElementById("tagSlotBuild");
@@ -1100,7 +1106,7 @@ for(let i=0;i<6;i++){
 // Longest labels first so "CTA TITLE" isn't shadowed by "TITLE" during matching.
 const FL_QC_LABELS = Object.keys(FL_QC_MAP).sort((a,b)=>b.length-a.length);
 
-let flQcReview = null;   // last QC review object (schema), or null if none/stale
+// flQcReview declared at top of composer script (hoisted)
 
 function fl_qcSerialize(){
   const lines = [];
