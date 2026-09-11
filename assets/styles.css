@@ -21,7 +21,8 @@ body{margin:0;font-family:var(--font-sans);}
 .vwl-ken{animation:vwl-ken 22s ease-in-out infinite alternate;}
 .vwl-scrim{position:absolute;inset:0;}
 .vwl-copy{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 6%;color:#fff;max-width:62%;}
-.vwl-eyebrow{letter-spacing:0.22em;text-transform:uppercase;margin-bottom:2.5%;}
+.vwl-eyebrow{align-self:flex-start;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;color:#fff;
+  padding:0.45em 1.1em;border-radius:100px;margin-bottom:3.5%;line-height:1.1;}
 .vwl-head{font-family:var(--font-voice);line-height:1.12;text-shadow:0 2px 24px rgba(0,0,0,0.55);}
 .vwl-sub{line-height:1.5;margin-top:3.5%;color:#ede4d6;text-shadow:0 1px 14px rgba(0,0,0,0.6);}
 .vwl-cta{display:inline-block;margin-top:5%;padding:0.6em 1.1em;border-radius:100px;border:1px solid rgba(255,255,255,0.65);align-self:flex-start;}
@@ -30,18 +31,20 @@ body{margin:0;font-family:var(--font-sans);}
 .vwl-qrlabel{font-size:clamp(8px,1vw,12px);color:#fff;text-shadow:0 1px 6px rgba(0,0,0,0.7);}
 
 .vwl-right .vwl-copy{left:auto;right:0;align-items:flex-end;text-align:right;}
+.vwl-right .vwl-eyebrow{align-self:flex-end;}
 .vwl-right .vwl-cta{align-self:flex-end;}
 .vwl-right .vwl-qr{right:auto;left:3.5%;}
 
-/* Action bullets (banner-derived screens): short list on the side opposite the copy.
-   Default (left-scrim) copy is on the left → bullets on the right; right-scrim flips. */
-.vwl-bullets{position:absolute;top:0;bottom:0;right:6%;width:34%;margin:0;padding:0;
-  list-style:none;display:flex;flex-direction:column;justify-content:center;gap:3.2%;
-  color:#fff;z-index:2;}
-.vwl-bullets li{position:relative;padding:0 0 0 1.4em;line-height:1.25;font-weight:600;
-  text-shadow:0 1px 12px rgba(0,0,0,0.7);}
-.vwl-bullets li::before{content:"";position:absolute;left:0;top:0.15em;width:0.85em;height:0.85em;
+/* Action bullets (banner-derived screens): grouped in a translucent card on the
+   quiet side, opposite the copy. Larger, weighted text for wall-viewing distance. */
+.vwl-bullets-card{position:absolute;top:50%;right:5%;transform:translateY(-50%);width:36%;
+  background:rgba(10,18,26,0.42);border:1px solid rgba(255,255,255,0.16);border-radius:14px;
+  padding:2.2% 2.4%;z-index:2;backdrop-filter:blur(2px);}
+.vwl-bullets{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:0.9em;color:#fff;}
+.vwl-bullets li{position:relative;padding-left:1.6em;line-height:1.25;font-weight:600;
+  text-shadow:0 1px 10px rgba(0,0,0,0.6);}
+.vwl-bullets li::before{content:"";position:absolute;left:0;top:0.12em;width:0.9em;height:0.9em;
   border:2px solid #fff;border-radius:3px;box-sizing:border-box;}
-.vwl-has-bullets .vwl-copy{max-width:54%;}
-/* right-scrim: copy on the right, so bullets move left */
-.vwl-right .vwl-bullets{right:auto;left:6%;align-items:flex-start;}
+.vwl-has-bullets .vwl-copy{max-width:52%;}
+/* right-scrim: copy on the right, so the card moves left */
+.vwl-right .vwl-bullets-card{right:auto;left:5%;}
