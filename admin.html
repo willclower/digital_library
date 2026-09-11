@@ -789,8 +789,6 @@ const fl_TILES = [
   {h:"Add a vitamin-C source",p:"Citrus, peppers, broccoli. A little at most meals beats a big dose once."},
   {h:"Hydrate on schedule",   p:"Dry fall air and heated buildings dehydrate you fast. Keep a bottle within reach and refill it."},
   {h:"Lean into protein",     p:"Your body builds immune cells from protein. Include a source at each meal."},
-  {h:"Go easy on the sugar",  p:"Heavy sugar loads can blunt immune response for hours. Save treats for a moment, not the whole day."},
-  {h:"Warm up with soup",     p:"Broth-based soups with veg and lean protein are hydration, nutrients, and comfort in one bowl."},
 ];
 let fl_bannerData=null, fl_logoData=null;
 
@@ -806,6 +804,46 @@ fl_TILES.forEach((t,i)=>{
 
 const fl_$=id=>document.getElementById(id);
 const fl_set=(id,v)=>{ fl_$(id).textContent=v; };
+
+// ---- Print-fit caps (Letter 8.5x11) ----
+// Character limits per copy field, sized so a full 4-tile flyer always fits one page.
+// These are STARTING values — tune against a real full-page 300dpi render, then lock.
+// The counter turns red over the cap; Finalize refuses while any field is over.
+const FL_CAPS = {
+  fl_in_eyebrow: 40, fl_in_headline: 46, fl_in_subtitle: 130, fl_in_lead: 190,
+  fl_in_ctaLabel: 24, fl_in_ctaEdition: 30, fl_in_ctaTitle: 40,
+  fl_in_ctaMeta: 70, fl_in_ctaDesc: 170,
+  // per-tile (heading, body) applied to every fl_in_t{i}_h / _p below
+  _tile_h: 34, _tile_p: 120
+};
+function fl_capFor(id){
+  if(FL_CAPS[id]!=null) return FL_CAPS[id];
+  if(/_t\d+_h$/.test(id)) return FL_CAPS._tile_h;
+  if(/_t\d+_p$/.test(id)) return FL_CAPS._tile_p;
+  return null;
+}
+// attach a live "n / cap" counter under a field; red when over
+function fl_attachCounter(el){
+  const cap=fl_capFor(el.id); if(cap==null) return;
+  const c=document.createElement("div"); c.className="fl-count"; c.dataset.for=el.id;
+  c.style.cssText="font-size:10.5px;text-align:right;margin-top:2px;color:#8a8577;";
+  el.insertAdjacentElement("afterend",c);
+  const upd=()=>{ const n=el.value.length; c.textContent=n+" / "+cap;
+    c.style.color = n>cap ? "#b3261e" : "#8a8577";
+    el.style.borderColor = n>cap ? "#b3261e" : "";
+    if(typeof fl_updateFinalizeGate==="function") fl_updateFinalizeGate(); };
+  el.addEventListener("input",upd); upd();
+}
+// true if any capped field is over its limit
+function fl_anyOverCap(){
+  return Object.keys(FL_CAPS).some(k=>{
+    if(k.startsWith("_")) return false;
+    const el=fl_$(k); return el && el.value.length > FL_CAPS[k];
+  }) || fl_TILES.some((_,i)=>{
+    const h=fl_$(`fl_in_t${i}_h`), p=fl_$(`fl_in_t${i}_p`);
+    return (h&&h.value.length>FL_CAPS._tile_h) || (p&&p.value.length>FL_CAPS._tile_p);
+  });
+}
 
 // 12% tint of a hex color toward white, returned as rgb() — replaces color-mix(), which
 // html2canvas 1.4.1 cannot parse (it throws "unsupported color function 'color'" on export).
@@ -871,13 +909,19 @@ function fl_draw(){
 }
 // live-wire every text input
 document.querySelectorAll(".flyer-scope input[type=text], .flyer-scope textarea").forEach(el=>el.addEventListener("input",fl_draw));
+// attach print-fit counters to every capped copy field
+document.querySelectorAll(".flyer-scope input[type=text], .flyer-scope textarea").forEach(el=>{ if(el.id) fl_attachCounter(el); });
 
 /* ---------- Draft Copy: brief (+ optional banner) -> fill fields ---------- */
 const fl_DRAFT_ENDPOINT = "https://n8n-admin.willclower.com/webhook/drl/draft-flyer";
 
-function fl_setFld(id, val){                 // fl_set an <input>/<textarea> value + fire input so preview updates
+let fl_suppressInvalidate=false;
+function fl_setFld(id, val){                 // set an <input>/<textarea> value + fire input so preview + counters + gate update
   const el = fl_$(id); if(!el) return;
   el.value = (val==null ? "" : String(val));
+  fl_suppressInvalidate=true;
+  el.dispatchEvent(new Event("input", {bubbles:true}));
+  fl_suppressInvalidate=false;
 }
 
 // Downscale a data-URL image to a small JPEG for the DRAFT call only (tone reference,
@@ -1187,7 +1231,7 @@ function fl_esc(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;
 function fl_qcAcceptSuggestion(idx){
   const f=flQcReview.findings[idx]; if(!f||!f.__field) return;
   const el=document.getElementById(f.__field);
-  if(el){ el.value = f.suggested_edit || el.value; fl_draw(); }
+  if(el){ fl_setFld(f.__field, f.suggested_edit != null ? f.suggested_edit : el.value); fl_draw(); }
   f.final_text = f.suggested_edit || null;
   fl_qcDispose(idx,"accept");
 }
@@ -1202,7 +1246,7 @@ function fl_qcPlaceEdit(idx){
   const ta=document.getElementById("qceta-"+idx);
   const txt = ta ? ta.value : "";
   const el=document.getElementById(f.__field);
-  if(el){ el.value = txt; fl_draw(); }
+  if(el){ fl_setFld(f.__field, txt); fl_draw(); }
   f.final_text = txt;
   fl_qcDispose(idx,"accept_with_edits");
 }
@@ -1215,6 +1259,7 @@ function fl_qcDispose(idx,disp){
 
 // Editing a reviewed copy field after QC makes the review stale — force a re-run before finalize.
 function fl_qcInvalidate(){
+  if(fl_suppressInvalidate) return;
   if(flQcReview){ flQcReview=null; document.getElementById("fl_qcResult").style.display="none";
     fl_qcSetMsg("Copy changed — run QC again before finalizing.",""); fl_updateFinalizeGate(); }
 }
@@ -1224,7 +1269,12 @@ function fl_updateFinalizeGate(){
   const btn=document.getElementById("fl_finalizeBtn"); if(!btn) return;
   let ready=false;
   if(flQcReview){ ready=(flQcReview.findings||[]).every(f=>!!f.disposition); }
+  const over=fl_anyOverCap();
+  if(over) ready=false;
   btn.disabled=!ready; btn.style.opacity = ready ? "1" : ".5";
+  const fm=document.getElementById("fl_finalizeMsg");
+  if(fm && over){ fm.textContent="One or more fields are over the print-fit limit (shown in red). Trim them before finalizing."; fm.style.color="#b3261e"; }
+  else if(fm && fm.style.color==="rgb(179, 38, 30)"){ fm.textContent=""; fm.style.color=""; }
 }
 
 document.getElementById("fl_qcBtn").onclick = fl_sendToQC;
