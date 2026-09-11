@@ -58,7 +58,15 @@ function renderScreen(el, screen, opts = {}) {
   const showChrome = opts.chrome !== false; // false = thumbnail (headline only)
   const hasQrLink = !!(screen.qrUrl || screen.qr_url);
   const showQr = opts.qr !== false && hasQrLink; // no link = no QR
+  // Optional action bullets (banner-derived screens): short list on the opposite
+  // side from the copy. Accept overlay_bullets (DB) or bullets; ignore if empty.
+  const bulletsRaw = screen.overlay_bullets || screen.bullets || [];
+  const bullets = Array.isArray(bulletsRaw)
+    ? bulletsRaw.filter(b => b && String(b).trim())
+    : String(bulletsRaw).split("\n").map(s=>s.trim()).filter(Boolean);
+  const showBullets = showChrome && bullets.length > 0;
   el.classList.toggle("vwl-right", screen.treatment === "right-scrim");
+  el.classList.toggle("vwl-has-bullets", showBullets);
   el.innerHTML = `
     ${bgLayer(screen)}
     <div class="vwl-scrim" style="background:${scrim};"></div>
@@ -68,6 +76,7 @@ function renderScreen(el, screen, opts = {}) {
       ${showChrome ? `<div class="vwl-sub" style="font-size:${1.05*scale}em;">${screen.subtitle || ""}</div>` : ""}
       ${showChrome ? `<span class="vwl-cta" style="font-size:${0.95*scale}em;">${screen.cta || ""}</span>` : ""}
     </div>
+    ${showBullets ? `<ul class="vwl-bullets" style="font-size:${1.05*scale}em;">${bullets.map(b=>`<li style="border-color:${accent};">${b}</li>`).join("")}</ul>` : ""}
     ${showQr ? `<div class="vwl-qr"><div class="vwl-qrbox">${qrPlaceholder("#111")}</div><span class="vwl-qrlabel">Scan for support</span></div>` : ""}
   `;
 }
