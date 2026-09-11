@@ -32,3 +32,16 @@ body{margin:0;font-family:var(--font-sans);}
 .vwl-right .vwl-copy{left:auto;right:0;align-items:flex-end;text-align:right;}
 .vwl-right .vwl-cta{align-self:flex-end;}
 .vwl-right .vwl-qr{right:auto;left:3.5%;}
+
+/* Action bullets (banner-derived screens): short list on the side opposite the copy.
+   Default (left-scrim) copy is on the left → bullets on the right; right-scrim flips. */
+.vwl-bullets{position:absolute;top:0;bottom:0;right:6%;width:34%;margin:0;padding:0;
+  list-style:none;display:flex;flex-direction:column;justify-content:center;gap:3.2%;
+  color:#fff;z-index:2;}
+.vwl-bullets li{position:relative;padding:0 0 0 1.4em;line-height:1.25;font-weight:600;
+  text-shadow:0 1px 12px rgba(0,0,0,0.7);}
+.vwl-bullets li::before{content:"";position:absolute;left:0;top:0.15em;width:0.85em;height:0.85em;
+  border:2px solid #fff;border-radius:3px;box-sizing:border-box;}
+.vwl-has-bullets .vwl-copy{max-width:54%;}
+/* right-scrim: copy on the right, so bullets move left */
+.vwl-right .vwl-bullets{right:auto;left:6%;align-items:flex-start;}
