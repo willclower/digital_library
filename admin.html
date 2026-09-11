@@ -740,8 +740,9 @@ async function save(){
     const out=await res.json();
     if(out.ok){
       setMsg(`Saved “${out.saved}”${out.width?` (${out.width}×${out.height})`:""}. It's in the library now.`,"ok");
-      // Build-mode finalize succeeded: clear QC state so the next flyer starts fresh.
-      if(isBuild){ flQcReview=null; const qr=document.getElementById("fl_qcResult"); if(qr) qr.style.display="none"; fl_qcSetMsg("",""); fl_updateFinalizeGate(); }
+      // Build-mode finalize succeeded: fully reset the composer so the next flyer starts clean
+      // (copy, brief, banner, logo, id, description, QC state) — keeps branding colors + issue lines.
+      if(isBuild){ fl_startNewFlyer(); }
     }else{
       setMsg("Server responded but not OK — check the workflow.","err");
     }
