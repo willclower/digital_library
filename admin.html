@@ -134,6 +134,55 @@
 .flyer-scope .tile .box{flex:0 0 auto;width:26px;height:26px;border-radius:6px;border:2.5px solid var(--brand-primary);}
 .flyer-scope .tile .tbody h4{margin:0 0 3px;font-size:14.5px;font-weight:700;color:var(--brand-primary);}
 .flyer-scope .tile .tbody p{margin:0;font-size:12px;line-height:1.42;color:var(--ink-soft);}
+/* ===== Layout: Explainer (numbered timeline rail) ===== */
+.flyer-scope .fl-flow{position:relative;padding-left:6px;list-style:none;margin:0;}
+.flyer-scope .fl-flow::before{content:"";position:absolute;left:22px;top:14px;bottom:20px;width:1px;background:#e4e0d8;}
+.flyer-scope .fl-flow__item{position:relative;display:grid;grid-template-columns:34px 1fr;gap:18px;padding:0 0 22px 0;}
+.flyer-scope .fl-flow__item:last-child{padding-bottom:0;}
+.flyer-scope .fl-flow__num{position:relative;z-index:1;width:34px;height:34px;border-radius:999px;
+    background:var(--brand-primary);color:#fff;font-family:var(--font-voice);font-size:17px;font-weight:700;
+    line-height:1;display:flex;align-items:center;justify-content:center;}
+.flyer-scope .fl-flow__head{margin:0 0 4px;padding-top:7px;font-family:var(--font-voice);font-weight:700;
+    font-size:15px;line-height:1.2;color:var(--ink);}
+.flyer-scope .fl-flow__body{margin:0;font-size:11px;line-height:1.5;color:var(--ink-soft);}
+/* ===== Layout: Segments (hero + three-column band) ===== */
+.flyer-scope .fl-hero{border:1px solid #e4e0d8;border-left:4px solid var(--brand-primary);
+    border-radius:12px;padding:16px 20px;margin-bottom:14px;background:#fbfaf8;display:grid;grid-template-columns:1fr;gap:6px;}
+.flyer-scope .fl-hero__label{font-family:var(--font-voice);font-weight:700;font-size:19px;line-height:1.15;
+    color:var(--brand-primary);margin:0;}
+.flyer-scope .fl-hero__body{margin:0;font-size:12px;line-height:1.55;color:var(--ink-soft);}
+.flyer-scope .fl-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.flyer-scope .fl-col{border-top:2px solid var(--brand-secondary);padding-top:10px;}
+.flyer-scope .fl-col__label{margin:0 0 6px;font-size:10.5px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--brand-primary);line-height:1.3;}
+.flyer-scope .fl-col__body{margin:0;font-size:10.5px;line-height:1.5;color:var(--ink-soft);}
+/* ===== Template picker + wireframe thumbnails ===== */
+.flyer-scope #fl_picker .fl-picker-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.flyer-scope .fl-tpl-card{cursor:pointer;text-align:left;background:#fff;border:1.5px solid #d5d0c6;
+    border-radius:10px;padding:10px;font:inherit;transition:border-color .12s,box-shadow .12s;}
+.flyer-scope .fl-tpl-card:hover{border-color:#17402F;box-shadow:0 4px 14px -8px rgba(23,64,47,.5);}
+.flyer-scope .fl-tpl-card.sel{border-color:#17402F;box-shadow:0 0 0 2px rgba(23,64,47,.25);}
+.flyer-scope .fl-tpl-name{font-weight:700;font-size:13px;color:#1e2d35;margin-top:8px;}
+.flyer-scope .fl-tpl-desc{font-size:11px;color:#6f7f74;margin-top:1px;}
+/* wireframe skeleton: grey blocks that mimic each layout's shape */
+.flyer-scope .fl-wire{background:#faf8f3;border:1px solid #ece8df;border-radius:6px;padding:7px;
+    aspect-ratio:8.5/11;display:flex;flex-direction:column;gap:5px;}
+.flyer-scope .fl-wire .fw-banner{background:#c9ccc4;border-radius:3px;height:22%;position:relative;
+    display:flex;flex-direction:column;justify-content:flex-end;gap:3px;padding:5px;}
+.flyer-scope .fl-wire .fw-pill{width:34%;height:5px;background:#e08a00;border-radius:100px;}
+.flyer-scope .fl-wire .fw-title{width:70%;height:7px;background:#e9ede8;border-radius:2px;}
+.flyer-scope .fl-wire .fw-lead{height:8px;background:#e4e0d8;border-radius:2px;}
+.flyer-scope .fl-wire .fw-cta{margin-top:auto;height:16%;background:#cdd2cb;border-radius:3px;}
+/* checklist: 2x2 */
+.flyer-scope .fl-wire .fw-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:4px;}
+.flyer-scope .fl-wire .fw-grid span{background:#eef0ec;border:1px solid #e0e3dd;border-radius:3px;}
+/* explainer: vertical numbered rows */
+.flyer-scope .fl-wire .fw-flow{flex:1;display:flex;flex-direction:column;gap:4px;}
+.flyer-scope .fl-wire .fw-flow span{flex:1;background:#eef0ec;border-left:4px solid #17384d;border-radius:3px;}
+/* segments: hero + 3 cols */
+.flyer-scope .fl-wire .fw-hero{height:26%;background:#eef0ec;border-left:4px solid #17384d;border-radius:3px;}
+.flyer-scope .fl-wire .fw-cols{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
+.flyer-scope .fl-wire .fw-cols span{background:#eef0ec;border-top:3px solid #e08a00;border-radius:2px;}
 /* CTA footer */
   .flyer-scope .fl-cta{margin:24px 0 0;}
 .flyer-scope .cta-head{background:var(--cta-bg);color:#fff;padding:11px 26px;display:flex;
@@ -267,7 +316,50 @@
 
     <!-- ===== Flyer BUILD composer (flyer + build mode only) ===== -->
     <div id="flyerBuild" class="flyer-scope flyer-build-only" style="display:none">
-<div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+
+<!-- Template picker: shown first; pick one to open the composer -->
+<div id="fl_picker">
+  <h3 style="font-family:var(--font-voice);font-size:19px;margin:2px 0 4px;color:#1e2d35;">Choose a template</h3>
+  <p class="dhint" style="margin:0 0 14px;">Pick the layout for this flyer. You can start a new flyer to switch later.</p>
+  <div class="fl-picker-grid">
+    <button type="button" class="fl-tpl-card" data-tpl="checklist" onclick="fl_setTemplate('checklist')">
+      <div class="fl-wire">
+        <div class="fw-banner"><span class="fw-pill"></span><span class="fw-title"></span></div>
+        <div class="fw-lead"></div>
+        <div class="fw-grid"><span></span><span></span><span></span><span></span></div>
+        <div class="fw-cta"></div>
+      </div>
+      <div class="fl-tpl-name">Checklist</div>
+      <div class="fl-tpl-desc">2×2 grid of check items</div>
+    </button>
+    <button type="button" class="fl-tpl-card" data-tpl="explainer" onclick="fl_setTemplate('explainer')">
+      <div class="fl-wire">
+        <div class="fw-banner"><span class="fw-pill"></span><span class="fw-title"></span></div>
+        <div class="fw-lead"></div>
+        <div class="fw-flow"><span></span><span></span><span></span><span></span></div>
+        <div class="fw-cta"></div>
+      </div>
+      <div class="fl-tpl-name">Explainer</div>
+      <div class="fl-tpl-desc">Numbered step-by-step</div>
+    </button>
+    <button type="button" class="fl-tpl-card" data-tpl="segments" onclick="fl_setTemplate('segments')">
+      <div class="fl-wire">
+        <div class="fw-banner"><span class="fw-pill"></span><span class="fw-title"></span></div>
+        <div class="fw-lead"></div>
+        <div class="fw-hero"></div>
+        <div class="fw-cols"><span></span><span></span><span></span></div>
+        <div class="fw-cta"></div>
+      </div>
+      <div class="fl-tpl-name">Segments</div>
+      <div class="fl-tpl-desc">Hero topic + three areas</div>
+    </button>
+  </div>
+</div>
+
+<!-- Composer body: hidden until a template is picked -->
+<div id="fl_composer" style="display:none">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+  <span id="fl_tplBadge" style="font-size:11.5px;font-weight:700;color:#17402F;letter-spacing:.04em;"></span>
   <button id="fl_startNew" style="font:inherit;font-size:11.5px;font-weight:600;border:1px solid #d5d0c6;border-radius:6px;padding:6px 12px;cursor:pointer;background:#fff;color:#1e2d35;">↻ Start new flyer</button>
 </div>
 <div class="draftbox">
@@ -345,7 +437,8 @@
   </label>
   <button class="draftbtn" id="fl_finalizeBtn" style="background:#17402F;opacity:.5;" disabled>Finalize &amp; add to library</button>
   <div class="draftmsg" id="fl_finalizeMsg"></div>
-    </div>
+    </div><!-- /#fl_composer -->
+    </div><!-- /#flyerBuild -->
 
     <div class="row3 screen-only">
       <div class="field">
@@ -436,8 +529,7 @@
       </div>
     </div>
     <div class="fl-body">
-      <p class="fl-lead" id="fl_lead"></p>
-      <div class="tile-grid" id="fl_tiles"></div>
+      <div id="fl_bodyZone"></div>
       <div class="fl-cta">
         <div class="cta-head">
           <span class="l" id="fl_ctaLabel"></span>
@@ -931,6 +1023,72 @@ fl_$("fl_in_logoDrop").onclick=()=>fl_$("fl_in_logoFile").click();
 fl_$("fl_in_logoFile").onchange=()=>fl_fileToData(fl_$("fl_in_logoFile"),d=>{fl_logoData=d;
   fl_$("fl_in_logoDrop").textContent="✓ logo fl_set (click to replace)"; fl_$("fl_in_logoDrop").classList.add("have"); fl_draw(); });
 
+// Current flyer template: 'checklist' | 'explainer' | 'segments'. Same 4-item data
+// (fl_TILES + fl_in_t{i}_h/_p + lead) renders three different ways.
+var fl_template = "checklist";
+// Pick a template: mark the card, set the body layout, reveal the composer.
+function fl_setTemplate(t){
+  fl_template = t;
+  document.querySelectorAll("#fl_picker .fl-tpl-card").forEach(c=>
+    c.classList.toggle("sel", c.dataset.tpl===t));
+  const picker=document.getElementById("fl_picker");
+  const comp=document.getElementById("fl_composer");
+  if(picker) picker.style.display="none";
+  if(comp) comp.style.display="";
+  const badge=document.getElementById("fl_tplBadge");
+  if(badge) badge.textContent = "Template: " + t.charAt(0).toUpperCase()+t.slice(1);
+  if(typeof fl_draw==="function") fl_draw();
+}
+// Return to the picker (used by Start new flyer).
+function fl_showPicker(){
+  const picker=document.getElementById("fl_picker");
+  const comp=document.getElementById("fl_composer");
+  if(picker) picker.style.display="";
+  if(comp) comp.style.display="none";
+  document.querySelectorAll("#fl_picker .fl-tpl-card").forEach(c=>c.classList.remove("sel"));
+}
+function fl_esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+// Read the shared body data: lead + the (up to 4) filled items.
+function fl_bodyData(){
+  const lead = fl_$("fl_in_lead") ? fl_$("fl_in_lead").value : "";
+  const items = fl_TILES.map((_,i)=>({
+    h: fl_$(`fl_in_t${i}_h`) ? fl_$(`fl_in_t${i}_h`).value : "",
+    p: fl_$(`fl_in_t${i}_p`) ? fl_$(`fl_in_t${i}_p`).value : ""
+  }));
+  return { lead, items };
+}
+
+// Render the body zone for the currently selected template.
+function fl_renderBody(){
+  const zone = fl_$("fl_bodyZone"); if(!zone) return;
+  const { lead, items } = fl_bodyData();
+  const shown = items.filter(t=>t.h||t.p);
+  const leadHTML = `<p class="fl-lead" id="fl_lead">${fl_esc(lead)}</p>`;
+  let bodyHTML = "";
+  if(fl_template==="explainer"){
+    const li = shown.map((t,i)=>
+      `<li class="fl-flow__item"><div class="fl-flow__num">${i+1}</div>`+
+      `<div><h4 class="fl-flow__head">${fl_esc(t.h)}</h4>`+
+      `<p class="fl-flow__body">${fl_esc(t.p)}</p></div></li>`).join("");
+    bodyHTML = `<ol class="fl-flow">${li}</ol>`;
+  } else if(fl_template==="segments"){
+    const hero = shown[0]
+      ? `<div class="fl-hero"><h4 class="fl-hero__label">${fl_esc(shown[0].h)}</h4>`+
+        `<p class="fl-hero__body">${fl_esc(shown[0].p)}</p></div>` : "";
+    const cols = shown.slice(1).map(t=>
+      `<div class="fl-col"><h4 class="fl-col__label">${fl_esc(t.h)}</h4>`+
+      `<p class="fl-col__body">${fl_esc(t.p)}</p></div>`).join("");
+    bodyHTML = hero + (cols ? `<div class="fl-cols">${cols}</div>` : "");
+  } else { // checklist (default)
+    const tiles = shown.map(t=>
+      `<div class="tile"><div class="box"></div>`+
+      `<div class="tbody"><h4>${fl_esc(t.h)}</h4><p>${fl_esc(t.p)}</p></div></div>`).join("");
+    bodyHTML = `<div class="tile-grid" id="fl_tiles">${tiles}</div>`;
+  }
+  zone.innerHTML = leadHTML + bodyHTML;
+}
+
 function fl_draw(){
   // top-right: logo if present, else issue chip
   const tr=fl_$("fl_topright");
@@ -938,16 +1096,7 @@ function fl_draw(){
   else { tr.innerHTML=`<span class="issue-chip"><span class="m">${fl_$("fl_in_issue1").value}</span><br><span class="s">${fl_$("fl_in_issue2").value}</span></span>`; }
   fl_set("fl_eyebrow",fl_$("fl_in_eyebrow").value);
   fl_set("fl_head",fl_$("fl_in_headline").value);
-  fl_set("fl_lead",fl_$("fl_in_lead").value);
-  // tiles
-  const g=fl_$("fl_tiles"); g.innerHTML="";
-  fl_TILES.forEach((_,i)=>{
-    const h=fl_$(`fl_in_t${i}_h`).value, p=fl_$(`fl_in_t${i}_p`).value;
-    if(!h && !p) return;
-    const el=document.createElement("div"); el.className="tile";
-    el.innerHTML=`<div class="box"></div><div class="tbody"><h4>${h}</h4><p>${p}</p></div>`;
-    g.appendChild(el);
-  });
+  fl_renderBody();
   fl_set("fl_ctaLabel",fl_$("fl_in_ctaLabel").value);
   fl_set("fl_ctaEdition",fl_$("fl_in_ctaEdition").value);
   fl_set("fl_ctaTitle",fl_$("fl_in_ctaTitle").value);
@@ -1132,7 +1281,7 @@ function setFlyerMode(m){
   const clearBtn=document.getElementById("clearBtn");
   if(clearBtn) clearBtn.style.display = build ? "none" : "";
   relocateTagBlock(build);
-  if(build) fl_draw();
+  if(build){ fl_showPicker(); fl_draw(); }
 }
 
 // ===================== QC LOOP (build-mode flyer) =====================
@@ -1360,6 +1509,7 @@ function fl_startNewFlyer(){
   const dm=document.getElementById("fl_in_draftMsg"); if(dm){ dm.textContent=""; dm.className="draftmsg"; }
   const fm=document.getElementById("fl_finalizeMsg"); if(fm){ fm.textContent=""; fm.className="draftmsg"; }
   fl_updateFinalizeGate();
+  fl_showPicker();
   fl_draw();
 }
 document.getElementById("fl_startNew").onclick = fl_startNewFlyer;
