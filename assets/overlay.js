@@ -71,12 +71,12 @@ function renderScreen(el, screen, opts = {}) {
     ${bgLayer(screen)}
     <div class="vwl-scrim" style="background:${scrim};"></div>
     <div class="vwl-copy">
-      ${showChrome ? `<div class="vwl-eyebrow" style="color:${accent};font-size:${1.1*scale}em;">${screen.eyebrow || ""}</div>` : ""}
+      ${showChrome && screen.eyebrow ? `<div class="vwl-eyebrow" style="background:${accent};font-size:${1.0*scale}em;">${screen.eyebrow}</div>` : ""}
       <div class="vwl-head" style="font-size:${2.6*scale}em;">${screen.title || ""}</div>
-      ${showChrome ? `<div class="vwl-sub" style="font-size:${1.05*scale}em;">${screen.subtitle || ""}</div>` : ""}
-      ${showChrome ? `<span class="vwl-cta" style="font-size:${0.95*scale}em;">${screen.cta || ""}</span>` : ""}
+      ${showChrome && screen.subtitle ? `<div class="vwl-sub" style="font-size:${1.05*scale}em;">${screen.subtitle}</div>` : ""}
+      ${showChrome && screen.cta ? `<span class="vwl-cta" style="font-size:${0.95*scale}em;">${screen.cta}</span>` : ""}
     </div>
-    ${showBullets ? `<ul class="vwl-bullets" style="font-size:${1.05*scale}em;">${bullets.map(b=>`<li style="border-color:${accent};">${b}</li>`).join("")}</ul>` : ""}
+    ${showBullets ? `<div class="vwl-bullets-card"><ul class="vwl-bullets" style="font-size:${1.15*scale}em;">${bullets.map(b=>`<li>${b}</li>`).join("")}</ul></div>` : ""}
     ${showQr ? `<div class="vwl-qr"><div class="vwl-qrbox">${qrPlaceholder("#111")}</div><span class="vwl-qrlabel">Scan for support</span></div>` : ""}
   `;
 }
