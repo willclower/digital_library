@@ -339,6 +339,10 @@
   </div>
 
   <div class="seg-label">Publish</div>
+  <label style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:#1e2d35;margin:0 0 12px;cursor:pointer;line-height:1.4;">
+    <input type="checkbox" id="fl_in_alsoScreen" style="margin-top:2px;flex:0 0 auto;">
+    <span>Also publish a 16:9 wall screen from the banner<span style="display:block;color:#6f7f74;font-size:11.5px;margin-top:1px;">Uses the banner photo + headline, lists the tile headings as action bullets, and adds a QR that points to this flyer.</span></span>
+  </label>
   <button class="draftbtn" id="fl_finalizeBtn" style="background:#17402F;opacity:.5;" disabled>Finalize &amp; add to library</button>
   <div class="draftmsg" id="fl_finalizeMsg"></div>
     </div>
@@ -740,6 +744,10 @@ async function save(){
     const out=await res.json();
     if(out.ok){
       setMsg(`Saved “${out.saved}”${out.width?` (${out.width}×${out.height})`:""}. It's in the library now.`,"ok");
+      // Optional companion: publish a 16:9 wall screen built from the banner photo.
+      if(isBuild && document.getElementById("fl_in_alsoScreen") && document.getElementById("fl_in_alsoScreen").checked){
+        await fl_publishBannerScreen(out.saved || id);
+      }
       // Build-mode finalize succeeded: fully reset the composer so the next flyer starts clean
       // (copy, brief, banner, logo, id, description, QC state) — keeps branding colors + issue lines.
       if(isBuild){ fl_startNewFlyer(); }
@@ -749,6 +757,54 @@ async function save(){
   }catch(e){
     setMsg("Could not reach the write API. Check the endpoint/CORS.","err");
   }finally{ btn.disabled=false; }
+}
+
+// Publish a native 16:9 wall screen derived from the flyer's banner.
+// Reuses the existing /screen write path: banner photo -> image_bytes, headline ->
+// title, the tile headings -> overlay_bullets (rendered live by overlay.js), and a
+// QR pointing at this flyer via the go.mymedwellness.com redirect (Step 6 layer).
+// Screen id = "<flyer-id>-screen" so it never collides with the flyer row.
+async function fl_publishBannerScreen(flyerId){
+  const fm = document.getElementById("fl_finalizeMsg");
+  if(!fl_bannerData){
+    if(fm){ fm.textContent="Flyer published. (No banner photo set, so no screen was made.)"; fm.style.color="#6f7f74"; }
+    return;
+  }
+  const headline = (document.getElementById("fl_in_headline").value||"").trim();
+  const eyebrow  = (document.getElementById("fl_in_eyebrow").value||"").trim();
+  const bullets  = fl_TILES.map((_,i)=>{
+    const el=document.getElementById(`fl_in_t${i}_h`); return el ? el.value.trim() : "";
+  }).filter(Boolean);
+  const screenId = flyerId + "-screen";
+  const payload = {
+    id: screenId,
+    asset_type: "screen",
+    title: headline,
+    eyebrow: eyebrow,
+    treatment: "left-scrim",
+    accent: (document.getElementById("fl_in_c_secondary_hex").value||"#d9b98f").trim(),
+    format: "still",
+    qr_url: "https://go.mymedwellness.com/s/" + flyerId,
+    overlay_bullets: bullets,
+    // tags carried from the flyer so the screen is findable alongside it
+    subject:[...sel.subject], month:[...sel.month], setting:[...sel.setting],
+    tone:[...sel.tone], aspect:["16:9"],
+    // the banner photo becomes the screen background (16:9 center-crop via object-fit)
+    image: fl_bannerData,
+    mime: (/^data:([^;]+);/.exec(fl_bannerData)||[])[1] || "image/png"
+  };
+  try{
+    const res = await fetch(DRL_API+"/screen",{
+      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
+    });
+    const out = await res.json();
+    if(fm){
+      if(out.ok){ fm.textContent = `Flyer + companion screen “${out.saved}” published.`; fm.style.color="#17402F"; }
+      else { fm.textContent = "Flyer published, but the screen write returned not-OK."; fm.style.color="#b3261e"; }
+    }
+  }catch(e){
+    if(fm){ fm.textContent="Flyer published, but couldn't reach the screen write API."; fm.style.color="#b3261e"; }
+  }
 }
 
 function resetForm(){
