@@ -216,7 +216,6 @@
       <div class="pills" id="assetTypePills">
         <span class="pill" data-t="screen"     data-on="1" onclick="setAssetType('screen')">Screen</span>
         <span class="pill" data-t="flyer"      data-on="0" onclick="setAssetType('flyer')">Flyer</span>
-        <span class="pill" data-t="newsletter" data-on="0" onclick="setAssetType('newsletter')">Newsletter</span>
       </div>
     </div>
 
@@ -301,6 +300,9 @@
     <div class="drop" id="fl_in_logoDrop">Click to add a logo (PNG)</div>
     <input type="file" id="fl_in_logoFile" accept="image/png,image/svg+xml,image/jpeg" hidden></div>
 
+  <div class="seg-label">Tags</div>
+  <div id="tagSlotBuild"></div>
+
   <div class="seg-label">Banner</div>
   <div class="fld"><label>Banner photo <span class="sub">MidJourney 5:2, dark on the left</span></label>
     <div class="drop" id="fl_in_bannerDrop">Click to add the banner image</div>
@@ -371,6 +373,7 @@
       </div>
     </div>
 
+    <div id="tagBlock">
     <div class="field">
       <label>Subject <span class="hint">choose one or more</span></label>
       <div class="pills" id="t-subject"></div>
@@ -394,6 +397,7 @@
         <label>Aspect</label>
         <div class="pills" id="t-aspect"></div>
       </div>
+    </div>
     </div>
 
     <div class="field">
@@ -573,6 +577,7 @@ function setAssetType(t){
     setFlyerMode(flyerMode || "upload");
   } else {
     document.querySelectorAll(".flyer-build-only").forEach(el=>el.style.display="none");
+    relocateTagBlock(false);
     const screenPrev=document.querySelector(".previewwrap.screen-only");
     if(screenPrev) screenPrev.style.display = isScreen ? "" : "none";
     const saveBtn=document.getElementById("save");
@@ -984,6 +989,25 @@ async function fl_buildFlyerPDF(){
 // (fl_draw is invoked by admin setAssetType/setFlyerMode when build mode opens)
 
 
+// Move the shared tag block (Subject/Month/Setting/Tone) into the flyer-build composer
+// (right after the logo/Tags seg-label) when build mode is active; return it to its
+// screen/upload home otherwise. One DOM node, no duplication — buildPills stays valid.
+let _tagHome = null, _tagAfter = null;
+function relocateTagBlock(intoBuild){
+  const block = document.getElementById("tagBlock");
+  const slot  = document.getElementById("tagSlotBuild");
+  if(!block || !slot) return;
+  if(_tagHome === null){ _tagHome = block.parentNode; _tagAfter = block.nextElementSibling; }
+  if(intoBuild){
+    if(block.parentNode !== slot) slot.appendChild(block);
+  } else {
+    if(block.parentNode !== _tagHome){
+      if(_tagAfter && _tagAfter.parentNode === _tagHome) _tagHome.insertBefore(block, _tagAfter);
+      else _tagHome.appendChild(block);
+    }
+  }
+}
+
 // Show/hide flyer sub-mode regions and (re)render the build preview when it opens.
 function setFlyerMode(m){
   flyerMode = m;
@@ -1006,6 +1030,7 @@ function setFlyerMode(m){
   }
   const clearBtn=document.getElementById("clearBtn");
   if(clearBtn) clearBtn.style.display = build ? "none" : "";
+  relocateTagBlock(build);
   if(build) fl_draw();
 }
 
