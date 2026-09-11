@@ -1489,10 +1489,13 @@ document.getElementById("fl_finalizeBtn").onclick = ()=>{ save(); };
 // QC state, and the resource ID/description. Branding colors and issue lines are left as-is
 // (they're per-client config a user typically keeps between flyers).
 function fl_startNewFlyer(){
-  // copy fields (all reviewed fields + brief)
+  // copy fields (all reviewed fields + brief). Lead is per-flyer copy → cleared.
+  // NOTE: CTA buttons/labels + footer (ctaLabel, ctaEdition, ctaBtnBig, ctaBtnSm,
+  // footPowered, footCode) are CONSTANT per-client config, like branding colors —
+  // deliberately NOT cleared, so they persist between flyers and Draft Copy (which
+  // never fills them) doesn't leave them blank.
   Object.values(FL_QC_MAP).forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
-  ["fl_in_briefText","fl_in_lead","fl_in_ctaLabel","fl_in_ctaEdition",
-   "fl_in_ctaBtnBig","fl_in_ctaBtnSm","fl_in_footPowered","fl_in_footCode"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
+  ["fl_in_briefText","fl_in_lead"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   // banner + logo
   fl_bannerData=null; fl_logoData=null;
   const bg=document.getElementById("fl_bg"); if(bg) bg.style.backgroundImage="";
