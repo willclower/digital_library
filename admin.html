@@ -105,31 +105,26 @@
 .flyer-scope .flyer{width:612px;min-height:792px;background:var(--page);
          box-shadow:0 10px 40px rgba(0,0,0,.18);position:relative;overflow:hidden;
          display:flex;flex-direction:column;}
-/* header banner: photo fills it; left-scrim keeps white text readable */
-  .flyer-scope .fl-header{position:relative;min-height:250px;background:var(--brand-primary);overflow:hidden;flex:0 0 auto;}
+/* header banner: photo fills it; left-scrim keeps white text readable (Option 2: shorter strip) */
+  .flyer-scope .fl-header{position:relative;min-height:150px;background:var(--brand-primary);overflow:hidden;flex:0 0 auto;}
 .flyer-scope .fl-header .bg{position:absolute;inset:0;background-size:cover;background-position:center;}
 .flyer-scope .fl-header .scrim{position:absolute;inset:0;
-    background:linear-gradient(90deg, rgba(6,20,30,.92) 0%, rgba(6,20,30,.75) 40%, rgba(6,20,30,.35) 68%, rgba(6,20,30,.1) 100%);}
+    background:linear-gradient(90deg, rgba(6,20,30,.92) 0%, rgba(6,20,30,.75) 42%, rgba(6,20,30,.35) 70%, rgba(6,20,30,.1) 100%);}
 .flyer-scope .fl-header .htexture{position:absolute;inset:0;opacity:.16;
     background:repeating-linear-gradient(135deg, #fff 0 2px, transparent 2px 22px);}
-.flyer-scope .fl-header .hcontent{position:relative;min-height:250px;padding:34px 40px 32px;color:#fff;
-    display:flex;flex-direction:column;}
-.flyer-scope .h-toprow{display:flex;justify-content:space-between;align-items:flex-start;}
-.flyer-scope .photo-tag{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);
-    padding:5px 9px;border-radius:5px;color:#eaf1f4;}
+.flyer-scope .fl-header .hcontent{position:relative;min-height:150px;padding:18px 40px;color:#fff;
+    display:flex;flex-direction:column;justify-content:center;}
+.flyer-scope .h-toprow{position:absolute;top:16px;right:40px;display:flex;justify-content:flex-end;align-items:flex-start;}
 .flyer-scope .issue-chip{text-align:right;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);
     border-radius:6px;padding:7px 12px;line-height:1.35;}
 .flyer-scope .issue-chip .m{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#cfe0e8;}
 .flyer-scope .issue-chip .s{font-size:13px;font-weight:700;}
 .flyer-scope .h-logo{max-height:34px;max-width:150px;object-fit:contain;}
-.flyer-scope .eyebrow-pill{align-self:flex-start;margin-top:14px;background:var(--brand-secondary);
-    color:#fff;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-    padding:6px 16px;border-radius:100px;}
-.flyer-scope .fl-head{font-family:var(--font-voice);font-weight:700;font-size:38px;line-height:1.08;
-    margin:12px 0 0;text-shadow:0 2px 18px rgba(0,0,0,.45);max-width:78%;}
-.flyer-scope .fl-sub{font-size:14px;line-height:1.5;margin-top:11px;max-width:80%;color:#eaf1f4;
-    text-shadow:0 1px 10px rgba(0,0,0,.5);}
+.flyer-scope .eyebrow-pill{align-self:flex-start;background:var(--brand-secondary);
+    color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    padding:5px 14px;border-radius:100px;}
+.flyer-scope .fl-head{font-family:var(--font-voice);font-weight:700;font-size:30px;line-height:1.06;
+    margin:9px 0 0;text-shadow:0 2px 18px rgba(0,0,0,.45);max-width:72%;}
 /* body */
   .flyer-scope .fl-body{padding:26px 40px 0;flex:1 1 auto;}
 .flyer-scope .fl-lead{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:0 0 20px;max-width:92%;}
@@ -307,15 +302,12 @@
   <div class="fld"><label>Banner photo <span class="sub">MidJourney 5:2, dark on the left</span></label>
     <div class="drop" id="fl_in_bannerDrop">Click to add the banner image</div>
     <input type="file" id="fl_in_bannerFile" accept="image/*" hidden></div>
-  <div class="fld"><label>Photo tag <span class="sub">tiny label, top-left</span></label>
-    <input type="text" id="fl_in_photoTag" value="Photo: colorful fall plate"></div>
   <div class="row2">
     <div class="fld"><label>Issue line 1</label><input type="text" id="fl_in_issue1" value="October 2027"></div>
     <div class="fld"><label>Issue line 2</label><input type="text" id="fl_in_issue2" value="Immune Series"></div>
   </div>
   <div class="fld"><label>Eyebrow</label><input type="text" id="fl_in_eyebrow" value="This week's checklist"></div>
   <div class="fld"><label>Headline</label><textarea id="fl_in_headline">The Fall Flu-Fighter Plate</textarea></div>
-  <div class="fld"><label>Subtitle</label><textarea id="fl_in_subtitle">Your immune system runs on what you feed it. Hit these six habits most days this week.</textarea></div>
 
   <div class="seg-label">Body</div>
   <div class="fld"><label>Lead paragraph</label><textarea id="fl_in_lead">Check the box each time you land one. Six simple moves that give your body the raw material to hold the line through cold-and-flu season.</textarea></div>
@@ -433,12 +425,10 @@
       <div class="scrim"></div>
       <div class="hcontent">
         <div class="h-toprow">
-          <span class="photo-tag" id="fl_phototag"></span>
           <span id="fl_topright"></span>
         </div>
         <span class="eyebrow-pill" id="fl_eyebrow"></span>
         <div class="fl-head" id="fl_head"></div>
-        <div class="fl-sub" id="fl_sub"></div>
       </div>
     </div>
     <div class="fl-body">
@@ -816,7 +806,7 @@ const fl_set=(id,v)=>{ fl_$(id).textContent=v; };
 // These are STARTING values — tune against a real full-page 300dpi render, then lock.
 // The counter turns red over the cap; Finalize refuses while any field is over.
 const FL_CAPS = {
-  fl_in_eyebrow: 40, fl_in_headline: 46, fl_in_subtitle: 130, fl_in_lead: 190,
+  fl_in_eyebrow: 40, fl_in_headline: 46, fl_in_lead: 190,
   fl_in_ctaLabel: 24, fl_in_ctaEdition: 30, fl_in_ctaTitle: 40,
   fl_in_ctaMeta: 70, fl_in_ctaDesc: 170,
   // per-tile (heading, body) applied to every fl_in_t{i}_h / _p below
@@ -885,14 +875,12 @@ fl_$("fl_in_logoFile").onchange=()=>fl_fileToData(fl_$("fl_in_logoFile"),d=>{fl_
   fl_$("fl_in_logoDrop").textContent="✓ logo fl_set (click to replace)"; fl_$("fl_in_logoDrop").classList.add("have"); fl_draw(); });
 
 function fl_draw(){
-  fl_set("fl_phototag", fl_$("fl_in_photoTag").value);
   // top-right: logo if present, else issue chip
   const tr=fl_$("fl_topright");
   if(fl_logoData){ tr.innerHTML=`<img class="h-logo" src="${fl_logoData}">`; }
   else { tr.innerHTML=`<span class="issue-chip"><span class="m">${fl_$("fl_in_issue1").value}</span><br><span class="s">${fl_$("fl_in_issue2").value}</span></span>`; }
   fl_set("fl_eyebrow",fl_$("fl_in_eyebrow").value);
   fl_set("fl_head",fl_$("fl_in_headline").value);
-  fl_set("fl_sub",fl_$("fl_in_subtitle").value);
   fl_set("fl_lead",fl_$("fl_in_lead").value);
   // tiles
   const g=fl_$("fl_tiles"); g.innerHTML="";
@@ -958,7 +946,14 @@ async function fl_draftCopy(){
   msg.className = "draftmsg"; msg.textContent = "";
   if(!brief){ msg.className="draftmsg err"; msg.textContent="Type a brief first."; return; }
 
-  const payload = { brief, tile_count: fl_TILES.length };
+  const payload = { brief, tile_count: fl_TILES.length,
+    caps: {
+      eyebrow:FL_CAPS.fl_in_eyebrow, headline:FL_CAPS.fl_in_headline,
+      lead:FL_CAPS.fl_in_lead,
+      tile_h:FL_CAPS._tile_h, tile_p:FL_CAPS._tile_p,
+      cta_title:FL_CAPS.fl_in_ctaTitle, cta_meta:FL_CAPS.fl_in_ctaMeta,
+      cta_desc:FL_CAPS.fl_in_ctaDesc
+    } };
   // reuse the banner already loaded in Branding, downscaled so the payload stays small.
   if (fl_bannerData && /^data:image\/(png|jpe?g|gif|webp);base64,/.test(fl_bannerData)) {
     const small = await fl_shrinkForDraft(fl_bannerData);
@@ -976,7 +971,6 @@ async function fl_draftCopy(){
 
     fl_setFld("fl_in_eyebrow",  d.eyebrow);
     fl_setFld("fl_in_headline", d.headline);
-    fl_setFld("fl_in_subtitle", d.subtitle);
     fl_setFld("fl_in_lead",     d.lead);
     (d.tiles||[]).forEach((t,i)=>{ fl_setFld(`fl_in_t${i}_h`, t.h); fl_setFld(`fl_in_t${i}_p`, t.p); });
     fl_setFld("fl_in_ctaTitle", d.cta_title);
@@ -1093,7 +1087,6 @@ const QC_ENDPOINT = DRL_API.replace(/\/drl$/, "") + "/qc-first-pass"; // sibling
 const FL_QC_MAP = {
   "EYEBROW":        "fl_in_eyebrow",
   "HEADLINE":       "fl_in_headline",
-  "SUBTITLE":       "fl_in_subtitle",
   "LEAD":           "fl_in_lead",
   "CTA TITLE":      "fl_in_ctaTitle",
   "CTA META":       "fl_in_ctaMeta",
@@ -1292,7 +1285,7 @@ document.getElementById("fl_finalizeBtn").onclick = ()=>{ save(); };
 function fl_startNewFlyer(){
   // copy fields (all reviewed fields + brief)
   Object.values(FL_QC_MAP).forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
-  ["fl_in_briefText","fl_in_lead","fl_in_photoTag","fl_in_ctaLabel","fl_in_ctaEdition",
+  ["fl_in_briefText","fl_in_lead","fl_in_ctaLabel","fl_in_ctaEdition",
    "fl_in_ctaBtnBig","fl_in_ctaBtnSm","fl_in_footPowered","fl_in_footCode"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   // banner + logo
   fl_bannerData=null; fl_logoData=null;
