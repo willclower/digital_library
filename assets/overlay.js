@@ -65,6 +65,10 @@ function renderScreen(el, screen, opts = {}) {
     ? bulletsRaw.filter(b => b && String(b).trim())
     : String(bulletsRaw).split("\n").map(s=>s.trim()).filter(Boolean);
   const showBullets = showChrome && bullets.length > 0;
+  // Small tracking/reference code in the bottom corner (opposite the QR).
+  // Screen-side counterpart to the flyer footer code; suppressed in thumbnails.
+  const assetCode = screen.asset_code || screen.assetCode || "";
+  const showCode = showChrome && !!assetCode;
   el.classList.toggle("vwl-right", screen.treatment === "right-scrim");
   el.classList.toggle("vwl-has-bullets", showBullets);
   el.innerHTML = `
@@ -78,6 +82,7 @@ function renderScreen(el, screen, opts = {}) {
     </div>
     ${showBullets ? `<div class="vwl-bullets-card"><ul class="vwl-bullets" style="font-size:${1.15*scale}em;">${bullets.map(b=>`<li>${b}</li>`).join("")}</ul></div>` : ""}
     ${showQr ? `<div class="vwl-qr"><div class="vwl-qrbox">${qrPlaceholder("#111")}</div><span class="vwl-qrlabel">Scan for support</span></div>` : ""}
+    ${showCode ? `<span class="vwl-code" style="font-size:${0.62*scale}em;">${assetCode}</span>` : ""}
   `;
 }
 
