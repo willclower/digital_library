@@ -598,6 +598,20 @@ async function fl_computeAssetCode(assetTypeArg, issueDate, existingCode){
   return out.asset_code;
 }
 
+// Look up an existing asset_code for an id from the live library (republish-safe).
+// Screens have no footer field to remember their code, so we read it back from the
+// library before deciding whether to reserve a NEW one. Returns the code or null.
+async function fl_existingCodeForId(id){
+  if(!id) return null;
+  try{
+    const res = await fetch(DRL_API + "/library");
+    const lib = await res.json();
+    const row = (lib.screens || []).find(r => r.id === id);
+    const code = row && row.asset_code;
+    return (code && /^[A-Z]+-[A-Z]{3}-\d{6}-\d{3,}$/.test(code)) ? code : null;
+  }catch(e){ return null; }
+}
+
 // ---- Asset type + uploaded asset bytes (base64) ----
 let assetType = "screen";               // screen | flyer | newsletter
 let assetB64 = null, assetMime = null, assetName = null;
@@ -840,9 +854,21 @@ async function save(){
     setMsg("Publishing…","");
   }
 
+  // Plain screen publish (not a build-flyer): reserve an SCR code, reusing the
+  // existing one on republish so a re-save never renumbers the screen.
+  let screenAssetCode = null;
+  if(assetType==="screen"){
+    const prior = await fl_existingCodeForId(id);
+    try{
+      screenAssetCode = await fl_computeAssetCode("screen", (document.getElementById("issue_date").value||"").trim(), prior);
+    }catch(err){
+      setMsg("Couldn't reserve an asset code: "+err.message,"err"); btn.disabled=false; return;
+    }
+  }
+
   const payload = {
     id, title, asset_type: assetType,
-    asset_code: flyerAssetCode,   // null unless this is a build-mode flyer
+    asset_code: flyerAssetCode || screenAssetCode,   // flyer(build) or screen; null for uploads/newsletter
     subtitle:document.getElementById("subtitle").value.trim(),
     eyebrow:document.getElementById("eyebrow").value.trim(),
     cta:document.getElementById("cta").value.trim(),
@@ -907,9 +933,17 @@ async function fl_publishBannerScreen(flyerId){
     const el=document.getElementById(`fl_in_t${i}_h`); return el ? el.value.trim() : "";
   }).filter(Boolean);
   const screenId = flyerId + "-screen";
+  // Reserve an SCR code for the companion screen, reusing the existing one on
+  // republish (deterministic id) so the screen never renumbers.
+  let bannerScreenCode = null;
+  try{
+    const prior = await fl_existingCodeForId(screenId);
+    bannerScreenCode = await fl_computeAssetCode("screen", (document.getElementById("issue_date").value||"").trim(), prior);
+  }catch(e){ bannerScreenCode = null; /* screen still publishes uncoded if reserve fails */ }
   const payload = {
     id: screenId,
     asset_type: "screen",
+    asset_code: bannerScreenCode,
     title: headline,
     eyebrow: eyebrow,
     treatment: "left-scrim",
