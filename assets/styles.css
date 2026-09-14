@@ -48,3 +48,10 @@ body{margin:0;font-family:var(--font-sans);}
 .vwl-has-bullets .vwl-copy{max-width:52%;}
 /* right-scrim: copy on the right, so the card moves left */
 .vwl-right .vwl-bullets-card{right:auto;left:5%;}
+
+/* Asset/tracking code: small, low-contrast, bottom corner opposite the QR.
+   Reference label for cataloguing — deliberately unobtrusive for viewers. */
+.vwl-code{position:absolute;left:3.5%;bottom:2.5%;letter-spacing:0.06em;
+  color:rgba(255,255,255,0.5);text-shadow:0 1px 6px rgba(0,0,0,0.6);
+  font-variant-numeric:tabular-nums;}
+.vwl-right .vwl-code{left:auto;right:3.5%;}
