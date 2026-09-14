@@ -418,7 +418,7 @@
 
   <div class="seg-label">Footer</div>
   <div class="fld"><label>Powered-by line</label><input type="text" id="fl_in_footPowered" value="Concentra Onsite Health · Wellness powered by Mediterranean Wellness"></div>
-  <div class="fld"><label>Asset code</label><input type="text" id="fl_in_footCode" value="CW-2710-02 · Flu-Fighter Plate"></div>
+  <div class="fld"><label>Asset code <span class="hint">auto-assigned at Finalize</span></label><input type="text" id="fl_in_footCode" value="" placeholder="e.g. CON-FLY-202609-014" readonly></div>
 
   <div class="seg-label">Quality check</div>
   <p class="dhint" style="margin:0 0 10px;">Send the copy for an automated content review. You'll get back any flagged items with suggested edits — apply, tweak, or reject each one before finalizing.</p>
@@ -570,6 +570,42 @@ if (window.pdfjsLib) {
 const DRL_API = "https://n8n-admin.willclower.com/webhook/drl";   // write: DRL_API + "/screen"
 const DRAFT_URL = DRL_API + "/draft";                             // AI draft-on-upload
 const VOCAB_URL = DRL_API + "/vocab";                              // optional; falls back to built-in list
+
+// ---- Asset codes ----
+// Client-facing catalog code printed on the flyer + stored in the DB.
+// Format: PREFIX-TYPE-YYYYMM-SEQ  (e.g. CON-FLY-202609-014)
+// PREFIX is one constant for now (Concentra); wire to client selection later.
+const ASSET_CODE_PREFIX = "CON";
+const ASSET_TYPE_MAP = { flyer:"FLY", screen:"SCR", newsletter:"NWS" };
+
+// Compute the next asset code for a given type + issue date.
+// - If existingCode is already a well-formed code, REUSE it (republish never renumbers).
+// - Otherwise peek the live library and use MAX(existing seq for this PREFIX-TYPE-YYYYMM) + 1.
+// count+1 would re-mint a deleted number and collide; MAX+1 never reuses.
+async function fl_computeAssetCode(assetTypeArg, issueDate, existingCode){
+  const type = ASSET_TYPE_MAP[assetTypeArg] || "FLY";
+  // reuse a valid existing code as-is
+  if(existingCode && /^[A-Z]+-[A-Z]{3}-\d{6}-\d{3,}$/.test(existingCode.trim())){
+    return existingCode.trim();
+  }
+  // YYYYMM from issue_date if set, else today
+  let d = (issueDate && /^\d{4}-\d{2}-\d{2}$/.test(issueDate)) ? new Date(issueDate+"T00:00:00") : new Date();
+  const yyyymm = d.getFullYear().toString() + String(d.getMonth()+1).padStart(2,"0");
+  const stem = `${ASSET_CODE_PREFIX}-${type}-${yyyymm}-`;
+  let maxSeq = 0;
+  try{
+    const res = await fetch(DRL_API + "/library");
+    const lib = await res.json();
+    for(const row of (lib.screens || [])){
+      const code = row.asset_code;
+      if(code && code.indexOf(stem) === 0){
+        const seq = parseInt(code.slice(stem.length), 10);
+        if(!isNaN(seq) && seq > maxSeq) maxSeq = seq;
+      }
+    }
+  }catch(e){ /* library unreachable — fall through to seq 1; DB conflict guard is the backstop */ }
+  return stem + String(maxSeq + 1).padStart(3,"0");
+}
 
 // ---- Asset type + uploaded asset bytes (base64) ----
 let assetType = "screen";               // screen | flyer | newsletter
@@ -791,7 +827,14 @@ async function save(){
   // Build mode: generate the PDF (and its thumbnail) in-browser now, then ride the
   // existing doc payload path exactly as an uploaded flyer would.
   let buildFile=null, buildThumb=null, buildMime=null;
+  let flyerAssetCode = null;
   if(isBuild){
+    // Compute the asset code BEFORE render so it prints on the PDF footer.
+    // Reuse the current footer code if it's already a valid asset code (republish).
+    const existing = (document.getElementById("fl_in_footCode").value||"").trim();
+    flyerAssetCode = await fl_computeAssetCode("flyer", (document.getElementById("issue_date").value||"").trim(), existing);
+    document.getElementById("fl_in_footCode").value = flyerAssetCode;
+    fl_draw(); // repaint footer with the computed code baked in
     setMsg("Rendering flyer…","");
     try{
       const r = await fl_buildFlyerPDF();
@@ -804,6 +847,7 @@ async function save(){
 
   const payload = {
     id, title, asset_type: assetType,
+    asset_code: flyerAssetCode,   // null unless this is a build-mode flyer
     subtitle:document.getElementById("subtitle").value.trim(),
     eyebrow:document.getElementById("eyebrow").value.trim(),
     cta:document.getElementById("cta").value.trim(),
@@ -1505,6 +1549,9 @@ function fl_startNewFlyer(){
   // shared row fields
   const idEl=document.getElementById("id"); if(idEl){ idEl.value=""; idEl.dataset.touched=""; }
   const desc=document.getElementById("description"); if(desc) desc.value="";
+  // Asset code is AUTO-ASSIGNED per flyer now (was a constant) — clear it so the
+  // next flyer mints its own; leaving it would make flyer #2 reuse #1's code.
+  const fc=document.getElementById("fl_in_footCode"); if(fc) fc.value="";
   // QC state + messages
   flQcReview=null;
   const qr=document.getElementById("fl_qcResult"); if(qr) qr.style.display="none";
