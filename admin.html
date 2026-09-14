@@ -571,40 +571,31 @@ const DRL_API = "https://n8n-admin.willclower.com/webhook/drl";   // write: DRL_
 const DRAFT_URL = DRL_API + "/draft";                             // AI draft-on-upload
 const VOCAB_URL = DRL_API + "/vocab";                              // optional; falls back to built-in list
 
-// ---- Asset codes ----
+// ---- Asset codes (Path B: server-assigned, persistent counter) ----
 // Client-facing catalog code printed on the flyer + stored in the DB.
 // Format: PREFIX-TYPE-YYYYMM-SEQ  (e.g. CON-FLY-202609-014)
-// PREFIX is one constant for now (Concentra); wire to client selection later.
+// The sequence is issued by the drl/next-code workflow from a persistent counter,
+// so a deleted code is NEVER reissued (true tracking/reference codes).
 const ASSET_CODE_PREFIX = "CON";
 const ASSET_TYPE_MAP = { flyer:"FLY", screen:"SCR", newsletter:"NWS" };
+const NEXTCODE_URL = DRL_API + "/next-code";
 
-// Compute the next asset code for a given type + issue date.
-// - If existingCode is already a well-formed code, REUSE it (republish never renumbers).
-// - Otherwise peek the live library and use MAX(existing seq for this PREFIX-TYPE-YYYYMM) + 1.
-// count+1 would re-mint a deleted number and collide; MAX+1 never reuses.
+// Reserve the next asset code for a type + issue date.
+// - existingCode that's already valid → REUSE it (republish never reserves a new number).
+// - otherwise call the server counter, which atomically bumps and returns the code.
 async function fl_computeAssetCode(assetTypeArg, issueDate, existingCode){
   const type = ASSET_TYPE_MAP[assetTypeArg] || "FLY";
-  // reuse a valid existing code as-is
   if(existingCode && /^[A-Z]+-[A-Z]{3}-\d{6}-\d{3,}$/.test(existingCode.trim())){
     return existingCode.trim();
   }
-  // YYYYMM from issue_date if set, else today
+  // YYYYMM from issue_date if set, else current month
   let d = (issueDate && /^\d{4}-\d{2}-\d{2}$/.test(issueDate)) ? new Date(issueDate+"T00:00:00") : new Date();
   const yyyymm = d.getFullYear().toString() + String(d.getMonth()+1).padStart(2,"0");
-  const stem = `${ASSET_CODE_PREFIX}-${type}-${yyyymm}-`;
-  let maxSeq = 0;
-  try{
-    const res = await fetch(DRL_API + "/library");
-    const lib = await res.json();
-    for(const row of (lib.screens || [])){
-      const code = row.asset_code;
-      if(code && code.indexOf(stem) === 0){
-        const seq = parseInt(code.slice(stem.length), 10);
-        if(!isNaN(seq) && seq > maxSeq) maxSeq = seq;
-      }
-    }
-  }catch(e){ /* library unreachable — fall through to seq 1; DB conflict guard is the backstop */ }
-  return stem + String(maxSeq + 1).padStart(3,"0");
+  const url = `${NEXTCODE_URL}?prefix=${ASSET_CODE_PREFIX}&type=${type}&yyyymm=${yyyymm}`;
+  const res = await fetch(url);
+  const out = await res.json();
+  if(!out || !out.ok || !out.asset_code) throw new Error("Could not reserve an asset code");
+  return out.asset_code;
 }
 
 // ---- Asset type + uploaded asset bytes (base64) ----
@@ -832,7 +823,11 @@ async function save(){
     // Compute the asset code BEFORE render so it prints on the PDF footer.
     // Reuse the current footer code if it's already a valid asset code (republish).
     const existing = (document.getElementById("fl_in_footCode").value||"").trim();
-    flyerAssetCode = await fl_computeAssetCode("flyer", (document.getElementById("issue_date").value||"").trim(), existing);
+    try{
+      flyerAssetCode = await fl_computeAssetCode("flyer", (document.getElementById("issue_date").value||"").trim(), existing);
+    }catch(err){
+      setMsg("Couldn't reserve an asset code: "+err.message,"err"); btn.disabled=false; return;
+    }
     document.getElementById("fl_in_footCode").value = flyerAssetCode;
     fl_draw(); // repaint footer with the computed code baked in
     setMsg("Rendering flyer…","");
