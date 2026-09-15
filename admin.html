@@ -25,6 +25,8 @@
   .topbar .brand{font-weight:600;color:var(--library);font-size:15px;}
   .topbar .back{margin-left:auto;font-size:12.5px;color:var(--muted);text-decoration:none;}
   .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px;padding:30px 34px 70px;align-items:start;max-width:1300px;}
+  /* Flyer BUILD mode: add a third column (the persistent template switcher rail). */
+  .wrap.build3{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) 190px;max-width:1500px;}
   .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-text);margin-bottom:10px;}
   .eyebrow>span{width:22px;height:1px;background:var(--accent-text);}
   h1{font-family:var(--font-voice);font-weight:300;font-size:32px;line-height:1.05;margin:0 0 6px;}
@@ -57,7 +59,11 @@
   .frame .vwl-screen{border-radius:0;height:100%;}
   .dims{font-size:11.5px;color:var(--muted);margin-top:10px;}
   .dims .warn{color:var(--danger);}
-  @media(max-width:900px){ .wrap{grid-template-columns:1fr;} .previewwrap{position:static;} }
+  @media(max-width:900px){ .wrap{grid-template-columns:1fr;} .wrap.build3{grid-template-columns:1fr;} .previewwrap{position:static;} }
+  /* ===== Persistent template switcher rail (flyer build, right column) ===== */
+  #fl_tplRail{position:sticky;top:24px;}
+  #fl_tplRail .rail-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);margin-bottom:10px;}
+  #fl_tplRail .rail-cards{display:flex;flex-direction:column;gap:12px;}
 
   /* ===== Flyer composer (scoped under #flyerBuild) ===== */
 .flyer-scope .flyer{ /* white-label brand tokens — overridden per client via the form */ --brand-primary:#123a52;    /* header band / headings / checkbox */ --brand-secondary:#e08a00;  /* eyebrow pill / accents */ --cta-bg:#3f7d55;           /* CTA footer band */ --ink:#1e2d35; --ink-soft:#4a5e66; --tile:#f4f6f7; --tile-border:#e3e8ea; --page:#ffffff; }
@@ -320,47 +326,8 @@
     <!-- ===== Flyer BUILD composer (flyer + build mode only) ===== -->
     <div id="flyerBuild" class="flyer-scope flyer-build-only" style="display:none">
 
-<!-- Template picker: shown first; pick one to open the composer -->
-<div id="fl_picker">
-  <h3 style="font-family:var(--font-voice);font-size:19px;margin:2px 0 4px;color:#1e2d35;">Choose a template</h3>
-  <p class="dhint" style="margin:0 0 14px;">Pick the layout for this flyer. You can start a new flyer to switch later.</p>
-  <div class="fl-picker-grid">
-    <button type="button" class="fl-tpl-card" data-tpl="checklist" onclick="fl_setTemplate('checklist')">
-      <div class="fl-wire">
-        <div class="fw-banner"><span class="fw-pill"></span><span class="fw-title"></span></div>
-        <div class="fw-lead"></div>
-        <div class="fw-grid"><span></span><span></span><span></span><span></span></div>
-        <div class="fw-cta"></div>
-      </div>
-      <div class="fl-tpl-name">Checklist</div>
-      <div class="fl-tpl-desc">2×2 grid of check items</div>
-    </button>
-    <button type="button" class="fl-tpl-card" data-tpl="explainer" onclick="fl_setTemplate('explainer')">
-      <div class="fl-wire">
-        <div class="fw-banner"><span class="fw-pill"></span><span class="fw-title"></span></div>
-        <div class="fw-lead"></div>
-        <div class="fw-flow"><span></span><span></span><span></span><span></span></div>
-        <div class="fw-cta"></div>
-      </div>
-      <div class="fl-tpl-name">Explainer</div>
-      <div class="fl-tpl-desc">Numbered step-by-step</div>
-    </button>
-    <button type="button" class="fl-tpl-card" data-tpl="segments" onclick="fl_setTemplate('segments')">
-      <div class="fl-wire">
-        <div class="fw-banner"><span class="fw-pill"></span><span class="fw-title"></span></div>
-        <div class="fw-lead"></div>
-        <div class="fw-hero"></div>
-        <div class="fw-cols"><span></span><span></span><span></span></div>
-        <div class="fw-cta"></div>
-      </div>
-      <div class="fl-tpl-name">Segments</div>
-      <div class="fl-tpl-desc">Hero topic + three areas</div>
-    </button>
-  </div>
-</div>
-
-<!-- Composer body: hidden until a template is picked -->
-<div id="fl_composer" style="display:none">
+<!-- Composer body: always shown in build mode. Template chosen via the right-hand rail. -->
+<div id="fl_composer">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
   <span id="fl_tplBadge" style="font-size:11.5px;font-weight:700;color:#17402F;letter-spacing:.04em;"></span>
   <button id="fl_startNew" style="font:inherit;font-size:11.5px;font-weight:600;border:1px solid #d5d0c6;border-radius:6px;padding:6px 12px;cursor:pointer;background:#fff;color:#1e2d35;">↻ Start new flyer</button>
@@ -558,6 +525,44 @@
   </div>
 </div>
   </div>
+
+  <!-- ===== Template switcher rail (flyer build only, 3rd column) ===== -->
+  <div id="fl_tplRail" class="flyer-build-only flyer-scope" style="display:none">
+    <div class="rail-label">Template</div>
+    <div class="rail-cards">
+      <button type="button" class="fl-tpl-card" data-tpl="checklist" onclick="fl_setTemplate('checklist')">
+        <div class="fl-wire">
+          <div class="fw-banner"><span class="fw-pill"></span><span class="fw-title"></span></div>
+          <div class="fw-lead"></div>
+          <div class="fw-grid"><span></span><span></span><span></span><span></span></div>
+          <div class="fw-cta"></div>
+        </div>
+        <div class="fl-tpl-name">Checklist</div>
+        <div class="fl-tpl-desc">2×2 grid of check items</div>
+      </button>
+      <button type="button" class="fl-tpl-card" data-tpl="explainer" onclick="fl_setTemplate('explainer')">
+        <div class="fl-wire">
+          <div class="fw-banner"><span class="fw-pill"></span><span class="fw-title"></span></div>
+          <div class="fw-lead"></div>
+          <div class="fw-flow"><span></span><span></span><span></span><span></span></div>
+          <div class="fw-cta"></div>
+        </div>
+        <div class="fl-tpl-name">Explainer</div>
+        <div class="fl-tpl-desc">Numbered step-by-step</div>
+      </button>
+      <button type="button" class="fl-tpl-card" data-tpl="segments" onclick="fl_setTemplate('segments')">
+        <div class="fl-wire">
+          <div class="fw-banner"><span class="fw-pill"></span><span class="fw-title"></span></div>
+          <div class="fw-lead"></div>
+          <div class="fw-hero"></div>
+          <div class="fw-cols"><span></span><span></span><span></span></div>
+          <div class="fw-cta"></div>
+        </div>
+        <div class="fl-tpl-name">Segments</div>
+        <div class="fl-tpl-desc">Hero topic + three areas</div>
+      </button>
+    </div>
+  </div>
 </div>
 
 <script src="assets/overlay.js"></script>
@@ -707,6 +712,7 @@ function setAssetType(t){
     setFlyerMode(flyerMode || "upload");
   } else {
     document.querySelectorAll(".flyer-build-only").forEach(el=>el.style.display="none");
+    const wrapEl=document.querySelector(".wrap"); if(wrapEl) wrapEl.classList.remove("build3");
     // Restore the upload dropzone + draft row: BUILD mode hides them (shared DOM
     // nodes), and screen/newsletter always need them shown. Without this, returning
     // from a flyer Build session leaves the screen upload field hidden.
@@ -1110,26 +1116,22 @@ fl_$("fl_in_logoFile").onchange=()=>fl_fileToData(fl_$("fl_in_logoFile"),d=>{fl_
 // Current flyer template: 'checklist' | 'explainer' | 'segments'. Same 4-item data
 // (fl_TILES + fl_in_t{i}_h/_p + lead) renders three different ways.
 var fl_template = "checklist";
-// Pick a template: mark the card, set the body layout, reveal the composer.
+// Select a template: outline its rail card, set the body layout, re-render the CENTER
+// live preview into that template with the same data reflowed. No show/hide — the rail
+// stays persistent and doubles as the switcher (replaces the old picker flow).
 function fl_setTemplate(t){
   fl_template = t;
-  document.querySelectorAll("#fl_picker .fl-tpl-card").forEach(c=>
+  document.querySelectorAll("#fl_tplRail .fl-tpl-card").forEach(c=>
     c.classList.toggle("sel", c.dataset.tpl===t));
-  const picker=document.getElementById("fl_picker");
-  const comp=document.getElementById("fl_composer");
-  if(picker) picker.style.display="none";
-  if(comp) comp.style.display="";
   const badge=document.getElementById("fl_tplBadge");
   if(badge) badge.textContent = "Template: " + t.charAt(0).toUpperCase()+t.slice(1);
   if(typeof fl_draw==="function") fl_draw();
 }
-// Return to the picker (used by Start new flyer).
+// Apply the current template selection to the rail (used when build mode opens / resets).
+// There is no picker to return to anymore; this just re-marks the selected rail card.
 function fl_showPicker(){
-  const picker=document.getElementById("fl_picker");
-  const comp=document.getElementById("fl_composer");
-  if(picker) picker.style.display="";
-  if(comp) comp.style.display="none";
-  document.querySelectorAll("#fl_picker .fl-tpl-card").forEach(c=>c.classList.remove("sel"));
+  document.querySelectorAll("#fl_tplRail .fl-tpl-card").forEach(c=>
+    c.classList.toggle("sel", c.dataset.tpl===fl_template));
 }
 function fl_esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
@@ -1347,8 +1349,10 @@ function setFlyerMode(m){
   flyerMode = m;
   document.querySelectorAll("#flyerModePills .pill").forEach(p=>p.dataset.on=(p.dataset.m===m)?"1":"0");
   const build = (assetType==="flyer" && m==="build");
-  // build-only regions
+  // build-only regions (includes the template rail)
   document.querySelectorAll(".flyer-build-only").forEach(el=>el.style.display = build ? "" : "none");
+  // three-column layout only in build mode (adds the persistent template rail column)
+  const wrapEl=document.querySelector(".wrap"); if(wrapEl) wrapEl.classList.toggle("build3", build);
   // the upload dropzone + AI-draft-on-upload row are upload-mode (for flyer); keep them for screen/newsletter
   const uploadRow = document.getElementById("assetDrop").closest(".field");
   const draftRow  = document.getElementById("draftBtn").closest(".actions");
