@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -262,6 +263,27 @@
 <div class="topbar">
   <span class="brand">Digital Resource Library</span>
   <a class="back" href="index.html">&larr; Back to library</a>
+</div>
+
+<!-- ================= IMAGE REPO UPLOADER (admin-only, ?repo=1) ================= -->
+<div id="repoMode" style="display:none;padding:30px 34px 70px;max-width:1100px;">
+  <div class="eyebrow"><span></span>Admin · Image Repo</div>
+  <h1>Upload images to the repo</h1>
+  <p class="sub">Drop the finished MidJourney images here, add optional keywords, review the tags, and save.
+     These populate the picker used when building screens and flyers. Not shown in the client library.</p>
+
+  <div class="field">
+    <label>Images <span class="hint">PNG/JPEG · one or many · aspect is detected automatically</span></label>
+    <div id="repoDrop" class="drop" style="cursor:pointer;">Drop images here or click to choose</div>
+    <input id="repoFiles" type="file" accept="image/png,image/jpeg" multiple style="display:none;">
+  </div>
+
+  <div id="repoQueue"></div>
+
+  <div class="actions" style="margin-top:18px;">
+    <button id="repoSaveAll" class="btn primary" onclick="repoSaveAll()" disabled>Save all to repo</button>
+    <span id="repoMsg" class="draftmsg" style="margin-left:12px;"></span>
+  </div>
 </div>
 
 <div class="wrap">
@@ -639,7 +661,7 @@ const FALLBACK_VOCAB = {
   month:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
   setting:["floor","breakroom","office","any"],
   tone:["calm","action"],
-  aspect:["16:9","9:16"]
+  aspect:["5:2","16:9","square","portrait","9:16"]
 };
 const sel = { subject:new Set(), month:new Set(), setting:new Set(), tone:new Set(), aspect:new Set(["16:9"]) };
 let imageDataUrl = null, imageDims = null;
@@ -1653,11 +1675,151 @@ function fl_qcWireInvalidation(){
 }
 fl_qcWireInvalidation();
 
+// ===================== IMAGE REPO UPLOADER (?repo=1) =====================
+// Admin-only ingestion. Each dropped image becomes a queue card with its own tag
+// selection (facet pills reusing VOCAB) + optional keywords. Save posts asset_type
+// 'background' to DRL_API+"/screen"; the write workflow derives aspect from pixels.
+// Auto-tagging (drl-tag-image) wires into repoAddFile in the next step.
+const REPO_FACETS = ["subject","month","setting","tone"]; // aspect is auto (pixels)
+let repoItems = [];   // { file, dataUrl, w, h, aspect, sel:{facet:Set}, id }
+
+function repoAspectFromDims(w,h){
+  if(!w||!h) return null;
+  const r=w/h, A=[["5:2",2.5],["16:9",1.778],["square",1.0],["portrait",0.667]];
+  return A.reduce((b,a)=>Math.abs(r-a[1])<Math.abs(r-b[1])?a:b)[0];
+}
+function repoSlug(s){ return (s||"").toLowerCase().replace(/[^\w\s-]/g,"").trim().replace(/\s+/g,"-").replace(/-+/g,"-").slice(0,48); }
+
+function repoFileToItem(file){
+  return new Promise(res=>{
+    const fr=new FileReader();
+    fr.onload=()=>{ const dataUrl=fr.result;
+      const img=new Image();
+      img.onload=()=>{ const w=img.naturalWidth,h=img.naturalHeight;
+        res({ file, dataUrl, w, h, aspect:repoAspectFromDims(w,h),
+              sel:Object.fromEntries(REPO_FACETS.map(f=>[f,new Set()])),
+              keywords:"", id:"bg-"+repoSlug(file.name.replace(/\.[^.]+$/,""))+"-"+Date.now().toString(36).slice(-4) }); };
+      img.onerror=()=>res(null); img.src=dataUrl; };
+    fr.onerror=()=>res(null); fr.readAsDataURL(file);
+  });
+}
+const REPO_TAG_ENDPOINT = DRL_API + "/tag-image";
+async function repoAutoTag(it){
+  it.tagging = true; repoRenderQueue();
+  try{
+    const res = await fetch(REPO_TAG_ENDPOINT, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ image_base64: it.dataUrl, mime:(/^data:([^;]+);/.exec(it.dataUrl)||[])[1]||"image/png", keywords: it.keywords||"" })
+    });
+    const out = await res.json();
+    if(out && out.ok){
+      for(const f of REPO_FACETS){ (out[f]||[]).forEach(v=> it.sel[f].add(v)); }
+      it.tagged = true;
+    } else { it.tagError = true; }
+  }catch(e){ it.tagError = true; }
+  it.tagging = false; repoRenderQueue();
+}
+async function repoAddFiles(files){
+  const added=[];
+  for(const f of files){ const it=await repoFileToItem(f); if(it){ repoItems.push(it); added.push(it); } }
+  repoRenderQueue();
+  document.getElementById("repoSaveAll").disabled = repoItems.length===0;
+  // auto-tag each newly added image (per-image, on drop)
+  for(const it of added){ repoAutoTag(it); }
+}
+function repoPillRow(idx, facet){
+  const vals = (currentVocab()[facet]||[]);
+  const it = repoItems[idx];
+  return `<div style="margin:4px 0;"><span style="display:inline-block;min-width:64px;font-size:11px;color:#6f7f74;text-transform:uppercase;letter-spacing:.06em;">${facet}</span>`
+    + vals.map(v=>`<span class="pill" data-on="${it.sel[facet].has(v)?1:0}" onclick="repoTog(${idx},'${facet}','${v}',this)">${v}</span>`).join("")
+    + `</div>`;
+}
+function repoRenderQueue(){
+  const host=document.getElementById("repoQueue");
+  host.innerHTML = repoItems.map((it,idx)=>`
+    <div class="field" style="border:1px solid #e7e3da;border-radius:10px;padding:14px;display:flex;gap:16px;">
+      <div style="flex:0 0 200px;">
+        <img src="${it.dataUrl}" style="width:200px;height:auto;border-radius:8px;display:block;">
+        <div style="font-size:11px;color:#6f7f74;margin-top:6px;">${it.w}×${it.h} · aspect <b>${it.aspect||"?"}</b></div>
+        <button class="btn" style="margin-top:6px;font-size:12px;" onclick="repoRemove(${idx})">Remove</button>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <label style="font-size:12px;">Keywords <span class="hint">optional — steer the tagger</span></label>
+        <input type="text" value="${it.keywords.replace(/"/g,'&quot;')}" oninput="repoItems[${idx}].keywords=this.value"
+               placeholder="e.g. raspberries, summer, produce" style="width:100%;margin:4px 0 10px;">
+        <div style="font-size:12px;color:#6f7f74;margin-bottom:4px;">Tags
+          ${it.tagging ? '<span style="color:#3f7d55;">· auto-tagging…</span>'
+            : it.tagged ? '<span style="color:#3f7d55;">· auto-tagged (review &amp; adjust)</span>'
+            : it.tagError ? '<span class="err">· couldn\'t auto-tag — pick manually</span>' : ''}
+          <button class="btn" style="font-size:11px;margin-left:8px;padding:2px 8px;" onclick="repoAutoTag(repoItems[${idx}])">Re-tag</button>
+        </div>
+        ${REPO_FACETS.map(f=>repoPillRow(idx,f)).join("")}
+      </div>
+    </div>`).join("");
+}
+function repoTog(idx,facet,val,el){
+  const s=repoItems[idx].sel[facet];
+  if(s.has(val)){ s.delete(val); el.dataset.on="0"; } else { s.add(val); el.dataset.on="1"; }
+}
+function repoRemove(idx){ repoItems.splice(idx,1); repoRenderQueue();
+  document.getElementById("repoSaveAll").disabled = repoItems.length===0; }
+
+async function repoSaveOne(it){
+  const mime=(/^data:([^;]+);/.exec(it.dataUrl)||[])[1]||"image/png";
+  const payload={
+    id: it.id,
+    asset_type: "background",
+    title: it.file.name.replace(/\.[^.]+$/,""),
+    image: it.dataUrl,
+    mime,
+    keywords: it.keywords||"",
+    subject:[...it.sel.subject], month:[...it.sel.month],
+    setting:[...it.sel.setting], tone:[...it.sel.tone]
+    // aspect intentionally omitted — write workflow derives it from pixels
+  };
+  const res=await fetch(DRL_API+"/screen",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  const out=await res.json();
+  if(!out.ok) throw new Error(out.error||"write not-OK");
+  return out;
+}
+async function repoSaveAll(){
+  const msg=document.getElementById("repoMsg"), btn=document.getElementById("repoSaveAll");
+  if(!repoItems.length) return;
+  btn.disabled=true; msg.className="draftmsg"; msg.textContent="Saving…";
+  let ok=0, fail=0;
+  for(const it of [...repoItems]){
+    try{ await repoSaveOne(it); ok++; }
+    catch(e){ fail++; }
+  }
+  msg.className="draftmsg"+(fail?" err":"");
+  msg.textContent = `Saved ${ok}${fail?`, ${fail} failed`:""}.`;
+  if(!fail){ repoItems=[]; repoRenderQueue(); }
+  btn.disabled = repoItems.length===0;
+}
+function repoInitDropzone(){
+  const dz=document.getElementById("repoDrop"), inp=document.getElementById("repoFiles");
+  if(!dz||!inp) return;
+  dz.onclick=()=>inp.click();
+  inp.onchange=()=>{ if(inp.files&&inp.files.length) repoAddFiles([...inp.files]); inp.value=""; };
+  dz.addEventListener("dragover",e=>{e.preventDefault();dz.style.borderColor="#3f7d55";});
+  dz.addEventListener("dragleave",()=>{dz.style.borderColor="";});
+  dz.addEventListener("drop",e=>{e.preventDefault();dz.style.borderColor="";
+    const fs=[...(e.dataTransfer?.files||[])].filter(f=>/^image\//.test(f.type));
+    if(fs.length) repoAddFiles(fs); });
+}
+function repoActive(){ return new URLSearchParams(location.search).get("repo")==="1"; }
+
 // init
 buildPills(FALLBACK_VOCAB);
 loadVocab();
-setAssetType("screen");
-draw();
+if(repoActive()){
+  document.querySelector(".wrap").style.display="none";
+  document.getElementById("repoMode").style.display="";
+  repoInitDropzone();
+} else {
+  setAssetType("screen");
+  draw();
+}
 </script>
 </body>
 </html>
