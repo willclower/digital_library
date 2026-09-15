@@ -1238,7 +1238,7 @@ async function fl_draftCopy(){
   msg.className = "draftmsg"; msg.textContent = "";
   if(!brief){ msg.className="draftmsg err"; msg.textContent="Type a brief first."; return; }
 
-  const payload = { brief, tile_count: fl_TILES.length,
+  const payload = { brief, template: fl_template, tile_count: fl_TILES.length,
     caps: {
       eyebrow:FL_CAPS.fl_in_eyebrow, headline:FL_CAPS.fl_in_headline,
       lead:FL_CAPS.fl_in_lead,
