@@ -135,13 +135,14 @@
 .flyer-scope .fl-head{font-family:var(--font-voice);font-weight:700;font-size:30px;line-height:1.06;
     margin:9px 0 0;text-shadow:0 2px 18px rgba(0,0,0,.45);max-width:72%;}
 /* body */
-  .flyer-scope .fl-body{padding:26px 40px 0;flex:1 1 auto;display:flex;flex-direction:column;justify-content:space-between;}
-.flyer-scope .fl-lead{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:0 0 20px;max-width:92%;}
-/* Body zone grows to fill the space .fl-body allots and spreads its blocks (lead vs. the
-   template content) so short flyers distribute evenly top-to-bottom instead of clumping high.
-   The lead keeps its bottom margin as a minimum; extra slack falls into the seam below it. */
-.flyer-scope #fl_bodyZone{flex:1 1 auto;display:flex;flex-direction:column;justify-content:space-between;}
-.flyer-scope #fl_bodyZone > .fl-lead{flex:0 0 auto;}
+  .flyer-scope .fl-body{padding:26px 40px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:space-evenly;}
+.flyer-scope .fl-lead{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:0;max-width:92%;}
+/* Even vertical distribution across ALL sections. #fl_bodyZone uses display:contents so its
+   children (lead + the template block(s)) become direct flex siblings of the CTA and footer.
+   .fl-body then space-evenly's the full flat set — equal gaps above the lead, between each
+   section, and below the CTA (footer sits last). Works for every template regardless of how
+   many blocks it emits (checklist/explainer: lead+content; segments: lead+hero+cols). */
+.flyer-scope #fl_bodyZone{display:contents;}
 .flyer-scope .tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
 .flyer-scope .tile{display:flex;gap:11px;background:var(--tile);border:1px solid var(--tile-border);
     border-radius:9px;padding:14px 15px;}
@@ -215,7 +216,7 @@
 .flyer-scope .cta-btn .big{font-weight:700;font-size:14px;line-height:1.2;}
 .flyer-scope .cta-btn .sm{font-size:10px;opacity:.9;margin-top:3px;}
 /* footer strip */
-  .flyer-scope .fl-foot{margin-top:auto;border-top:1px solid #e7e3da;padding:14px 40px;
+  .flyer-scope .fl-foot{border-top:1px solid #e7e3da;padding:14px 0 0;flex:0 0 auto;
     display:flex;justify-content:space-between;align-items:center;
     font-size:10.5px;color:#8a8478;}
 .flyer-scope .fl-foot .powered b{color:var(--ink);}
@@ -522,10 +523,10 @@
           </div>
         </div>
       </div>
-    </div>
-    <div class="fl-foot">
-      <span class="powered" id="fl_footPowered"></span>
-      <span class="code" id="fl_footCode"></span>
+      <div class="fl-foot">
+        <span class="powered" id="fl_footPowered"></span>
+        <span class="code" id="fl_footCode"></span>
+      </div>
     </div>
   </div>
 </div>
