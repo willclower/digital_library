@@ -707,6 +707,14 @@ function setAssetType(t){
     setFlyerMode(flyerMode || "upload");
   } else {
     document.querySelectorAll(".flyer-build-only").forEach(el=>el.style.display="none");
+    // Restore the upload dropzone + draft row: BUILD mode hides them (shared DOM
+    // nodes), and screen/newsletter always need them shown. Without this, returning
+    // from a flyer Build session leaves the screen upload field hidden.
+    const uploadRow = document.getElementById("assetDrop").closest(".field");
+    if(uploadRow) uploadRow.style.display = "";
+    const draftBtnEl = document.getElementById("draftBtn");
+    const draftRow = draftBtnEl ? draftBtnEl.closest(".actions") : null;
+    if(draftRow) draftRow.style.display = "";
     relocateTagBlock(false);
     const screenPrev=document.querySelector(".previewwrap.screen-only");
     if(screenPrev) screenPrev.style.display = isScreen ? "" : "none";
