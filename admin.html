@@ -26,7 +26,7 @@
   .topbar .back{margin-left:auto;font-size:12.5px;color:var(--muted);text-decoration:none;}
   .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px;padding:30px 34px 70px;align-items:start;max-width:1300px;}
   /* Flyer BUILD mode: add a third column (the persistent template switcher rail). */
-  .wrap.build3{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) 190px;max-width:1500px;}
+  .wrap.build3{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) 340px;max-width:1560px;}
   .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-text);margin-bottom:10px;}
   .eyebrow>span{width:22px;height:1px;background:var(--accent-text);}
   h1{font-family:var(--font-voice);font-weight:300;font-size:32px;line-height:1.05;margin:0 0 6px;}
@@ -63,7 +63,7 @@
   /* ===== Persistent template switcher rail (flyer build, right column) ===== */
   #fl_tplRail{position:sticky;top:24px;}
   #fl_tplRail .rail-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);margin-bottom:10px;}
-  #fl_tplRail .rail-cards{display:flex;flex-direction:column;gap:12px;}
+  #fl_tplRail .rail-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
 
   /* ===== Flyer composer (scoped under #flyerBuild) ===== */
 .flyer-scope .flyer{ /* white-label brand tokens — overridden per client via the form */ --brand-primary:#123a52;    /* header band / headings / checkbox */ --brand-secondary:#e08a00;  /* eyebrow pill / accents */ --cta-bg:#3f7d55;           /* CTA footer band */ --ink:#1e2d35; --ink-soft:#4a5e66; --tile:#f4f6f7; --tile-border:#e3e8ea; --page:#ffffff; }
