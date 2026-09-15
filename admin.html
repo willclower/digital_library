@@ -135,14 +135,16 @@
 .flyer-scope .fl-head{font-family:var(--font-voice);font-weight:700;font-size:30px;line-height:1.06;
     margin:9px 0 0;text-shadow:0 2px 18px rgba(0,0,0,.45);max-width:72%;}
 /* body */
-  .flyer-scope .fl-body{padding:26px 40px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:space-evenly;}
-.flyer-scope .fl-lead{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:0;max-width:92%;}
-/* Even vertical distribution across ALL sections. #fl_bodyZone uses display:contents so its
-   children (lead + the template block(s)) become direct flex siblings of the CTA and footer.
-   .fl-body then space-evenly's the full flat set — equal gaps above the lead, between each
-   section, and below the CTA (footer sits last). Works for every template regardless of how
-   many blocks it emits (checklist/explainer: lead+content; segments: lead+hero+cols). */
+  .flyer-scope .fl-body{padding:30px 40px 22px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:space-between;}
+.flyer-scope .fl-lead{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:0 0 4px;max-width:92%;flex:0 0 auto;}
+/* Vertical layout: the lead is pinned to the top (comfortable margin below the banner), the
+   footer is pinned to the bottom, and everything BETWEEN them (the template block(s) + CTA)
+   distributes into the leftover middle space with equal gaps. #fl_bodyZone is display:contents
+   so its children (lead + template blocks) are direct flex siblings of the CTA and footer. */
 .flyer-scope #fl_bodyZone{display:contents;}
+/* the template content block(s) and the CTA share the elastic middle */
+.flyer-scope #fl_bodyZone > :not(.fl-lead),
+.flyer-scope .fl-cta{flex:0 0 auto;}
 .flyer-scope .tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
 .flyer-scope .tile{display:flex;gap:11px;background:var(--tile);border:1px solid var(--tile-border);
     border-radius:9px;padding:14px 15px;}
