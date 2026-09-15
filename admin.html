@@ -135,8 +135,13 @@
 .flyer-scope .fl-head{font-family:var(--font-voice);font-weight:700;font-size:30px;line-height:1.06;
     margin:9px 0 0;text-shadow:0 2px 18px rgba(0,0,0,.45);max-width:72%;}
 /* body */
-  .flyer-scope .fl-body{padding:26px 40px 0;flex:1 1 auto;}
+  .flyer-scope .fl-body{padding:26px 40px 0;flex:1 1 auto;display:flex;flex-direction:column;justify-content:space-between;}
 .flyer-scope .fl-lead{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:0 0 20px;max-width:92%;}
+/* Body zone grows to fill the space .fl-body allots and spreads its blocks (lead vs. the
+   template content) so short flyers distribute evenly top-to-bottom instead of clumping high.
+   The lead keeps its bottom margin as a minimum; extra slack falls into the seam below it. */
+.flyer-scope #fl_bodyZone{flex:1 1 auto;display:flex;flex-direction:column;justify-content:space-between;}
+.flyer-scope #fl_bodyZone > .fl-lead{flex:0 0 auto;}
 .flyer-scope .tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
 .flyer-scope .tile{display:flex;gap:11px;background:var(--tile);border:1px solid var(--tile-border);
     border-radius:9px;padding:14px 15px;}
@@ -193,7 +198,7 @@
 .flyer-scope .fl-wire .fw-cols{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
 .flyer-scope .fl-wire .fw-cols span{background:#eef0ec;border-top:3px solid #e08a00;border-radius:2px;}
 /* CTA footer */
-  .flyer-scope .fl-cta{margin:24px 0 0;}
+  .flyer-scope .fl-cta{margin:0;flex:0 0 auto;}
 .flyer-scope .cta-head{background:var(--cta-bg);color:#fff;padding:11px 26px;display:flex;
     justify-content:space-between;align-items:center;}
 .flyer-scope .cta-head .l{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;}
