@@ -173,6 +173,40 @@
 .flyer-scope .fl-col__label{margin:0 0 6px;font-size:10.5px;font-weight:700;letter-spacing:.08em;
     text-transform:uppercase;color:var(--brand-primary);line-height:1.3;}
 .flyer-scope .fl-col__body{margin:0;font-size:10.5px;line-height:1.5;color:var(--ink-soft);}
+/* ===== Layout: Concentra (banner + curved sweep + circle intro + badge cards) =====
+   Structurally different from the other three: the TITLE renders in the body (navy serif,
+   centered), not in the banner scrim. A curved white sweep overlaps the bottom of the banner.
+   Intro row = circular subject image (left) + bold lead + body (right). Two tinted rounded
+   cards below, each with a round orange badge. Concentra uses lead + items 0-2 of the shared
+   1-lead+4-item contract: lead = bold intro line, item0 = grey continuation paragraph,
+   items 1-2 = the two badge cards (head + body). Item 3 is unused by this layout. */
+/* concentra banner: full-bleed photo, no scrim text, taller strip; body pulls up so the
+   curved white sweep overlaps the banner bottom edge. */
+.flyer-scope .cx-mode .fl-header{min-height:300px;}
+.flyer-scope .cx-mode .fl-header .scrim,
+.flyer-scope .cx-mode .fl-header .htexture,
+.flyer-scope .cx-mode .fl-header .hcontent{display:none;}
+.flyer-scope .cx-mode .fl-body{padding-top:0;}
+.flyer-scope .cx-sweep{position:relative;height:0;z-index:2;}
+.flyer-scope .cx-sweep svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:46px;display:block;}
+.flyer-scope .cx-title{font-family:var(--font-voice);font-weight:800;font-size:34px;line-height:1.05;
+    color:var(--brand-primary);text-align:center;margin:2px 0 22px;}
+.flyer-scope .cx-intro{display:grid;grid-template-columns:150px 1fr;gap:26px;align-items:start;margin:0 0 6px;}
+.flyer-scope .cx-circle{width:150px;height:150px;border-radius:50%;overflow:hidden;
+    background:#e9edf0 center/cover no-repeat;box-shadow:0 6px 18px -6px rgba(0,0,0,.4);
+    border:5px solid #fff;outline:1px solid #e2e6ea;}
+.flyer-scope .cx-intro__lead{font-family:var(--font-voice);font-weight:700;font-size:18px;line-height:1.28;
+    color:var(--brand-primary);margin:2px 0 12px;}
+.flyer-scope .cx-intro__body{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:0;}
+.flyer-scope .cx-cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:6px;}
+.flyer-scope .cx-card{position:relative;background:#f4f2ea;border-radius:12px;padding:20px 20px 22px;}
+.flyer-scope .cx-badge{width:46px;height:46px;border-radius:50%;background:var(--brand-secondary);
+    display:flex;align-items:center;justify-content:center;margin:0 0 4px;}
+.flyer-scope .cx-badge::before{content:"";width:20px;height:20px;border-radius:5px;
+    background:#fff;-webkit-mask:radial-gradient(circle,#000 62%,transparent 63%);mask:radial-gradient(circle,#000 62%,transparent 63%);}
+.flyer-scope .cx-card__head{font-family:var(--font-voice);font-weight:700;font-size:17px;line-height:1.15;
+    color:var(--brand-primary);margin:6px 0 12px;}
+.flyer-scope .cx-card__body{font-size:12px;line-height:1.5;color:var(--ink-soft);margin:0;}
 /* ===== Template picker + wireframe thumbnails ===== */
 .flyer-scope #fl_picker .fl-picker-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
 .flyer-scope .fl-tpl-card{cursor:pointer;text-align:left;background:#fff;border:1.5px solid #d5d0c6;
@@ -200,6 +234,16 @@
 .flyer-scope .fl-wire .fw-hero{height:26%;background:#eef0ec;border-left:4px solid #17384d;border-radius:3px;}
 .flyer-scope .fl-wire .fw-cols{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
 .flyer-scope .fl-wire .fw-cols span{background:#eef0ec;border-top:3px solid #e08a00;border-radius:2px;}
+/* concentra: full-bleed banner (no scrim text) + centered title + circle intro + 2 badge cards */
+.flyer-scope .fl-wire .fw-cx-banner{background:#c9ccc4;border-radius:3px;height:26%;}
+.flyer-scope .fl-wire .fw-cx-title{width:60%;height:8px;background:#17384d;border-radius:2px;margin:5px auto 0;}
+.flyer-scope .fl-wire .fw-cx-intro{display:grid;grid-template-columns:20px 1fr;gap:5px;align-items:start;}
+.flyer-scope .fl-wire .fw-cx-circle{width:20px;height:20px;border-radius:50%;background:#dfe3e6;border:1px solid #cdd3d7;}
+.flyer-scope .fl-wire .fw-cx-lines{display:flex;flex-direction:column;gap:3px;}
+.flyer-scope .fl-wire .fw-cx-lines span{height:4px;background:#e4e0d8;border-radius:2px;}
+.flyer-scope .fl-wire .fw-cx-cards{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:auto;}
+.flyer-scope .fl-wire .fw-cx-cards span{background:#eef0ec;border-radius:3px;position:relative;}
+.flyer-scope .fl-wire .fw-cx-cards span::before{content:"";position:absolute;top:4px;left:4px;width:6px;height:6px;border-radius:50%;background:#e08a00;}
 /* CTA footer */
   .flyer-scope .fl-cta{margin:0;flex:0 0 auto;}
 .flyer-scope .cta-head{background:var(--cta-bg);color:#fff;padding:11px 26px;display:flex;
@@ -589,6 +633,20 @@
         </div>
         <div class="fl-tpl-name">Segments</div>
         <div class="fl-tpl-desc">Hero topic + three areas</div>
+      </button>
+      <button type="button" class="fl-tpl-card" data-tpl="concentra" onclick="fl_setTemplate('concentra')">
+        <div class="fl-wire">
+          <div class="fw-cx-banner"></div>
+          <div class="fw-cx-title"></div>
+          <div class="fw-cx-intro">
+            <span class="fw-cx-circle"></span>
+            <span class="fw-cx-lines"><span></span><span></span><span></span></span>
+          </div>
+          <div class="fw-cx-cards"><span></span><span></span></div>
+          <div class="fw-cta"></div>
+        </div>
+        <div class="fl-tpl-name">Concentra</div>
+        <div class="fl-tpl-desc">Photo banner + circle + 2 cards</div>
       </button>
     </div>
   </div>
@@ -1054,7 +1112,7 @@ const fl_TILES = [
   {h:"Hydrate on schedule",   p:"Dry fall air and heated buildings dehydrate you fast. Keep a bottle within reach and refill it."},
   {h:"Lean into protein",     p:"Your body builds immune cells from protein. Include a source at each meal."},
 ];
-let fl_bannerData=null, fl_logoData=null;
+let fl_bannerData=null, fl_logoData=null, fl_subjectData=null;
 
 // build tile editor rows
 const fl_tilesEd=document.getElementById("fl_in_tiles");
@@ -1089,7 +1147,11 @@ const FL_CAPS_TPL = {
   // Explainer: full-width numbered rail — widest column, holds more per item.
   explainer: { fl_in_lead: 190, _tile_h: 46, _tile_p: 170 },
   // Segments: hero (item 0) is roomy full-width; items 1-3 are the tight uppercase columns.
-  segments:  { fl_in_lead: 175, _hero_h: 40, _hero_p: 180, _tile_h: 34, _tile_p: 95 }
+  segments:  { fl_in_lead: 175, _hero_h: 40, _hero_p: 180, _tile_h: 34, _tile_p: 95 },
+  // Concentra: lead = bold intro line (right of the circle); item0.p = grey continuation
+  // paragraph; items 1-2 = the two badge cards (head + body). item0.h unused (no field shown
+  // for it in this layout, but the tile editor still exposes it — ignored at render).
+  concentra: { fl_in_lead: 130, _tile_h: 30, _tile_p: 130 }
 };
 // Cap for a field id under the CURRENT template. Tile fields are index-aware so segments
 // item 0 (the hero) gets the hero caps and items 1-3 get the column caps.
@@ -1222,6 +1284,27 @@ function fl_renderBody(){
       `<div class="fl-col"><h4 class="fl-col__label">${fl_esc(t.h)}</h4>`+
       `<p class="fl-col__body">${fl_esc(t.p)}</p></div>`).join("");
     bodyHTML = hero + (cols ? `<div class="fl-cols">${cols}</div>` : "");
+  } else if(fl_template==="concentra"){
+    // Title in the body (navy serif, centered) — the banner carries no scrim text here.
+    // lead = bold intro line; item0.p = grey continuation; items 1-2 = the two badge cards.
+    const title = fl_$("fl_in_headline") ? fl_$("fl_in_headline").value : "";
+    const introBody = items[0] ? items[0].p : "";
+    const circleStyle = fl_subjectData ? ` style="background-image:url('${fl_subjectData}')"` : "";
+    const cards = [items[1], items[2]].filter(t=>t && (t.h||t.p)).map(t=>
+      `<div class="cx-card"><div class="cx-badge"></div>`+
+      `<h4 class="cx-card__head">${fl_esc(t.h)}</h4>`+
+      `<p class="cx-card__body">${fl_esc(t.p)}</p></div>`).join("");
+    const sweep = `<div class="cx-sweep"><svg viewBox="0 0 612 46" preserveAspectRatio="none">`+
+      `<path d="M0,46 L0,20 Q306,-6 612,20 L612,46 Z" fill="var(--page)"></path></svg></div>`;
+    bodyHTML = sweep +
+      `<h1 class="cx-title">${fl_esc(title)}</h1>`+
+      `<div class="cx-intro"><div class="cx-circle"${circleStyle}></div>`+
+      `<div><p class="cx-intro__lead">${fl_esc(lead)}</p>`+
+      `<p class="cx-intro__body">${fl_esc(introBody)}</p></div></div>`+
+      (cards ? `<div class="cx-cards">${cards}</div>` : "");
+    // keep a zero-height .fl-lead so the flex spacing contract (#fl_bodyZone > :not(.fl-lead)) holds
+    zone.innerHTML = `<p class="fl-lead" id="fl_lead" style="display:none"></p>` + bodyHTML;
+    return;
   } else { // checklist (default)
     const tiles = shown.map(t=>
       `<div class="tile"><div class="box"></div>`+
@@ -1232,12 +1315,15 @@ function fl_renderBody(){
 }
 
 function fl_draw(){
+  // concentra puts the title/eyebrow in the body, so its banner carries no scrim text.
+  const isCx = (fl_template==="concentra");
+  const flyerEl = fl_$("fl_in_flyer"); if(flyerEl) flyerEl.classList.toggle("cx-mode", isCx);
   // top-right: logo if present, else issue chip
   const tr=fl_$("fl_topright");
   if(fl_logoData){ tr.innerHTML=`<img class="h-logo" src="${fl_logoData}">`; }
   else { tr.innerHTML=`<span class="issue-chip"><span class="m">${fl_$("fl_in_issue1").value}</span><br><span class="s">${fl_$("fl_in_issue2").value}</span></span>`; }
-  fl_set("fl_eyebrow",fl_$("fl_in_eyebrow").value);
-  fl_set("fl_head",fl_$("fl_in_headline").value);
+  fl_set("fl_eyebrow", isCx ? "" : fl_$("fl_in_eyebrow").value);
+  fl_set("fl_head",    isCx ? "" : fl_$("fl_in_headline").value);
   fl_renderBody();
   fl_set("fl_ctaLabel",fl_$("fl_in_ctaLabel").value);
   fl_set("fl_ctaEdition",fl_$("fl_in_ctaEdition").value);
@@ -1642,7 +1728,7 @@ function fl_startNewFlyer(){
   Object.values(FL_QC_MAP).forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   ["fl_in_briefText","fl_in_lead"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   // banner + logo
-  fl_bannerData=null; fl_logoData=null;
+  fl_bannerData=null; fl_logoData=null; fl_subjectData=null;
   const bg=document.getElementById("fl_bg"); if(bg) bg.style.backgroundImage="";
   const bd=document.getElementById("fl_in_bannerDrop"); if(bd){ bd.textContent="Click to add the banner image"; bd.classList.remove("have"); }
   const ld=document.getElementById("fl_in_logoDrop"); if(ld){ ld.textContent="Click to add a logo (PNG)"; ld.classList.remove("have"); }
@@ -1677,7 +1763,7 @@ fl_qcWireInvalidation();
 // ===================== IMAGE REPO UPLOADER (?repo=1) =====================
 // Admin-only ingestion. Each dropped image becomes a queue card with its own tag
 // selection (facet pills reusing VOCAB) + optional keywords. Save posts asset_type
-// 'image-library' to DRL_API+"/screen"; the write workflow derives aspect from pixels.
+// 'background' to DRL_API+"/screen"; the write workflow derives aspect from pixels.
 // Auto-tagging (drl-tag-image) wires into repoAddFile in the next step.
 const REPO_FACETS = ["subject","month","setting","tone"]; // aspect is auto (pixels)
 let repoItems = [];   // { file, dataUrl, w, h, aspect, sel:{facet:Set}, id }
@@ -1769,7 +1855,7 @@ async function repoSaveOne(it){
   const mime=(/^data:([^;]+);/.exec(it.dataUrl)||[])[1]||"image/png";
   const payload={
     id: it.id,
-    asset_type: "image-library",
+    asset_type: "background",
     title: it.file.name.replace(/\.[^.]+$/,""),
     image: it.dataUrl,
     mime,
