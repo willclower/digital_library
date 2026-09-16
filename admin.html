@@ -207,15 +207,16 @@
 .flyer-scope .ts-intro__lead{font-family:var(--font-voice);font-weight:700;font-size:18px;line-height:1.28;
     color:var(--brand-primary);margin:2px 0 12px;}
 .flyer-scope .ts-intro__body{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:0;}
-.flyer-scope .ts-cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:6px;}
-.flyer-scope .ts-card{position:relative;background:#f4f2ea;border-radius:12px;padding:18px 20px 20px;}
-/* compact numbered badge, top-left, heading sits beside it on the same row */
-.flyer-scope .ts-card__top{display:flex;align-items:center;gap:11px;margin:0 0 9px;}
-.flyer-scope .ts-badge{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:var(--brand-secondary);
-    display:flex;align-items:center;justify-content:center;color:#fff;
-    font-family:var(--font-voice);font-weight:700;font-size:16px;line-height:1;}
+.flyer-scope .ts-cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:18px;}
+.flyer-scope .ts-card{position:relative;background:#f4f2ea;border-radius:12px;padding:22px 20px 20px;overflow:visible;}
+/* numbered badge straddles the top-left corner, half outside the box (see model) */
+.flyer-scope .ts-badge{position:absolute;top:-16px;left:-16px;width:44px;height:44px;border-radius:50%;
+    background:var(--brand-secondary);color:#fff;border:3px solid #fff;
+    font-family:var(--font-ui,'Segoe UI',Arial,sans-serif);font-weight:800;font-size:21px;
+    display:flex;align-items:center;justify-content:center;line-height:1;
+    box-shadow:0 3px 8px -2px rgba(0,0,0,.3);}
 .flyer-scope .ts-card__head{font-family:var(--font-voice);font-weight:700;font-size:17px;line-height:1.15;
-    color:var(--brand-primary);margin:0;}
+    color:var(--brand-primary);margin:0 0 9px;padding-left:20px;}
 .flyer-scope .ts-card__body{font-size:12px;line-height:1.5;color:var(--ink-soft);margin:0;}
 /* ===== Image library picker modal (zone-click) ===== */
 #fl_pick{position:fixed;inset:0;z-index:1000;}
@@ -1469,8 +1470,8 @@ function fl_renderBody(){
     const introBody = items[0] ? items[0].p : "";
     const circleStyle = fl_subjectData ? ` style="background-image:url('${fl_subjectData}')"` : "";
     const cards = [items[1], items[2]].filter(t=>t && (t.h||t.p)).map((t,i)=>
-      `<div class="ts-card"><div class="ts-card__top"><div class="ts-badge">${i+1}</div>`+
-      `<h4 class="ts-card__head">${fl_esc(t.h)}</h4></div>`+
+      `<div class="ts-card"><div class="ts-badge">${i+1}</div>`+
+      `<h4 class="ts-card__head">${fl_esc(t.h)}</h4>`+
       `<p class="ts-card__body">${fl_esc(t.p)}</p></div>`).join("");
     const sweep = `<div class="ts-sweep"><svg viewBox="0 0 612 46" preserveAspectRatio="none">`+
       `<path d="M0,46 L0,4 Q306,52 612,4 L612,46 Z" fill="var(--page)"></path></svg></div>`;
