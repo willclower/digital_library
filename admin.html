@@ -188,12 +188,15 @@
    items 1-2 = the two badge cards (head + body). Item 3 is unused by this layout. */
 /* twostep banner: full-bleed photo, no scrim text, taller strip; body pulls up so the
    curved white sweep overlaps the banner bottom edge. */
-.flyer-scope .ts-mode .fl-header{min-height:367px;}
+/* 2-step banner: full-bleed photo, no scrim text. Display strip is shorter than the 5:3
+   source (source stays 5:3 for the screen companion); the photo cover-fills and the crop
+   slider repositions it vertically. Height tuned to the target proportion (~32% of page). */
+.flyer-scope .ts-mode .fl-header{min-height:255px;}
 .flyer-scope .ts-mode .fl-header .scrim,
 .flyer-scope .ts-mode .fl-header .htexture,
 .flyer-scope .ts-mode .fl-header .hcontent{display:none;}
 .flyer-scope .ts-mode .fl-body{padding-top:0;}
-.flyer-scope .ts-sweep{position:relative;height:0;z-index:2;}
+.flyer-scope .ts-sweep{position:relative;height:0;z-index:2;margin:0 -40px;}
 .flyer-scope .ts-sweep svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:46px;display:block;}
 .flyer-scope .ts-title{font-family:var(--font-voice);font-weight:800;font-size:34px;line-height:1.05;
     color:var(--brand-primary);text-align:center;margin:2px 0 22px;}
@@ -213,6 +216,35 @@
 .flyer-scope .ts-card__head{font-family:var(--font-voice);font-weight:700;font-size:17px;line-height:1.15;
     color:var(--brand-primary);margin:6px 0 12px;}
 .flyer-scope .ts-card__body{font-size:12px;line-height:1.5;color:var(--ink-soft);margin:0;}
+/* ===== Image library picker modal (zone-click) ===== */
+#fl_pick{position:fixed;inset:0;z-index:1000;}
+#fl_pick .fl-pick__backdrop{position:absolute;inset:0;background:rgba(10,20,28,.55);}
+#fl_pick .fl-pick__panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(760px,92vw);max-height:86vh;background:#fff;border-radius:14px;overflow:hidden;
+    display:flex;flex-direction:column;box-shadow:0 24px 70px -20px rgba(0,0,0,.6);}
+#fl_pick .fl-pick__head{display:flex;justify-content:space-between;align-items:center;
+    padding:16px 20px;border-bottom:1px solid #ece8df;font-weight:700;color:#1e2d35;font-size:15px;}
+#fl_pick .fl-pick__close{border:none;background:none;font-size:26px;line-height:1;cursor:pointer;color:#8a8478;}
+#fl_pick .fl-pick__facets{display:flex;flex-wrap:wrap;gap:7px;padding:12px 20px 4px;}
+#fl_pick .fl-pick__facet{font:inherit;font-size:11.5px;border:1px solid #d5d0c6;background:#fff;
+    color:#4a5e66;border-radius:100px;padding:5px 12px;cursor:pointer;}
+#fl_pick .fl-pick__facet.on{background:#17402F;border-color:#17402F;color:#fff;}
+#fl_pick .fl-pick__grid{flex:1;overflow-y:auto;padding:16px 20px 20px;display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+#fl_pick .fl-pick__thumb{cursor:pointer;border:2px solid transparent;border-radius:9px;overflow:hidden;
+    background:#f2f0ea;aspect-ratio:16/9;position:relative;}
+#fl_pick .fl-pick__thumb.sq{aspect-ratio:1/1;}
+#fl_pick .fl-pick__thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+#fl_pick .fl-pick__thumb:hover{border-color:#17402F;}
+#fl_pick .fl-pick__thumb .cap{position:absolute;left:0;right:0;bottom:0;background:rgba(6,20,30,.62);
+    color:#fff;font-size:10px;padding:4px 7px;line-height:1.2;}
+#fl_pick .fl-pick__msg{padding:0 20px 16px;font-size:12.5px;color:#8a8478;}
+/* clickable image zones on the live preview */
+.flyer-scope .fl-zone{cursor:pointer;position:relative;}
+.flyer-scope .fl-zone::after{content:"⤢ pick image";position:absolute;inset:0;display:flex;
+    align-items:center;justify-content:center;background:rgba(23,64,47,0);color:transparent;
+    font-size:12px;font-weight:700;transition:background .12s,color .12s;pointer-events:none;z-index:3;}
+.flyer-scope .fl-zone:hover::after{background:rgba(23,64,47,.5);color:#fff;}
 /* ===== Template picker + wireframe thumbnails ===== */
 .flyer-scope #fl_picker .fl-picker-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
 .flyer-scope .fl-tpl-card{cursor:pointer;text-align:left;background:#fff;border:1.5px solid #d5d0c6;
@@ -429,17 +461,12 @@
       <div class="colorwrap"><input type="color" id="fl_in_c_secondary" value="#e08a00">
         <input type="text" id="fl_in_c_secondary_hex" value="#e08a00"></div></div>
   </div>
-  <div class="fld"><label>Client logo <span class="sub">optional — sits in the footer, bottom-right</span></label>
-    <div class="drop" id="fl_in_logoDrop">Click to add a logo (PNG)</div>
-    <input type="file" id="fl_in_logoFile" accept="image/png,image/svg+xml,image/jpeg" hidden></div>
 
   <div class="seg-label">Tags</div>
   <div id="tagSlotBuild"></div>
 
   <div class="seg-label">Banner</div>
-  <div class="fld"><label>Banner photo <span class="sub">MidJourney 16:9, shown 5:3 on the flyer</span></label>
-    <div class="drop" id="fl_in_bannerDrop">Click to add the banner image</div>
-    <input type="file" id="fl_in_bannerFile" accept="image/*" hidden></div>
+  <p class="dhint" style="margin:0 0 10px;">Set the banner photo by clicking the banner area in the live preview (opens the image library). A local-file fallback is in the right column.</p>
   <div class="fld"><label>Eyebrow</label><input type="text" id="fl_in_eyebrow" value="This week's checklist"></div>
   <div class="fld"><label>Headline</label><textarea id="fl_in_headline">The Fall Flu-Fighter Plate</textarea></div>
 
@@ -645,6 +672,28 @@
         <div class="fl-tpl-desc">Photo banner + circle + 2 cards</div>
       </button>
     </div>
+    <div class="rail-label" style="margin-top:18px;">Image upload (fallback)</div>
+    <p class="dhint" style="margin:0 0 10px;font-size:11px;color:#8a8478;">Temporary — prefer picking from the library by clicking a zone in the preview. Local uploads for testing only.</p>
+    <div class="fld"><label style="font-size:11px;">Banner (local file)</label>
+      <div class="drop" id="fl_in_bannerDrop">Click to add the banner image</div>
+      <input type="file" id="fl_in_bannerFile" accept="image/*" hidden></div>
+    <div class="fld"><label style="font-size:11px;">Logo (PNG)</label>
+      <div class="drop" id="fl_in_logoDrop">Click to add a logo (PNG)</div>
+      <input type="file" id="fl_in_logoFile" accept="image/png,image/svg+xml,image/jpeg" hidden></div>
+  </div>
+</div>
+
+<!-- ===== Image library picker (opened by clicking a zone in the live preview) ===== -->
+<div id="fl_pick" class="flyer-scope" style="display:none" aria-hidden="true">
+  <div class="fl-pick__backdrop" id="fl_pickBackdrop"></div>
+  <div class="fl-pick__panel" role="dialog" aria-label="Choose an image">
+    <div class="fl-pick__head">
+      <span id="fl_pickTitle">Choose an image</span>
+      <button type="button" id="fl_pickClose" class="fl-pick__close" aria-label="Close">×</button>
+    </div>
+    <div class="fl-pick__facets" id="fl_pickFacets"></div>
+    <div class="fl-pick__grid" id="fl_pickGrid"></div>
+    <div class="fl-pick__msg" id="fl_pickMsg"></div>
   </div>
 </div>
 
@@ -1212,14 +1261,130 @@ function fl_fileToData(input,cb){
   const f=input.files[0]; if(!f)return; const r=new FileReader();
   r.onload=()=>cb(r.result); r.readAsDataURL(f);
 }
+// Single set-points for the two image zones — used by BOTH the file-upload fallback and the
+// library picker, so the two paths never diverge.
+function fl_setBanner(dataUrl){
+  fl_bannerData = dataUrl;
+  const bg = fl_$("fl_bg"); if(bg) bg.style.backgroundImage = `url('${dataUrl}')`;
+  const bd = fl_$("fl_in_bannerDrop"); if(bd){ bd.textContent="✓ banner set (click to replace)"; bd.classList.add("have"); }
+  const bs = fl_$("fl_in_briefBannerState"); if(bs) bs.textContent="banner set ✓";
+}
+function fl_setSubject(dataUrl){
+  fl_subjectData = dataUrl;
+  fl_draw(); // circle is painted inside fl_renderBody from fl_subjectData
+}
 fl_$("fl_in_bannerDrop").onclick=()=>fl_$("fl_in_bannerFile").click();
-fl_$("fl_in_bannerFile").onchange=()=>fl_fileToData(fl_$("fl_in_bannerFile"),d=>{fl_bannerData=d;
-  fl_$("fl_bg").style.backgroundImage=`url('${d}')`; fl_$("fl_in_bannerDrop").textContent="✓ banner fl_set (click to replace)";
-  fl_$("fl_in_bannerDrop").classList.add("have");
-  fl_$("fl_in_briefBannerState").textContent="banner fl_set ✓"; });
+fl_$("fl_in_bannerFile").onchange=()=>fl_fileToData(fl_$("fl_in_bannerFile"),d=>fl_setBanner(d));
 fl_$("fl_in_logoDrop").onclick=()=>fl_$("fl_in_logoFile").click();
 fl_$("fl_in_logoFile").onchange=()=>fl_fileToData(fl_$("fl_in_logoFile"),d=>{fl_logoData=d;
-  fl_$("fl_in_logoDrop").textContent="✓ logo fl_set (click to replace)"; fl_$("fl_in_logoDrop").classList.add("have"); fl_draw(); });
+  fl_$("fl_in_logoDrop").textContent="✓ logo set (click to replace)"; fl_$("fl_in_logoDrop").classList.add("have"); fl_draw(); });
+
+/* ---------- Image library picker (click a zone in the preview) ---------- */
+const FL_IMG_ENDPOINT = DRL_API + "/image-library";   // GET, facet-filterable
+const FL_IMG_BYTES    = DRL_API + "/image?id=";        // bytes endpoint (resolveImage marker target)
+// Facet tabs shown in the picker (the aspect is fixed by the zone, so it's not a tab).
+const FL_PICK_FACETS = ["subject","month","setting","tone"];
+let fl_pickZone = null;   // 'banner' | 'subject' — which zone we're filling
+let fl_pickAspect = null; // aspect filter for the current zone
+let fl_pickActiveFacet = { key:null, val:null };
+
+// Fetch bytes for one image id and return a data URL (so the chosen image survives PDF export
+// and the companion-screen send without a live network dependency at Finalize time).
+async function fl_fetchImageDataUrl(id){
+  const res = await fetch(FL_IMG_BYTES + encodeURIComponent(id));
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const blob = await res.blob();
+  return await new Promise((ok,err)=>{ const r=new FileReader(); r.onload=()=>ok(r.result); r.onerror=err; r.readAsDataURL(blob); });
+}
+
+async function fl_openPicker(zone){
+  fl_pickZone = zone;
+  fl_pickAspect = (zone==="subject") ? "square" : "16:9";
+  fl_pickActiveFacet = { key:null, val:null };
+  fl_$("fl_pickTitle").textContent = zone==="subject" ? "Choose a subject image (square)" : "Choose a banner image (16:9)";
+  fl_$("fl_pick").style.display="block"; fl_$("fl_pick").setAttribute("aria-hidden","false");
+  await fl_loadPicker();
+}
+function fl_closePicker(){ const p=fl_$("fl_pick"); p.style.display="none"; p.setAttribute("aria-hidden","true"); }
+
+async function fl_loadPicker(){
+  const grid=fl_$("fl_pickGrid"), msg=fl_$("fl_pickMsg");
+  grid.innerHTML=""; msg.textContent="Loading…";
+  const params = new URLSearchParams();
+  if(fl_pickAspect) params.set("aspect", fl_pickAspect);
+  if(fl_pickActiveFacet.key && fl_pickActiveFacet.val) params.set(fl_pickActiveFacet.key, fl_pickActiveFacet.val);
+  let rows=[];
+  try{
+    const res = await fetch(FL_IMG_ENDPOINT + "?" + params.toString());
+    rows = await res.json();
+    if(!Array.isArray(rows)) rows = [];
+  }catch(e){ msg.textContent="Couldn't reach the image library."; return; }
+  fl_renderFacets(rows);
+  if(rows.length===0){
+    msg.textContent = fl_pickAspect==="square"
+      ? "No square images in the library yet — upload 1:1 subject images first, or use the local-file fallback."
+      : "No images match. Try clearing a filter.";
+    return;
+  }
+  msg.textContent="";
+  const sq = fl_pickZone==="subject";
+  rows.forEach(r=>{
+    const d=document.createElement("div");
+    d.className="fl-pick__thumb"+(sq?" sq":"");
+    d.innerHTML = `<img loading="lazy" src="${FL_IMG_BYTES+encodeURIComponent(r.id)}" alt="">`+
+      (r.title?`<span class="cap">${fl_esc(r.title)}</span>`:"");
+    d.onclick = async ()=>{
+      msg.textContent="Loading image…";
+      try{
+        const dataUrl = await fl_fetchImageDataUrl(r.id);
+        if(fl_pickZone==="subject") fl_setSubject(dataUrl); else fl_setBanner(dataUrl);
+        fl_closePicker();
+      }catch(e){ msg.textContent="Couldn't load that image."; }
+    };
+    grid.appendChild(d);
+  });
+}
+
+// Build facet tabs from the values present in the returned rows (only facets that have values).
+function fl_renderFacets(rows){
+  const box=fl_$("fl_pickFacets"); box.innerHTML="";
+  // "All" clears the active facet
+  const all=document.createElement("button");
+  all.type="button"; all.className="fl-pick__facet"+(fl_pickActiveFacet.key?"":" on");
+  all.textContent="All";
+  all.onclick=()=>{ fl_pickActiveFacet={key:null,val:null}; fl_loadPicker(); };
+  box.appendChild(all);
+  const seen={};
+  FL_PICK_FACETS.forEach(key=>{
+    rows.forEach(r=>{
+      const vals = Array.isArray(r[key]) ? r[key] : (r[key]?[r[key]]:[]);
+      vals.forEach(v=>{
+        const tag=key+":"+v;
+        if(seen[tag]) return; seen[tag]=1;
+        const b=document.createElement("button");
+        b.type="button";
+        const on = fl_pickActiveFacet.key===key && fl_pickActiveFacet.val===v;
+        b.className="fl-pick__facet"+(on?" on":"");
+        b.textContent=v;
+        b.onclick=()=>{ fl_pickActiveFacet = on ? {key:null,val:null} : {key,val:v}; fl_loadPicker(); };
+        box.appendChild(b);
+      });
+    });
+  });
+}
+
+fl_$("fl_pickClose").onclick=fl_closePicker;
+fl_$("fl_pickBackdrop").onclick=fl_closePicker;
+document.addEventListener("keydown",e=>{ if(e.key==="Escape" && fl_$("fl_pick").style.display==="block") fl_closePicker(); });
+
+// Make the banner zone clickable (present in all templates). The subject-circle zone is
+// injected per-render in fl_renderBody for twostep; it's wired via event delegation below.
+(function(){ const bg=fl_$("fl_bg"); if(bg){ bg.classList.add("fl-zone"); bg.onclick=()=>fl_openPicker("banner"); } })();
+// Delegated click for the twostep circle (re-created on every render).
+document.addEventListener("click",e=>{
+  const c=e.target.closest && e.target.closest(".ts-circle.fl-zone");
+  if(c) fl_openPicker("subject");
+});
 
 // Current flyer template: 'checklist' | 'explainer' | 'segments'. Same 4-item data
 // (fl_TILES + fl_in_t{i}_h/_p + lead) renders three different ways.
@@ -1290,7 +1455,7 @@ function fl_renderBody(){
       `<path d="M0,46 L0,4 Q306,52 612,4 L612,46 Z" fill="var(--page)"></path></svg></div>`;
     bodyHTML = sweep +
       `<h1 class="ts-title">${fl_esc(title)}</h1>`+
-      `<div class="ts-intro"><div class="ts-circle"${circleStyle}></div>`+
+      `<div class="ts-intro"><div class="ts-circle fl-zone"${circleStyle}></div>`+
       `<div><p class="ts-intro__lead">${fl_esc(lead)}</p>`+
       `<p class="ts-intro__body">${fl_esc(introBody)}</p></div></div>`+
       (cards ? `<div class="ts-cards">${cards}</div>` : "");
