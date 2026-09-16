@@ -200,7 +200,7 @@
 .flyer-scope .ts-sweep svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:46px;display:block;}
 .flyer-scope .ts-title{font-family:var(--font-voice);font-weight:800;font-size:34px;line-height:1.05;
     color:var(--brand-primary);text-align:center;margin:2px 0 22px;}
-.flyer-scope .ts-intro{display:grid;grid-template-columns:150px 1fr;gap:26px;align-items:start;margin:0 0 6px;}
+.flyer-scope .ts-intro{display:grid;grid-template-columns:150px 1fr;gap:26px;align-items:center;margin:0 0 6px;}
 .flyer-scope .ts-circle{width:150px;height:150px;border-radius:50%;overflow:hidden;
     background:#e9edf0 center/cover no-repeat;box-shadow:0 6px 18px -6px rgba(0,0,0,.4);
     border:5px solid #fff;outline:1px solid #e2e6ea;}
@@ -208,13 +208,14 @@
     color:var(--brand-primary);margin:2px 0 12px;}
 .flyer-scope .ts-intro__body{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:0;}
 .flyer-scope .ts-cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:6px;}
-.flyer-scope .ts-card{position:relative;background:#f4f2ea;border-radius:12px;padding:20px 20px 22px;}
-.flyer-scope .ts-badge{width:46px;height:46px;border-radius:50%;background:var(--brand-secondary);
-    display:flex;align-items:center;justify-content:center;margin:0 0 4px;}
-.flyer-scope .ts-badge::before{content:"";width:20px;height:20px;border-radius:5px;
-    background:#fff;-webkit-mask:radial-gradient(circle,#000 62%,transparent 63%);mask:radial-gradient(circle,#000 62%,transparent 63%);}
+.flyer-scope .ts-card{position:relative;background:#f4f2ea;border-radius:12px;padding:18px 20px 20px;}
+/* compact numbered badge, top-left, heading sits beside it on the same row */
+.flyer-scope .ts-card__top{display:flex;align-items:center;gap:11px;margin:0 0 9px;}
+.flyer-scope .ts-badge{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:var(--brand-secondary);
+    display:flex;align-items:center;justify-content:center;color:#fff;
+    font-family:var(--font-voice);font-weight:700;font-size:16px;line-height:1;}
 .flyer-scope .ts-card__head{font-family:var(--font-voice);font-weight:700;font-size:17px;line-height:1.15;
-    color:var(--brand-primary);margin:6px 0 12px;}
+    color:var(--brand-primary);margin:0;}
 .flyer-scope .ts-card__body{font-size:12px;line-height:1.5;color:var(--ink-soft);margin:0;}
 /* ===== Image library picker modal (zone-click) ===== */
 #fl_pick{position:fixed;inset:0;z-index:1000;}
@@ -672,6 +673,12 @@
         <div class="fl-tpl-desc">Photo banner + circle + 2 cards</div>
       </button>
     </div>
+    <div class="rail-label" style="margin-top:18px;">Banner position</div>
+    <p class="dhint" style="margin:0 0 8px;font-size:11px;color:#8a8478;">Slide to reframe the banner vertically (e.g. keep faces in view). Applies to the flyer and the companion screen.</p>
+    <div class="fld" id="fl_bannerYWrap" style="opacity:.5;">
+      <label style="font-size:11px;">Top ↔ Bottom</label>
+      <input type="range" id="fl_bannerY" min="0" max="100" value="50" step="1" style="width:100%;" disabled>
+    </div>
     <div class="rail-label" style="margin-top:18px;">Image upload (fallback)</div>
     <p class="dhint" style="margin:0 0 10px;font-size:11px;color:#8a8478;">Temporary — prefer picking from the library by clicking a zone in the preview. Local uploads for testing only.</p>
     <div class="fld"><label style="font-size:11px;">Banner (local file)</label>
@@ -1105,7 +1112,11 @@ async function fl_publishBannerScreen(flyerId){
     tone:[...sel.tone], aspect:["16:9"],
     // the banner photo becomes the screen background (16:9 center-crop via object-fit)
     image: fl_bannerData,
-    mime: (/^data:([^;]+);/.exec(fl_bannerData)||[])[1] || "image/png"
+    mime: (/^data:([^;]+);/.exec(fl_bannerData)||[])[1] || "image/png",
+    // vertical crop offset (0=top…100=bottom) so the screen frames the SAME region the flyer
+    // banner shows. NOTE: requires overlay.js to apply object-position:50% <focus_y>% and a
+    // screens.focus_y column — until then this is carried but not yet honored at render.
+    focus_y: fl_bannerY
   };
   try{
     const res = await fetch(DRL_API+"/screen",{
@@ -1263,16 +1274,26 @@ function fl_fileToData(input,cb){
 }
 // Single set-points for the two image zones — used by BOTH the file-upload fallback and the
 // library picker, so the two paths never diverge.
+let fl_bannerY = 50;   // vertical crop position, 0=top … 100=bottom (background-position Y%)
+function fl_applyBannerPos(){
+  const bg = fl_$("fl_bg"); if(bg) bg.style.backgroundPosition = "50% " + fl_bannerY + "%";
+}
 function fl_setBanner(dataUrl){
   fl_bannerData = dataUrl;
   const bg = fl_$("fl_bg"); if(bg) bg.style.backgroundImage = `url('${dataUrl}')`;
+  fl_applyBannerPos();
   const bd = fl_$("fl_in_bannerDrop"); if(bd){ bd.textContent="✓ banner set (click to replace)"; bd.classList.add("have"); }
   const bs = fl_$("fl_in_briefBannerState"); if(bs) bs.textContent="banner set ✓";
+  // enable the vertical-position slider now that a banner exists
+  const sl=fl_$("fl_bannerY"), wr=fl_$("fl_bannerYWrap");
+  if(sl){ sl.disabled=false; } if(wr){ wr.style.opacity="1"; }
 }
 function fl_setSubject(dataUrl){
   fl_subjectData = dataUrl;
   fl_draw(); // circle is painted inside fl_renderBody from fl_subjectData
 }
+// banner vertical-position slider
+(function(){ const sl=fl_$("fl_bannerY"); if(sl) sl.addEventListener("input",()=>{ fl_bannerY=+sl.value; fl_applyBannerPos(); }); })();
 fl_$("fl_in_bannerDrop").onclick=()=>fl_$("fl_in_bannerFile").click();
 fl_$("fl_in_bannerFile").onchange=()=>fl_fileToData(fl_$("fl_in_bannerFile"),d=>fl_setBanner(d));
 fl_$("fl_in_logoDrop").onclick=()=>fl_$("fl_in_logoFile").click();
@@ -1447,9 +1468,9 @@ function fl_renderBody(){
     const title = fl_$("fl_in_headline") ? fl_$("fl_in_headline").value : "";
     const introBody = items[0] ? items[0].p : "";
     const circleStyle = fl_subjectData ? ` style="background-image:url('${fl_subjectData}')"` : "";
-    const cards = [items[1], items[2]].filter(t=>t && (t.h||t.p)).map(t=>
-      `<div class="ts-card"><div class="ts-badge"></div>`+
-      `<h4 class="ts-card__head">${fl_esc(t.h)}</h4>`+
+    const cards = [items[1], items[2]].filter(t=>t && (t.h||t.p)).map((t,i)=>
+      `<div class="ts-card"><div class="ts-card__top"><div class="ts-badge">${i+1}</div>`+
+      `<h4 class="ts-card__head">${fl_esc(t.h)}</h4></div>`+
       `<p class="ts-card__body">${fl_esc(t.p)}</p></div>`).join("");
     const sweep = `<div class="ts-sweep"><svg viewBox="0 0 612 46" preserveAspectRatio="none">`+
       `<path d="M0,46 L0,4 Q306,52 612,4 L612,46 Z" fill="var(--page)"></path></svg></div>`;
@@ -1878,6 +1899,9 @@ function fl_startNewFlyer(){
   ["fl_in_briefText","fl_in_lead"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   // banner + logo
   fl_bannerData=null; fl_logoData=null; fl_subjectData=null;
+  fl_bannerY=50;
+  const slY=document.getElementById("fl_bannerY"); if(slY){ slY.value=50; slY.disabled=true; }
+  const slW=document.getElementById("fl_bannerYWrap"); if(slW) slW.style.opacity=".5";
   const bg=document.getElementById("fl_bg"); if(bg) bg.style.backgroundImage="";
   const bd=document.getElementById("fl_in_bannerDrop"); if(bd){ bd.textContent="Click to add the banner image"; bd.classList.remove("have"); }
   const ld=document.getElementById("fl_in_logoDrop"); if(ld){ ld.textContent="Click to add a logo (PNG)"; ld.classList.remove("have"); }
