@@ -1739,7 +1739,7 @@ async function fl_sendToQC(){
   try{
     const res = await fetch(QC_ENDPOINT,{
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ content_id:id, content_title:title, content })
+      body: JSON.stringify({ content_id:id, content_title:title, content, content_source:"builder" })
     });
     if(!res.ok) throw new Error("HTTP "+res.status);
     const d = await res.json();
