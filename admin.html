@@ -1912,7 +1912,7 @@ fl_qcWireInvalidation();
 // ===================== IMAGE REPO UPLOADER (?repo=1) =====================
 // Admin-only ingestion. Each dropped image becomes a queue card with its own tag
 // selection (facet pills reusing VOCAB) + optional keywords. Save posts asset_type
-// 'background' to DRL_API+"/screen"; the write workflow derives aspect from pixels.
+// 'image-library' to DRL_API+"/screen"; the write workflow derives aspect from pixels.
 // Auto-tagging (drl-tag-image) wires into repoAddFile in the next step.
 const REPO_FACETS = ["subject","month","setting","tone"]; // aspect is auto (pixels)
 let repoItems = [];   // { file, dataUrl, w, h, aspect, sel:{facet:Set}, id }
@@ -2004,7 +2004,7 @@ async function repoSaveOne(it){
   const mime=(/^data:([^;]+);/.exec(it.dataUrl)||[])[1]||"image/png";
   const payload={
     id: it.id,
-    asset_type: "background",
+    asset_type: "image-library",
     title: it.file.name.replace(/\.[^.]+$/,""),
     image: it.dataUrl,
     mime,
