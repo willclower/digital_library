@@ -135,16 +135,22 @@
 .flyer-scope .fl-head{font-family:var(--font-voice);font-weight:700;font-size:30px;line-height:1.06;
     margin:9px 0 0;text-shadow:0 2px 18px rgba(0,0,0,.45);max-width:72%;}
 /* body */
-  .flyer-scope .fl-body{padding:30px 40px 22px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:space-between;}
+  .flyer-scope .fl-body{padding:30px 40px 22px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:flex-start;}
 .flyer-scope .fl-lead{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:0 0 4px;max-width:92%;flex:0 0 auto;}
-/* Vertical layout: the lead is pinned to the top (comfortable margin below the banner), the
-   footer is pinned to the bottom, and everything BETWEEN them (the template block(s) + CTA)
-   distributes into the leftover middle space with equal gaps. #fl_bodyZone is display:contents
-   so its children (lead + template blocks) are direct flex siblings of the CTA and footer. */
+/* Vertical layout: body content sits at the top; the shared address footer + fine-print line
+   are siblings AFTER .fl-body, and because .fl-body flex-grows, they pin to the page bottom.
+   #fl_bodyZone is display:contents so its children are direct flex siblings within .fl-body. */
 .flyer-scope #fl_bodyZone{display:contents;}
-/* the template content block(s) and the CTA share the elastic middle */
-.flyer-scope #fl_bodyZone > :not(.fl-lead),
-.flyer-scope .fl-cta{flex:0 0 auto;}
+.flyer-scope #fl_bodyZone > *{flex:0 0 auto;}
+/* ===== Shared address footer (all templates) — mauve band, 3 columns, subtle top arch ===== */
+.flyer-scope .fl-addr{flex:0 0 auto;position:relative;background:#e7e6f0;
+    padding:20px 40px 18px;display:grid;grid-template-columns:1fr 1fr auto;gap:24px;align-items:center;}
+.flyer-scope .fl-addr::before{content:"";position:absolute;left:0;right:0;top:-14px;height:16px;
+    background:#e7e6f0;border-radius:100% 100% 0 0/100% 100% 0 0;}
+.flyer-scope .fl-addr__name{font-weight:700;font-size:12px;color:var(--brand-primary);margin:0 0 4px;}
+.flyer-scope .fl-addr__line{font-size:10px;line-height:1.5;color:var(--ink-soft);}
+.flyer-scope .fl-addr__logo{justify-self:end;}
+.flyer-scope .fl-addr__logo img{max-height:40px;max-width:170px;object-fit:contain;}
 .flyer-scope .tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
 .flyer-scope .tile{display:flex;gap:11px;background:var(--tile);border:1px solid var(--tile-border);
     border-radius:9px;padding:14px 15px;}
@@ -180,33 +186,33 @@
    cards below, each with a round orange badge. Concentra uses lead + items 0-2 of the shared
    1-lead+4-item contract: lead = bold intro line, item0 = grey continuation paragraph,
    items 1-2 = the two badge cards (head + body). Item 3 is unused by this layout. */
-/* concentra banner: full-bleed photo, no scrim text, taller strip; body pulls up so the
+/* twostep banner: full-bleed photo, no scrim text, taller strip; body pulls up so the
    curved white sweep overlaps the banner bottom edge. */
-.flyer-scope .cx-mode .fl-header{min-height:300px;}
-.flyer-scope .cx-mode .fl-header .scrim,
-.flyer-scope .cx-mode .fl-header .htexture,
-.flyer-scope .cx-mode .fl-header .hcontent{display:none;}
-.flyer-scope .cx-mode .fl-body{padding-top:0;}
-.flyer-scope .cx-sweep{position:relative;height:0;z-index:2;}
-.flyer-scope .cx-sweep svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:46px;display:block;}
-.flyer-scope .cx-title{font-family:var(--font-voice);font-weight:800;font-size:34px;line-height:1.05;
+.flyer-scope .ts-mode .fl-header{min-height:367px;}
+.flyer-scope .ts-mode .fl-header .scrim,
+.flyer-scope .ts-mode .fl-header .htexture,
+.flyer-scope .ts-mode .fl-header .hcontent{display:none;}
+.flyer-scope .ts-mode .fl-body{padding-top:0;}
+.flyer-scope .ts-sweep{position:relative;height:0;z-index:2;}
+.flyer-scope .ts-sweep svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:46px;display:block;}
+.flyer-scope .ts-title{font-family:var(--font-voice);font-weight:800;font-size:34px;line-height:1.05;
     color:var(--brand-primary);text-align:center;margin:2px 0 22px;}
-.flyer-scope .cx-intro{display:grid;grid-template-columns:150px 1fr;gap:26px;align-items:start;margin:0 0 6px;}
-.flyer-scope .cx-circle{width:150px;height:150px;border-radius:50%;overflow:hidden;
+.flyer-scope .ts-intro{display:grid;grid-template-columns:150px 1fr;gap:26px;align-items:start;margin:0 0 6px;}
+.flyer-scope .ts-circle{width:150px;height:150px;border-radius:50%;overflow:hidden;
     background:#e9edf0 center/cover no-repeat;box-shadow:0 6px 18px -6px rgba(0,0,0,.4);
     border:5px solid #fff;outline:1px solid #e2e6ea;}
-.flyer-scope .cx-intro__lead{font-family:var(--font-voice);font-weight:700;font-size:18px;line-height:1.28;
+.flyer-scope .ts-intro__lead{font-family:var(--font-voice);font-weight:700;font-size:18px;line-height:1.28;
     color:var(--brand-primary);margin:2px 0 12px;}
-.flyer-scope .cx-intro__body{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:0;}
-.flyer-scope .cx-cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:6px;}
-.flyer-scope .cx-card{position:relative;background:#f4f2ea;border-radius:12px;padding:20px 20px 22px;}
-.flyer-scope .cx-badge{width:46px;height:46px;border-radius:50%;background:var(--brand-secondary);
+.flyer-scope .ts-intro__body{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:0;}
+.flyer-scope .ts-cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:6px;}
+.flyer-scope .ts-card{position:relative;background:#f4f2ea;border-radius:12px;padding:20px 20px 22px;}
+.flyer-scope .ts-badge{width:46px;height:46px;border-radius:50%;background:var(--brand-secondary);
     display:flex;align-items:center;justify-content:center;margin:0 0 4px;}
-.flyer-scope .cx-badge::before{content:"";width:20px;height:20px;border-radius:5px;
+.flyer-scope .ts-badge::before{content:"";width:20px;height:20px;border-radius:5px;
     background:#fff;-webkit-mask:radial-gradient(circle,#000 62%,transparent 63%);mask:radial-gradient(circle,#000 62%,transparent 63%);}
-.flyer-scope .cx-card__head{font-family:var(--font-voice);font-weight:700;font-size:17px;line-height:1.15;
+.flyer-scope .ts-card__head{font-family:var(--font-voice);font-weight:700;font-size:17px;line-height:1.15;
     color:var(--brand-primary);margin:6px 0 12px;}
-.flyer-scope .cx-card__body{font-size:12px;line-height:1.5;color:var(--ink-soft);margin:0;}
+.flyer-scope .ts-card__body{font-size:12px;line-height:1.5;color:var(--ink-soft);margin:0;}
 /* ===== Template picker + wireframe thumbnails ===== */
 .flyer-scope #fl_picker .fl-picker-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
 .flyer-scope .fl-tpl-card{cursor:pointer;text-align:left;background:#fff;border:1.5px solid #d5d0c6;
@@ -234,16 +240,16 @@
 .flyer-scope .fl-wire .fw-hero{height:26%;background:#eef0ec;border-left:4px solid #17384d;border-radius:3px;}
 .flyer-scope .fl-wire .fw-cols{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
 .flyer-scope .fl-wire .fw-cols span{background:#eef0ec;border-top:3px solid #e08a00;border-radius:2px;}
-/* concentra: full-bleed banner (no scrim text) + centered title + circle intro + 2 badge cards */
-.flyer-scope .fl-wire .fw-cx-banner{background:#c9ccc4;border-radius:3px;height:26%;}
-.flyer-scope .fl-wire .fw-cx-title{width:60%;height:8px;background:#17384d;border-radius:2px;margin:5px auto 0;}
-.flyer-scope .fl-wire .fw-cx-intro{display:grid;grid-template-columns:20px 1fr;gap:5px;align-items:start;}
-.flyer-scope .fl-wire .fw-cx-circle{width:20px;height:20px;border-radius:50%;background:#dfe3e6;border:1px solid #cdd3d7;}
-.flyer-scope .fl-wire .fw-cx-lines{display:flex;flex-direction:column;gap:3px;}
-.flyer-scope .fl-wire .fw-cx-lines span{height:4px;background:#e4e0d8;border-radius:2px;}
-.flyer-scope .fl-wire .fw-cx-cards{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:auto;}
-.flyer-scope .fl-wire .fw-cx-cards span{background:#eef0ec;border-radius:3px;position:relative;}
-.flyer-scope .fl-wire .fw-cx-cards span::before{content:"";position:absolute;top:4px;left:4px;width:6px;height:6px;border-radius:50%;background:#e08a00;}
+/* twostep: full-bleed banner (no scrim text) + centered title + circle intro + 2 badge cards */
+.flyer-scope .fl-wire .fw-ts-banner{background:#c9ccc4;border-radius:3px;height:26%;}
+.flyer-scope .fl-wire .fw-ts-title{width:60%;height:8px;background:#17384d;border-radius:2px;margin:5px auto 0;}
+.flyer-scope .fl-wire .fw-ts-intro{display:grid;grid-template-columns:20px 1fr;gap:5px;align-items:start;}
+.flyer-scope .fl-wire .fw-ts-circle{width:20px;height:20px;border-radius:50%;background:#dfe3e6;border:1px solid #cdd3d7;}
+.flyer-scope .fl-wire .fw-ts-lines{display:flex;flex-direction:column;gap:3px;}
+.flyer-scope .fl-wire .fw-ts-lines span{height:4px;background:#e4e0d8;border-radius:2px;}
+.flyer-scope .fl-wire .fw-ts-cards{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:auto;}
+.flyer-scope .fl-wire .fw-ts-cards span{background:#eef0ec;border-radius:3px;position:relative;}
+.flyer-scope .fl-wire .fw-ts-cards span::before{content:"";position:absolute;top:4px;left:4px;width:6px;height:6px;border-radius:50%;background:#e08a00;}
 /* CTA footer */
   .flyer-scope .fl-cta{margin:0;flex:0 0 auto;}
 .flyer-scope .cta-head{background:var(--cta-bg);color:#fff;padding:11px 26px;display:flex;
@@ -262,9 +268,9 @@
 .flyer-scope .cta-btn .big{font-weight:700;font-size:14px;line-height:1.2;}
 .flyer-scope .cta-btn .sm{font-size:10px;opacity:.9;margin-top:3px;}
 /* footer strip */
-  .flyer-scope .fl-foot{border-top:1px solid #e7e3da;padding:14px 0 0;flex:0 0 auto;
+  .flyer-scope .fl-foot{border-top:none;background:#dedcec;padding:7px 40px;flex:0 0 auto;
     display:flex;justify-content:space-between;align-items:center;
-    font-size:10.5px;color:#8a8478;}
+    font-size:9px;color:#7c7891;}
 .flyer-scope .fl-foot .powered b{color:var(--ink);}
 .flyer-scope .fl-foot .code{color:#b3ab9c;font-size:9.5px;}
   /* ===== QC findings panel ===== */
@@ -423,10 +429,7 @@
       <div class="colorwrap"><input type="color" id="fl_in_c_secondary" value="#e08a00">
         <input type="text" id="fl_in_c_secondary_hex" value="#e08a00"></div></div>
   </div>
-  <div class="fld"><label>CTA band color</label>
-    <div class="colorwrap"><input type="color" id="fl_in_c_cta" value="#3f7d55">
-      <input type="text" id="fl_in_c_cta_hex" value="#3f7d55"></div></div>
-  <div class="fld"><label>Client logo <span class="sub">optional — sits top-right of banner</span></label>
+  <div class="fld"><label>Client logo <span class="sub">optional — sits in the footer, bottom-right</span></label>
     <div class="drop" id="fl_in_logoDrop">Click to add a logo (PNG)</div>
     <input type="file" id="fl_in_logoFile" accept="image/png,image/svg+xml,image/jpeg" hidden></div>
 
@@ -434,13 +437,9 @@
   <div id="tagSlotBuild"></div>
 
   <div class="seg-label">Banner</div>
-  <div class="fld"><label>Banner photo <span class="sub">MidJourney 5:2, dark on the left</span></label>
+  <div class="fld"><label>Banner photo <span class="sub">MidJourney 16:9, shown 5:3 on the flyer</span></label>
     <div class="drop" id="fl_in_bannerDrop">Click to add the banner image</div>
     <input type="file" id="fl_in_bannerFile" accept="image/*" hidden></div>
-  <div class="row2">
-    <div class="fld"><label>Issue line 1</label><input type="text" id="fl_in_issue1" value="October 2027"></div>
-    <div class="fld"><label>Issue line 2</label><input type="text" id="fl_in_issue2" value="Immune Series"></div>
-  </div>
   <div class="fld"><label>Eyebrow</label><input type="text" id="fl_in_eyebrow" value="This week's checklist"></div>
   <div class="fld"><label>Headline</label><textarea id="fl_in_headline">The Fall Flu-Fighter Plate</textarea></div>
 
@@ -448,18 +447,21 @@
   <div class="fld"><label>Lead paragraph</label><textarea id="fl_in_lead">Check the box each time you land one. Six simple moves that give your body the raw material to hold the line through cold-and-flu season.</textarea></div>
   <div id="fl_in_tiles"></div>
 
-  <div class="seg-label">Next step (CTA)</div>
-  <div class="fld"><label>Section label</label><input type="text" id="fl_in_ctaLabel" value="Your next step"></div>
-  <div class="fld"><label>Edition tag <span class="sub">right side of band</span></label><input type="text" id="fl_in_ctaEdition" value="Program-connected client"></div>
-  <div class="fld"><label>CTA title</label><input type="text" id="fl_in_ctaTitle" value="Hydration Challenge"></div>
-  <div class="fld"><label>CTA meta line</label><input type="text" id="fl_in_ctaMeta" value="3 weeks · daily ounces tracking · Nutrition track"></div>
-  <div class="fld"><label>CTA description</label><textarea id="fl_in_ctaDesc">Hydration drives so many of your body's defenses — most people feel the difference within three weeks.</textarea></div>
+  <div class="seg-label">Center info (footer)</div>
+  <p class="dhint" style="margin:0 0 10px;">The shared address footer. Defaults to Concentra; edit for a white-label client.</p>
+  <div class="fld"><label>Onsite center name</label><input type="text" id="fl_in_ftName" value="Onsite Center Name"></div>
+  <div class="fld"><label>Address line 1</label><input type="text" id="fl_in_ftAddr1" value="555 Street Address"></div>
   <div class="row2">
-    <div class="fld"><label>Button big</label><input type="text" id="fl_in_ctaBtnBig" value="Start on your portal"></div>
-    <div class="fld"><label>Button small</label><input type="text" id="fl_in_ctaBtnSm" value="my.medwell"></div>
+    <div class="fld"><label>Address line 2</label><input type="text" id="fl_in_ftAddr2" value="City, State Zip"></div>
+    <div class="fld"><label>Phone</label><input type="text" id="fl_in_ftPhone" value="XXX.XXX.XXXX"></div>
+  </div>
+  <div class="fld"><label>Hours label</label><input type="text" id="fl_in_ftHoursLabel" value="Center Hours"></div>
+  <div class="row2">
+    <div class="fld"><label>Hours line 1</label><input type="text" id="fl_in_ftHours1" value="Monday – Friday: 8 a.m. – 5 p.m."></div>
+    <div class="fld"><label>Hours line 2</label><input type="text" id="fl_in_ftHours2" value="Saturday: 8 a.m. – 5 p.m."></div>
   </div>
 
-  <div class="seg-label">Footer</div>
+  <div class="seg-label">Fine print</div>
   <div class="fld"><label>Powered-by line</label><input type="text" id="fl_in_footPowered" value="Concentra Onsite Health · Wellness powered by Mediterranean Wellness"></div>
   <div class="fld"><label>Asset code <span class="hint">auto-assigned at Finalize</span></label><input type="text" id="fl_in_footCode" value="" placeholder="e.g. CON-FLY-202609-014" readonly></div>
 
@@ -564,36 +566,30 @@
       <div class="htexture"></div>
       <div class="scrim"></div>
       <div class="hcontent">
-        <div class="h-toprow">
-          <span id="fl_topright"></span>
-        </div>
         <span class="eyebrow-pill" id="fl_eyebrow"></span>
         <div class="fl-head" id="fl_head"></div>
       </div>
     </div>
     <div class="fl-body">
       <div id="fl_bodyZone"></div>
-      <div class="fl-cta">
-        <div class="cta-head">
-          <span class="l" id="fl_ctaLabel"></span>
-          <span class="edition" id="fl_ctaEdition"></span>
-        </div>
-        <div class="cta-body">
-          <div class="txt">
-            <h3 id="fl_ctaTitle"></h3>
-            <div class="meta" id="fl_ctaMeta"></div>
-            <p id="fl_ctaDesc"></p>
-          </div>
-          <div class="cta-btn">
-            <div class="big" id="fl_ctaBtnBig"></div>
-            <div class="sm" id="fl_ctaBtnSm"></div>
-          </div>
-        </div>
+    </div>
+    <div class="fl-addr" id="fl_addr">
+      <div class="fl-addr__col">
+        <div class="fl-addr__name" id="fl_ftName"></div>
+        <div class="fl-addr__line" id="fl_ftAddr1"></div>
+        <div class="fl-addr__line" id="fl_ftAddr2"></div>
+        <div class="fl-addr__line" id="fl_ftPhone"></div>
       </div>
-      <div class="fl-foot">
-        <span class="powered" id="fl_footPowered"></span>
-        <span class="code" id="fl_footCode"></span>
+      <div class="fl-addr__col">
+        <div class="fl-addr__name" id="fl_ftHoursLabel"></div>
+        <div class="fl-addr__line" id="fl_ftHours1"></div>
+        <div class="fl-addr__line" id="fl_ftHours2"></div>
       </div>
+      <div class="fl-addr__logo" id="fl_ftLogo"></div>
+    </div>
+    <div class="fl-foot">
+      <span class="powered" id="fl_footPowered"></span>
+      <span class="code" id="fl_footCode"></span>
     </div>
   </div>
 </div>
@@ -634,18 +630,18 @@
         <div class="fl-tpl-name">Segments</div>
         <div class="fl-tpl-desc">Hero topic + three areas</div>
       </button>
-      <button type="button" class="fl-tpl-card" data-tpl="concentra" onclick="fl_setTemplate('concentra')">
+      <button type="button" class="fl-tpl-card" data-tpl="twostep" onclick="fl_setTemplate('twostep')">
         <div class="fl-wire">
-          <div class="fw-cx-banner"></div>
-          <div class="fw-cx-title"></div>
-          <div class="fw-cx-intro">
-            <span class="fw-cx-circle"></span>
-            <span class="fw-cx-lines"><span></span><span></span><span></span></span>
+          <div class="fw-ts-banner"></div>
+          <div class="fw-ts-title"></div>
+          <div class="fw-ts-intro">
+            <span class="fw-ts-circle"></span>
+            <span class="fw-ts-lines"><span></span><span></span><span></span></span>
           </div>
-          <div class="fw-cx-cards"><span></span><span></span></div>
+          <div class="fw-ts-cards"><span></span><span></span></div>
           <div class="fw-cta"></div>
         </div>
-        <div class="fl-tpl-name">Concentra</div>
+        <div class="fl-tpl-name">2 Steps</div>
         <div class="fl-tpl-desc">Photo banner + circle + 2 cards</div>
       </button>
     </div>
@@ -1137,9 +1133,7 @@ const fl_set=(id,v)=>{ fl_$(id).textContent=v; };
 // NOTE: values below are geometry-derived STARTING points — tune against a real 300dpi full
 // page per template, then lock (item 2). tile_h/tile_p apply to fl_in_t{i}_h / _p.
 const FL_CAPS_SHARED = {
-  fl_in_eyebrow: 40, fl_in_headline: 46,
-  fl_in_ctaLabel: 24, fl_in_ctaEdition: 30, fl_in_ctaTitle: 40,
-  fl_in_ctaMeta: 70, fl_in_ctaDesc: 170
+  fl_in_eyebrow: 40, fl_in_headline: 46
 };
 const FL_CAPS_TPL = {
   // Checklist: 2x2 grid, half-width text column (narrowest body of the three).
@@ -1151,7 +1145,7 @@ const FL_CAPS_TPL = {
   // Concentra: lead = bold intro line (right of the circle); item0.p = grey continuation
   // paragraph; items 1-2 = the two badge cards (head + body). item0.h unused (no field shown
   // for it in this layout, but the tile editor still exposes it — ignored at render).
-  concentra: { fl_in_lead: 130, _tile_h: 30, _tile_p: 130 }
+  twostep: { fl_in_lead: 130, _tile_h: 30, _tile_p: 130 }
 };
 // Cap for a field id under the CURRENT template. Tile fields are index-aware so segments
 // item 0 (the hero) gets the hero caps and items 1-3 get the column caps.
@@ -1205,17 +1199,14 @@ function fl_tint(hex, pct){
   const mix=(c)=>Math.round(c*p + 255*(1-p));
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
-function fl_applyCtaTint(hex){ const f=fl_$("fl_in_flyer"); if(f) f.style.setProperty("--cta-tint", fl_tint(hex,12)); }
-
 function fl_syncColor(colorId, hexId, cssVar){
   const c=fl_$(colorId), h=fl_$(hexId);
-  c.addEventListener("input",()=>{ h.value=c.value; fl_$("fl_in_flyer").style.setProperty(cssVar,c.value); if(cssVar==="--cta-bg") fl_applyCtaTint(c.value); });
-  h.addEventListener("input",()=>{ if(/^#[0-9a-fA-F]{6}$/.test(h.value)){ c.value=h.value; fl_$("fl_in_flyer").style.setProperty(cssVar,h.value); if(cssVar==="--cta-bg") fl_applyCtaTint(h.value);} });
+  c.addEventListener("input",()=>{ h.value=c.value; fl_$("fl_in_flyer").style.setProperty(cssVar,c.value); });
+  h.addEventListener("input",()=>{ if(/^#[0-9a-fA-F]{6}$/.test(h.value)){ c.value=h.value; fl_$("fl_in_flyer").style.setProperty(cssVar,h.value);} });
 }
 fl_syncColor("fl_in_c_primary","fl_in_c_primary_hex","--brand-primary");
 fl_syncColor("fl_in_c_secondary","fl_in_c_secondary_hex","--brand-secondary");
-fl_syncColor("fl_in_c_cta","fl_in_c_cta_hex","--cta-bg");
-(function(){ var f=fl_$("fl_in_flyer"); if(f){ f.style.setProperty("--brand-primary",fl_$("fl_in_c_primary_hex").value); f.style.setProperty("--brand-secondary",fl_$("fl_in_c_secondary_hex").value); f.style.setProperty("--cta-bg",fl_$("fl_in_c_cta_hex").value); fl_applyCtaTint(fl_$("fl_in_c_cta_hex").value); } })();
+(function(){ var f=fl_$("fl_in_flyer"); if(f){ f.style.setProperty("--brand-primary",fl_$("fl_in_c_primary_hex").value); f.style.setProperty("--brand-secondary",fl_$("fl_in_c_secondary_hex").value); } })();
 
 function fl_fileToData(input,cb){
   const f=input.files[0]; if(!f)return; const r=new FileReader();
@@ -1241,7 +1232,8 @@ function fl_setTemplate(t){
   document.querySelectorAll("#fl_tplRail .fl-tpl-card").forEach(c=>
     c.classList.toggle("sel", c.dataset.tpl===t));
   const badge=document.getElementById("fl_tplBadge");
-  if(badge) badge.textContent = "Template: " + t.charAt(0).toUpperCase()+t.slice(1);
+  const FL_TPL_NAMES = { checklist:"Checklist", explainer:"Explainer", segments:"Segments", twostep:"2 Steps" };
+  if(badge) badge.textContent = "Template: " + (FL_TPL_NAMES[t] || (t.charAt(0).toUpperCase()+t.slice(1)));
   if(typeof fl_refreshCounters==="function") fl_refreshCounters(); // caps differ per template
   if(typeof fl_draw==="function") fl_draw();
 }
@@ -1284,24 +1276,24 @@ function fl_renderBody(){
       `<div class="fl-col"><h4 class="fl-col__label">${fl_esc(t.h)}</h4>`+
       `<p class="fl-col__body">${fl_esc(t.p)}</p></div>`).join("");
     bodyHTML = hero + (cols ? `<div class="fl-cols">${cols}</div>` : "");
-  } else if(fl_template==="concentra"){
+  } else if(fl_template==="twostep"){
     // Title in the body (navy serif, centered) — the banner carries no scrim text here.
     // lead = bold intro line; item0.p = grey continuation; items 1-2 = the two badge cards.
     const title = fl_$("fl_in_headline") ? fl_$("fl_in_headline").value : "";
     const introBody = items[0] ? items[0].p : "";
     const circleStyle = fl_subjectData ? ` style="background-image:url('${fl_subjectData}')"` : "";
     const cards = [items[1], items[2]].filter(t=>t && (t.h||t.p)).map(t=>
-      `<div class="cx-card"><div class="cx-badge"></div>`+
-      `<h4 class="cx-card__head">${fl_esc(t.h)}</h4>`+
-      `<p class="cx-card__body">${fl_esc(t.p)}</p></div>`).join("");
-    const sweep = `<div class="cx-sweep"><svg viewBox="0 0 612 46" preserveAspectRatio="none">`+
-      `<path d="M0,46 L0,20 Q306,-6 612,20 L612,46 Z" fill="var(--page)"></path></svg></div>`;
+      `<div class="ts-card"><div class="ts-badge"></div>`+
+      `<h4 class="ts-card__head">${fl_esc(t.h)}</h4>`+
+      `<p class="ts-card__body">${fl_esc(t.p)}</p></div>`).join("");
+    const sweep = `<div class="ts-sweep"><svg viewBox="0 0 612 46" preserveAspectRatio="none">`+
+      `<path d="M0,46 L0,4 Q306,52 612,4 L612,46 Z" fill="var(--page)"></path></svg></div>`;
     bodyHTML = sweep +
-      `<h1 class="cx-title">${fl_esc(title)}</h1>`+
-      `<div class="cx-intro"><div class="cx-circle"${circleStyle}></div>`+
-      `<div><p class="cx-intro__lead">${fl_esc(lead)}</p>`+
-      `<p class="cx-intro__body">${fl_esc(introBody)}</p></div></div>`+
-      (cards ? `<div class="cx-cards">${cards}</div>` : "");
+      `<h1 class="ts-title">${fl_esc(title)}</h1>`+
+      `<div class="ts-intro"><div class="ts-circle"${circleStyle}></div>`+
+      `<div><p class="ts-intro__lead">${fl_esc(lead)}</p>`+
+      `<p class="ts-intro__body">${fl_esc(introBody)}</p></div></div>`+
+      (cards ? `<div class="ts-cards">${cards}</div>` : "");
     // keep a zero-height .fl-lead so the flex spacing contract (#fl_bodyZone > :not(.fl-lead)) holds
     zone.innerHTML = `<p class="fl-lead" id="fl_lead" style="display:none"></p>` + bodyHTML;
     return;
@@ -1315,23 +1307,23 @@ function fl_renderBody(){
 }
 
 function fl_draw(){
-  // concentra puts the title/eyebrow in the body, so its banner carries no scrim text.
-  const isCx = (fl_template==="concentra");
-  const flyerEl = fl_$("fl_in_flyer"); if(flyerEl) flyerEl.classList.toggle("cx-mode", isCx);
-  // top-right: logo if present, else issue chip
-  const tr=fl_$("fl_topright");
-  if(fl_logoData){ tr.innerHTML=`<img class="h-logo" src="${fl_logoData}">`; }
-  else { tr.innerHTML=`<span class="issue-chip"><span class="m">${fl_$("fl_in_issue1").value}</span><br><span class="s">${fl_$("fl_in_issue2").value}</span></span>`; }
-  fl_set("fl_eyebrow", isCx ? "" : fl_$("fl_in_eyebrow").value);
-  fl_set("fl_head",    isCx ? "" : fl_$("fl_in_headline").value);
+  // twostep puts the title/eyebrow in the body, so its banner carries no scrim text.
+  const isTs = (fl_template==="twostep");
+  const flyerEl = fl_$("fl_in_flyer"); if(flyerEl) flyerEl.classList.toggle("ts-mode", isTs);
+  // logo now lives in the address footer (bottom-right), not the banner
+  const lg=fl_$("fl_ftLogo");
+  if(lg) lg.innerHTML = fl_logoData ? `<img src="${fl_logoData}">` : "";
+  fl_set("fl_eyebrow", isTs ? "" : fl_$("fl_in_eyebrow").value);
+  fl_set("fl_head",    isTs ? "" : fl_$("fl_in_headline").value);
   fl_renderBody();
-  fl_set("fl_ctaLabel",fl_$("fl_in_ctaLabel").value);
-  fl_set("fl_ctaEdition",fl_$("fl_in_ctaEdition").value);
-  fl_set("fl_ctaTitle",fl_$("fl_in_ctaTitle").value);
-  fl_set("fl_ctaMeta",fl_$("fl_in_ctaMeta").value);
-  fl_set("fl_ctaDesc",fl_$("fl_in_ctaDesc").value);
-  fl_set("fl_ctaBtnBig",fl_$("fl_in_ctaBtnBig").value);
-  fl_set("fl_ctaBtnSm",fl_$("fl_in_ctaBtnSm").value);
+  // shared address footer
+  fl_set("fl_ftName",       fl_$("fl_in_ftName").value);
+  fl_set("fl_ftAddr1",      fl_$("fl_in_ftAddr1").value);
+  fl_set("fl_ftAddr2",      fl_$("fl_in_ftAddr2").value);
+  fl_set("fl_ftPhone",      fl_$("fl_in_ftPhone").value);
+  fl_set("fl_ftHoursLabel", fl_$("fl_in_ftHoursLabel").value);
+  fl_set("fl_ftHours1",     fl_$("fl_in_ftHours1").value);
+  fl_set("fl_ftHours2",     fl_$("fl_in_ftHours2").value);
   fl_set("fl_footPowered",fl_$("fl_in_footPowered").value);
   fl_set("fl_footCode",fl_$("fl_in_footCode").value);
 }
@@ -1385,9 +1377,7 @@ async function fl_draftCopy(){
       eyebrow:fl_capFor("fl_in_eyebrow"), headline:fl_capFor("fl_in_headline"),
       lead:fl_capFor("fl_in_lead"),
       // tile caps: item 1 is representative (for segments item 0 is the hero, edited up by hand)
-      tile_h:fl_capFor("fl_in_t1_h"), tile_p:fl_capFor("fl_in_t1_p"),
-      cta_title:fl_capFor("fl_in_ctaTitle"), cta_meta:fl_capFor("fl_in_ctaMeta"),
-      cta_desc:fl_capFor("fl_in_ctaDesc")
+      tile_h:fl_capFor("fl_in_t1_h"), tile_p:fl_capFor("fl_in_t1_p")
     } };
   // reuse the banner already loaded in Branding, downscaled so the payload stays small.
   if (fl_bannerData && /^data:image\/(png|jpe?g|gif|webp);base64,/.test(fl_bannerData)) {
@@ -1408,9 +1398,6 @@ async function fl_draftCopy(){
     fl_setFld("fl_in_headline", d.headline);
     fl_setFld("fl_in_lead",     d.lead);
     (d.tiles||[]).forEach((t,i)=>{ fl_setFld(`fl_in_t${i}_h`, t.h); fl_setFld(`fl_in_t${i}_p`, t.p); });
-    fl_setFld("fl_in_ctaTitle", d.cta_title);
-    fl_setFld("fl_in_ctaMeta",  d.cta_meta);
-    fl_setFld("fl_in_ctaDesc",  d.cta_desc);
 
     fl_draw();
     msg.className="draftmsg ok"; msg.textContent="Drafted — edit any field below.";
@@ -1524,10 +1511,7 @@ const QC_ENDPOINT = DRL_API.replace(/\/drl$/, "") + "/qc-first-pass"; // sibling
 const FL_QC_MAP = {
   "EYEBROW":        "fl_in_eyebrow",
   "HEADLINE":       "fl_in_headline",
-  "LEAD":           "fl_in_lead",
-  "CTA TITLE":      "fl_in_ctaTitle",
-  "CTA META":       "fl_in_ctaMeta",
-  "CTA DESCRIPTION":"fl_in_ctaDesc"
+  "LEAD":           "fl_in_lead"
 };
 for(let i=0;i<6;i++){
   FL_QC_MAP[`TILE ${i+1} TITLE`] = `fl_in_t${i}_h`;
@@ -1721,10 +1705,10 @@ document.getElementById("fl_finalizeBtn").onclick = ()=>{ save(); };
 // (they're per-client config a user typically keeps between flyers).
 function fl_startNewFlyer(){
   // copy fields (all reviewed fields + brief). Lead is per-flyer copy → cleared.
-  // NOTE: CTA buttons/labels + footer (ctaLabel, ctaEdition, ctaBtnBig, ctaBtnSm,
-  // footPowered, footCode) are CONSTANT per-client config, like branding colors —
-  // deliberately NOT cleared, so they persist between flyers and Draft Copy (which
-  // never fills them) doesn't leave them blank.
+  // NOTE: the shared address footer (ftName/ftAddr1/2/ftPhone/ftHoursLabel/ftHours1/2) and
+  // footPowered are CONSTANT per-client config, like branding colors — deliberately NOT
+  // cleared, so they persist between flyers and Draft Copy (which never fills them) doesn't
+  // leave them blank. footCode IS cleared below (auto-assigned per flyer).
   Object.values(FL_QC_MAP).forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   ["fl_in_briefText","fl_in_lead"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   // banner + logo
