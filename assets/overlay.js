@@ -47,7 +47,10 @@ function bgLayer(screen) {
     const src = screen.videoSrc || b.replace("video:", "");
     return `<video class="vwl-bg" src="${src}" autoplay muted loop playsinline></video>`;
   }
-  return `<div class="vwl-bg vwl-ken" style="background-image:url('${b}');"></div>`;
+  // Vertical crop offset (0=top…100=bottom) so a banner-derived screen frames the SAME
+  // region its source flyer banner shows. Absent/invalid → 50 (center), the prior default.
+  const fy = (screen.focus_y == null || isNaN(+screen.focus_y)) ? 50 : Math.max(0, Math.min(100, +screen.focus_y));
+  return `<div class="vwl-bg vwl-ken" style="background-image:url('${b}');background-position:50% ${fy}%;"></div>`;
 }
 
 // Render a full 16:9 screen into `el`. scale = font multiplier for thumbnails.
