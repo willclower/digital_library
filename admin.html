@@ -1208,6 +1208,12 @@ const FL_CAPS_TPL = {
   // for it in this layout, but the tile editor still exposes it — ignored at render).
   twostep: { fl_in_lead: 130, _tile_h: 30, _tile_p: 130 }
 };
+// How many item slots each template actually USES (draft-fills, QC-serializes, gates, clears).
+// The tile editor still shows 4 fields; this only bounds what's populated/reviewed/rendered.
+// twostep: slot0 = intro continuation (body only, no visible title), slots1-2 = the two step
+// cards. 3 slots, 2 visible "steps". slot3 unused.
+const FL_ITEMS_TPL = { checklist:4, explainer:4, segments:4, twostep:3 };
+function fl_itemCount(){ return FL_ITEMS_TPL[fl_template] ?? 4; }
 // Cap for a field id under the CURRENT template. Tile fields are index-aware so segments
 // item 0 (the hero) gets the hero caps and items 1-3 get the column caps.
 function fl_capFor(id){
@@ -1246,7 +1252,9 @@ function fl_anyOverCap(){
   });
   if(shared) return true;
   const lead=fl_$("fl_in_lead"); if(lead && lead.value.length > fl_capFor("fl_in_lead")) return true;
+  const nCap = fl_itemCount();
   return fl_TILES.some((_,i)=>{
+    if(i >= nCap) return false;   // unused slot never gates finalize
     const h=fl_$(`fl_in_t${i}_h`), p=fl_$(`fl_in_t${i}_p`);
     return (h&&h.value.length>fl_capFor(`fl_in_t${i}_h`)) || (p&&p.value.length>fl_capFor(`fl_in_t${i}_p`));
   });
@@ -1416,6 +1424,7 @@ var fl_template = "checklist";
 // stays persistent and doubles as the switcher (replaces the old picker flow).
 function fl_setTemplate(t){
   fl_template = t;
+  { const _n=fl_itemCount(); for(let i=_n;i<6;i++){ const h=fl_$(`fl_in_t${i}_h`), p=fl_$(`fl_in_t${i}_p`); if(h)h.value=""; if(p)p.value=""; } }
   document.querySelectorAll("#fl_tplRail .fl-tpl-card").forEach(c=>
     c.classList.toggle("sel", c.dataset.tpl===t));
   const badge=document.getElementById("fl_tplBadge");
@@ -1559,7 +1568,10 @@ async function fl_draftCopy(){
   msg.className = "draftmsg"; msg.textContent = "";
   if(!brief){ msg.className="draftmsg err"; msg.textContent="Type a brief first."; return; }
 
-  const payload = { brief, template: fl_template, tile_count: fl_TILES.length,
+  const payload = { brief, template: fl_template, tile_count: fl_itemCount(),
+    tile_notes: fl_template==="twostep"
+      ? "Item 0 is an intro continuation paragraph (body only, no title — leave h empty). Items 1-2 are the two step cards (title + body)."
+      : null,
     caps: {
       eyebrow:fl_capFor("fl_in_eyebrow"), headline:fl_capFor("fl_in_headline"),
       lead:fl_capFor("fl_in_lead"),
@@ -1584,7 +1596,9 @@ async function fl_draftCopy(){
     fl_setFld("fl_in_eyebrow",  d.eyebrow);
     fl_setFld("fl_in_headline", d.headline);
     fl_setFld("fl_in_lead",     d.lead);
-    (d.tiles||[]).forEach((t,i)=>{ fl_setFld(`fl_in_t${i}_h`, t.h); fl_setFld(`fl_in_t${i}_p`, t.p); });
+    const _n = fl_itemCount();
+    (d.tiles||[]).slice(0,_n).forEach((t,i)=>{ fl_setFld(`fl_in_t${i}_h`, t.h); fl_setFld(`fl_in_t${i}_p`, t.p); });
+    for(let i=_n;i<6;i++){ fl_setFld(`fl_in_t${i}_h`,""); fl_setFld(`fl_in_t${i}_p`,""); }
 
     fl_draw();
     msg.className="draftmsg ok"; msg.textContent="Drafted — edit any field below.";
@@ -1710,8 +1724,11 @@ const FL_QC_LABELS = Object.keys(FL_QC_MAP).sort((a,b)=>b.length-a.length);
 // flQcReview declared at top of composer script (hoisted)
 
 function fl_qcSerialize(){
+  const n = fl_itemCount();
   const lines = [];
   for(const label of Object.keys(FL_QC_MAP)){
+    const m = /^TILE (\d+)/.exec(label);
+    if(m && (+m[1]) > n) continue;   // slot index beyond this template's count → skip
     const el = document.getElementById(FL_QC_MAP[label]);
     const v = el ? (el.value||"").trim() : "";
     if(v) lines.push(`[${label}] ${v}`);
