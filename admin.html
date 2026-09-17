@@ -367,6 +367,22 @@
     <button id="repoSaveAll" class="btn primary" onclick="repoSaveAll()" disabled>Save all to repo</button>
     <span id="repoMsg" class="draftmsg" style="margin-left:12px;"></span>
   </div>
+
+  <!-- ================= LIBRARY BROWSER (view / filter / manage) ================= -->
+  <div id="libBrowse" style="margin-top:48px;border-top:1px solid #e7e3da;padding-top:28px;">
+    <div class="eyebrow"><span></span>Admin · Library</div>
+    <h1 style="margin-top:6px;">Browse the image library</h1>
+    <p class="sub">Every image in the picker pool. Filter by tag to find one, or remove a duplicate.
+       <span id="libCount" style="color:#6f7f74;"></span></p>
+
+    <div id="libFilters" style="margin:14px 0 6px;"></div>
+    <div class="actions" style="margin:6px 0 16px;">
+      <button class="btn" style="font-size:12px;" onclick="libClearFilters()">Clear filters</button>
+      <button class="btn" style="font-size:12px;" onclick="libLoad()">Refresh</button>
+      <span id="libMsg" class="draftmsg" style="margin-left:12px;"></span>
+    </div>
+    <div id="libGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;"></div>
+  </div>
 </div>
 
 <div class="wrap">
@@ -2087,6 +2103,69 @@ function repoInitDropzone(){
 }
 function repoActive(){ return new URLSearchParams(location.search).get("repo")==="1"; }
 
+// ===================== LIBRARY BROWSER (view / filter / manage) =====================
+// Reads the same list the picker uses (DRL_API+"/image-library", facet-filterable) and
+// renders a thumbnail grid. Full images (internal tool, few users) — no stored thumbs.
+const LIB_FACETS = ["subject","month","setting","tone","aspect"];
+let libItems = [];                                   // last loaded rows
+let libFilter = Object.fromEntries(LIB_FACETS.map(f=>[f,null]));  // one value per facet or null
+
+function libRenderFilters(){
+  const host=document.getElementById("libFilters"); if(!host) return;
+  const V=currentVocab();
+  host.innerHTML = LIB_FACETS.map(f=>{
+    const vals = (V[f]||[]);
+    if(!vals.length) return "";
+    return `<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0;">`
+      + `<span style="flex:0 0 62px;font-size:11px;color:#6f7f74;text-transform:uppercase;letter-spacing:.06em;padding-top:5px;">${f}</span>`
+      + `<div style="flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px;">`
+      + vals.map(v=>`<span class="pill" data-on="${libFilter[f]===v?1:0}" onclick="libTogFilter('${f}','${v}',this)">${v}</span>`).join("")
+      + `</div></div>`;
+  }).join("");
+}
+function libTogFilter(facet,val,el){
+  libFilter[facet] = (libFilter[facet]===val) ? null : val;  // single-select per facet
+  libRenderFilters();  // repaint pills (clears siblings in same facet)
+  libLoad();
+}
+function libClearFilters(){ for(const f of LIB_FACETS) libFilter[f]=null; libRenderFilters(); libLoad(); }
+
+async function libLoad(){
+  const grid=document.getElementById("libGrid"), msg=document.getElementById("libMsg"),
+        cnt=document.getElementById("libCount");
+  if(!grid) return;
+  msg.className="draftmsg"; msg.textContent="Loading…";
+  const qs = LIB_FACETS.filter(f=>libFilter[f]).map(f=>`${f}=${encodeURIComponent(libFilter[f])}`).join("&");
+  try{
+    const res=await fetch(FL_IMG_ENDPOINT + (qs?("?"+qs):""));
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const rows=await res.json();
+    libItems = Array.isArray(rows) ? rows : [];
+    cnt.textContent = `· ${libItems.length} image${libItems.length===1?"":"s"}`;
+    msg.textContent="";
+    grid.innerHTML = libItems.map(libTile).join("") || `<div style="color:#6f7f74;">No images match.</div>`;
+  }catch(e){
+    msg.className="draftmsg err"; msg.textContent="Couldn't load the library: "+e.message;
+  }
+}
+function libTile(r){
+  const tags = LIB_FACETS.flatMap(f=>(r[f]||[])).filter(Boolean);
+  const tagHtml = tags.length
+    ? tags.map(t=>`<span style="display:inline-block;font-size:10px;background:#eef1ec;color:#4a5a4f;border-radius:4px;padding:1px 6px;margin:2px 2px 0 0;">${t}</span>`).join("")
+    : `<span style="font-size:10px;color:#a59;">no tags</span>`;
+  return `<div style="border:1px solid #e7e3da;border-radius:10px;overflow:hidden;background:#fff;">
+    <div style="aspect-ratio:16/10;background:#f4f2ea;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+      <img src="${FL_IMG_BYTES}${encodeURIComponent(r.id)}" loading="lazy"
+           style="width:100%;height:100%;object-fit:cover;display:block;">
+    </div>
+    <div style="padding:9px 10px 11px;">
+      <div style="font-size:12px;font-weight:600;color:#33413a;word-break:break-word;">${(r.title||r.id||"").replace(/</g,"&lt;")}</div>
+      <div style="margin-top:5px;line-height:1.5;">${tagHtml}</div>
+    </div>
+  </div>`;
+}
+function libInit(){ libRenderFilters(); libLoad(); }
+
 // init
 buildPills(FALLBACK_VOCAB);
 loadVocab();
@@ -2094,6 +2173,7 @@ if(repoActive()){
   document.querySelector(".wrap").style.display="none";
   document.getElementById("repoMode").style.display="";
   repoInitDropzone();
+  libInit();
 } else {
   setAssetType("screen");
   draw();
