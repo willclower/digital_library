@@ -2107,6 +2107,7 @@ function repoActive(){ return new URLSearchParams(location.search).get("repo")==
 // Reads the same list the picker uses (DRL_API+"/image-library", facet-filterable) and
 // renders a thumbnail grid. Full images (internal tool, few users) — no stored thumbs.
 const LIB_FACETS = ["subject","month","setting","tone","aspect"];
+const LIB_DELETE_ENDPOINT = DRL_API + "/library-delete";   // POST {id} -> hard delete, scoped to image-library
 let libItems = [];                                   // last loaded rows
 let libFilter = Object.fromEntries(LIB_FACETS.map(f=>[f,null]));  // one value per facet or null
 
@@ -2162,10 +2163,36 @@ function libTile(r){
     <div style="padding:9px 10px 11px;">
       <div style="font-size:12px;font-weight:600;color:#33413a;word-break:break-word;">${(r.title||r.id||"").replace(/</g,"&lt;")}</div>
       <div style="margin-top:5px;line-height:1.5;">${tagHtml}</div>
+      <button class="btn" style="margin-top:9px;font-size:11px;padding:3px 10px;color:#b3261e;border-color:#e6c4c0;"
+              onclick="libDelete('${(r.id||'').replace(/'/g,"\\'")}', this)">Remove</button>
     </div>
   </div>`;
 }
 function libInit(){ libRenderFilters(); libLoad(); }
+
+// Hard-delete a library image (permanent — no soft-delete fallback; this IS the picker's
+// source image). Scoped server-side to asset_type='image-library'.
+async function libDelete(id, btn){
+  if(!id) return;
+  if(!confirm("Remove this image from the library permanently?\n\nThis deletes the picker's source image and cannot be undone.\n\n"+id)) return;
+  const msg=document.getElementById("libMsg");
+  if(btn){ btn.disabled=true; btn.textContent="Removing…"; }
+  msg.className="draftmsg"; msg.textContent="";
+  try{
+    const res=await fetch(LIB_DELETE_ENDPOINT,{
+      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ id })
+    });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const out=await res.json();
+    if(!out || out.ok!==true) throw new Error("Unexpected response");
+    if(!out.deleted){ msg.className="draftmsg err"; msg.textContent="Nothing removed — id not found in the library."; if(btn){btn.disabled=false;btn.textContent="Remove";} return; }
+    msg.className="draftmsg ok"; msg.textContent="Removed.";
+    libLoad();   // refresh the grid
+  }catch(e){
+    msg.className="draftmsg err"; msg.textContent="Delete failed: "+e.message;
+    if(btn){ btn.disabled=false; btn.textContent="Remove"; }
+  }
+}
 
 // init
 buildPills(FALLBACK_VOCAB);
