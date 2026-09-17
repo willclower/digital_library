@@ -2248,16 +2248,18 @@ async function libDelete(id, btn){
 
 // init
 buildPills(FALLBACK_VOCAB);
-loadVocab();
-if(repoActive()){
-  document.querySelector(".wrap").style.display="none";
-  document.getElementById("repoMode").style.display="";
-  repoInitDropzone();
-  libInit();
-} else {
-  setAssetType("screen");
-  draw();
-}
+(async ()=>{
+  await loadVocab();                 // wait for live vocab before painting filters that read it
+  if(repoActive()){
+    document.querySelector(".wrap").style.display="none";
+    document.getElementById("repoMode").style.display="";
+    repoInitDropzone();
+    libInit();                       // now renders filters from the live vocab
+  } else {
+    setAssetType("screen");
+    draw();
+  }
+})();
 </script>
 </body>
 </html>
