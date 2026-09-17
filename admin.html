@@ -2135,9 +2135,10 @@ async function libLoad(){
         cnt=document.getElementById("libCount");
   if(!grid) return;
   msg.className="draftmsg"; msg.textContent="Loading…";
-  const qs = LIB_FACETS.filter(f=>libFilter[f]).map(f=>`${f}=${encodeURIComponent(libFilter[f])}`).join("&");
+  const params = new URLSearchParams();
+  for(const f of LIB_FACETS){ if(libFilter[f]) params.set(f, libFilter[f]); }
   try{
-    const res=await fetch(FL_IMG_ENDPOINT + (qs?("?"+qs):""));
+    const res=await fetch(FL_IMG_ENDPOINT + (params.toString()?("?"+params.toString()):""));
     if(!res.ok) throw new Error("HTTP "+res.status);
     const rows=await res.json();
     libItems = Array.isArray(rows) ? rows : [];
