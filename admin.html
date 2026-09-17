@@ -2015,6 +2015,32 @@ function repoFileToItem(file){
   });
 }
 const REPO_TAG_ENDPOINT = DRL_API + "/tag-image";
+const REPO_HASH_ENDPOINT = DRL_API + "/hash-check";   // GET ?hash= -> {exists,id,title}
+
+// SHA-256 (hex) of the base64 payload's decoded bytes — the SAME bytes the write path
+// stores and hashes server-side, so the dedupe comparison lines up exactly.
+async function repoHashDataUrl(dataUrl){
+  const b64 = (/^data:[^;]+;base64,(.*)$/.exec(dataUrl)||[])[1] || "";
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  const buf = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+// Check a queued item against the library by hash; flag it if the image already exists.
+async function repoDedupeCheck(it){
+  try{
+    it.hash = await repoHashDataUrl(it.dataUrl);
+    // also flag same-hash collisions within the current queue (dropped twice at once)
+    const dupInQueue = repoItems.some(o => o!==it && o.hash && o.hash===it.hash);
+    const res = await fetch(REPO_HASH_ENDPOINT + "?hash=" + encodeURIComponent(it.hash));
+    const out = await res.json();
+    if(dupInQueue){ it.dupe = { where:"queue" }; }
+    else if(out && out.exists){ it.dupe = { where:"library", id:out.id, title:out.title }; }
+    else { it.dupe = null; }
+  }catch(e){ it.dupe = null; /* check failure never blocks upload */ }
+  repoRenderQueue();
+}
 async function repoAutoTag(it){
   it.tagging = true; repoRenderQueue();
   try{
@@ -2036,7 +2062,7 @@ async function repoAddFiles(files){
   repoRenderQueue();
   document.getElementById("repoSaveAll").disabled = repoItems.length===0;
   // auto-tag each newly added image (per-image, on drop)
-  for(const it of added){ repoAutoTag(it); }
+  for(const it of added){ repoAutoTag(it); repoDedupeCheck(it); }
 }
 function repoPillRow(idx, facet){
   const vals = (currentVocab()[facet]||[]);
@@ -2050,13 +2076,19 @@ function repoPillRow(idx, facet){
 function repoRenderQueue(){
   const host=document.getElementById("repoQueue");
   host.innerHTML = repoItems.map((it,idx)=>`
-    <div class="field" style="border:1px solid #e7e3da;border-radius:10px;padding:14px;display:flex;gap:16px;">
+    <div class="field" style="border:1px solid ${it.dupe?'#e6c4c0':'#e7e3da'};border-radius:10px;padding:14px;display:flex;gap:16px;${it.dupe&&!it.dupeOverride?'background:#fbf2f1;':''}">
       <div style="flex:0 0 200px;">
         <img src="${it.dataUrl}" style="width:200px;height:auto;border-radius:8px;display:block;">
         <div style="font-size:11px;color:#6f7f74;margin-top:6px;">${it.w}×${it.h} · aspect <b>${it.aspect||"?"}</b></div>
         <button class="btn" style="margin-top:6px;font-size:12px;" onclick="repoRemove(${idx})">Remove</button>
       </div>
       <div style="flex:1;min-width:0;">
+        ${it.dupe ? `<div style="margin:0 0 10px;padding:9px 11px;border-radius:8px;background:#f6e4e2;border:1px solid #e6c4c0;font-size:12px;color:#8a2a22;">
+            ⚠ Already in the library${it.dupe.where==='library'&&it.dupe.id?` — <b>${(it.dupe.title||it.dupe.id).replace(/</g,'&lt;')}</b>`:it.dupe.where==='queue'?' (dropped twice just now)':''}.
+            ${it.dupeOverride
+              ? `Will upload anyway. <a href="#" onclick="repoDupeKeep(${idx},false);return false;" style="color:#8a2a22;">Skip instead</a>`
+              : `This won't be saved. <a href="#" onclick="repoDupeKeep(${idx},true);return false;" style="color:#8a2a22;">Upload anyway</a> or <a href="#" onclick="repoRemove(${idx});return false;" style="color:#8a2a22;">remove</a>.`}
+          </div>` : ''}
         <label style="font-size:12px;">Keywords <span class="hint">optional — steer the tagger</span></label>
         <input type="text" value="${it.keywords.replace(/"/g,'&quot;')}" oninput="repoItems[${idx}].keywords=this.value"
                placeholder="e.g. raspberries, summer, produce" style="width:100%;margin:4px 0 10px;">
@@ -2070,6 +2102,7 @@ function repoRenderQueue(){
       </div>
     </div>`).join("");
 }
+function repoDupeKeep(idx, keep){ if(repoItems[idx]){ repoItems[idx].dupeOverride = keep; repoRenderQueue(); } }
 function repoTog(idx,facet,val,el){
   const s=repoItems[idx].sel[facet];
   if(s.has(val)){ s.delete(val); el.dataset.on="0"; } else { s.add(val); el.dataset.on="1"; }
@@ -2099,13 +2132,14 @@ async function repoSaveAll(){
   const msg=document.getElementById("repoMsg"), btn=document.getElementById("repoSaveAll");
   if(!repoItems.length) return;
   btn.disabled=true; msg.className="draftmsg"; msg.textContent="Saving…";
-  let ok=0, fail=0;
+  let ok=0, fail=0, skipped=0;
   for(const it of [...repoItems]){
+    if(it.dupe && !it.dupeOverride){ skipped++; continue; }   // duplicate, not overridden -> skip
     try{ await repoSaveOne(it); ok++; }
     catch(e){ fail++; }
   }
   msg.className="draftmsg"+(fail?" err":"");
-  msg.textContent = `Saved ${ok}${fail?`, ${fail} failed`:""}.`;
+  msg.textContent = `Saved ${ok}${fail?`, ${fail} failed`:""}${skipped?`, ${skipped} skipped (duplicate)`:""}.`;
   if(!fail){ repoItems=[]; repoRenderQueue(); }
   btn.disabled = repoItems.length===0;
 }
