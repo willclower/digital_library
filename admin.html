@@ -376,11 +376,30 @@
        <span id="libCount" style="color:#6f7f74;"></span></p>
 
     <div id="libFilters" style="margin:14px 0 6px;"></div>
-    <div class="actions" style="margin:6px 0 16px;">
+    <div class="actions" style="margin:6px 0 12px;">
       <button class="btn" style="font-size:12px;" onclick="libClearFilters()">Clear filters</button>
       <button class="btn" style="font-size:12px;" onclick="libLoad()">Refresh</button>
+      <button class="btn" style="font-size:12px;" onclick="libToggleAddTag()">Add tag</button>
       <span id="libMsg" class="draftmsg" style="margin-left:12px;"></span>
     </div>
+
+    <!-- Add-tag inline form (hidden until "Add tag" clicked). Grows the controlled
+         vocabulary — new value becomes a pickable tag everywhere (uploader, picker, this filter). -->
+    <div id="libAddTag" style="display:none;align-items:center;gap:10px;margin:0 0 14px;padding:12px 14px;background:#f4f2ea;border-radius:10px;flex-wrap:wrap;">
+      <span style="font-size:12px;color:#6f7f74;">New tag in</span>
+      <select id="libAddCat" style="font-size:13px;padding:5px 8px;border:1px solid #d8d3c8;border-radius:6px;">
+        <option value="subject">subject</option>
+        <option value="setting">setting</option>
+      </select>
+      <input id="libAddVal" type="text" placeholder="e.g. pilates, tai chi, running"
+             style="font-size:13px;padding:5px 10px;border:1px solid #d8d3c8;border-radius:6px;min-width:220px;"
+             onkeydown="if(event.key==='Enter')libAddTagSave()">
+      <button class="btn primary" style="font-size:12px;" onclick="libAddTagSave()">Save tag</button>
+      <button class="btn" style="font-size:12px;" onclick="libToggleAddTag()">Cancel</button>
+      <span id="libAddMsg" class="draftmsg" style="margin-left:4px;"></span>
+    </div>
+
+    <hr style="border:0;border-top:1px solid #e7e3da;margin:0 0 24px;">
     <div id="libGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;"></div>
   </div>
 </div>
@@ -2108,6 +2127,7 @@ function repoActive(){ return new URLSearchParams(location.search).get("repo")==
 // renders a thumbnail grid. Full images (internal tool, few users) — no stored thumbs.
 const LIB_FACETS = ["subject","month","setting","tone","aspect"];
 const LIB_DELETE_ENDPOINT = DRL_API + "/library-delete";   // POST {id} -> hard delete, scoped to image-library
+const VOCAB_ADD_ENDPOINT  = DRL_API + "/vocab-add";        // POST {category,value} -> grow the controlled vocab (subject/setting)
 let libItems = [];                                   // last loaded rows
 let libFilter = Object.fromEntries(LIB_FACETS.map(f=>[f,null]));  // one value per facet or null
 
@@ -2169,6 +2189,38 @@ function libTile(r){
   </div>`;
 }
 function libInit(){ libRenderFilters(); libLoad(); }
+
+function libToggleAddTag(){
+  const box=document.getElementById("libAddTag");
+  const showing = box.style.display!=="none" && box.style.display!=="";
+  box.style.display = showing ? "none" : "flex";
+  document.getElementById("libAddMsg").textContent="";
+  if(!showing){ const v=document.getElementById("libAddVal"); v.value=""; v.focus(); }
+}
+// Save a new vocabulary value, then refresh vocab everywhere so it's immediately pickable.
+async function libAddTagSave(){
+  const cat=document.getElementById("libAddCat").value;
+  const val=document.getElementById("libAddVal").value.trim();
+  const msg=document.getElementById("libAddMsg");
+  if(!val){ msg.className="draftmsg err"; msg.textContent="Type a tag."; return; }
+  msg.className="draftmsg"; msg.textContent="Saving…";
+  try{
+    const res=await fetch(VOCAB_ADD_ENDPOINT,{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ category:cat, value:val })
+    });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const out=await res.json();
+    if(!out || out.ok!==true) throw new Error("Unexpected response");
+    await loadVocab();        // refresh the shared vocab -> uploader pills update too
+    libRenderFilters();       // repaint the filter row with the new pill
+    msg.className="draftmsg ok";
+    msg.textContent = out.already_existed ? `“${out.value}” already existed.` : `Added “${out.value}”.`;
+    document.getElementById("libAddVal").value="";
+  }catch(e){
+    msg.className="draftmsg err"; msg.textContent="Couldn't add tag: "+e.message;
+  }
+}
 
 // Hard-delete a library image (permanent — no soft-delete fallback; this IS the picker's
 // source image). Scoped server-side to asset_type='image-library'.
