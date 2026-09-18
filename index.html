@@ -589,7 +589,22 @@ async function addClient(){
   }catch(e){ alert("Could not reach the server."); }
   finally{ input.disabled = false; }
 }
-function delClient(id,name){ alert("Delete "+name+": wired next (drl/client-delete)."); }
+async function delClient(id,name){
+  if(!SESSION) return;
+  if(!confirm("Remove "+name+" from your clients?")) return;
+  try{
+    const res = await fetch(DRL_API + "/client-delete", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ session: SESSION.session, id })
+    });
+    const d = await res.json();
+    if(!d || !d.ok){
+      if(d && d.error==="unauthorized"){ clearSession(); paintAuth(); closeRoster(); openLogin(); return; }
+      alert("Could not remove client."); return;
+    }
+    loadRoster();
+  }catch(e){ alert("Could not reach the server."); }
+}
 function editBrand(id){ alert("Brand form: wired next (drl/client-save + drl/logo)."); }
 
 /* tiny modal helpers */
