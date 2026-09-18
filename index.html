@@ -36,8 +36,47 @@
   .topbar{display:flex;align-items:center;gap:12px;padding:16px 34px;background:#fbfaf7;border-bottom:1px solid var(--border);}
   .topbar img{height:26px;display:none;}
   .topbar .brand{font-weight:600;color:var(--brand-blue);font-size:15px;}
-  .topbar .back{margin-left:auto;font-size:12.5px;color:var(--muted);text-decoration:none;}
+  .topbar .back{font-size:12.5px;color:var(--muted);text-decoration:none;}
   .topbar .back:hover{color:var(--accent-text);}
+  .topbar .authbar{margin-left:auto;display:flex;align-items:center;gap:14px;}
+  .linkbtn{font:inherit;font-size:12.5px;color:var(--muted);background:none;border:0;padding:0;cursor:pointer;}
+  .linkbtn:hover{color:var(--accent-text);}
+  .whoami{font-size:12.5px;color:var(--brand-blue);font-weight:600;}
+
+  /* --- lightweight modal (login + roster) --- */
+  .mask{position:fixed;inset:0;background:rgba(12,33,53,0.42);display:none;align-items:flex-start;
+    justify-content:center;padding:60px 16px;z-index:50;overflow:auto;}
+  .mask.on{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-card);
+    width:100%;max-width:460px;box-shadow:0 30px 70px -30px rgba(14,42,68,0.6);}
+  .modal.wide{max-width:640px;}
+  .modal .mhead{display:flex;align-items:center;justify-content:space-between;
+    padding:18px 22px;border-bottom:1px solid var(--border);}
+  .modal .mhead h2{font-family:var(--font-voice);font-weight:400;font-size:22px;margin:0;}
+  .modal .mclose{font-size:20px;line-height:1;color:var(--muted);background:none;border:0;cursor:pointer;}
+  .modal .mbody{padding:22px;}
+  .fld{margin-bottom:14px;}
+  .fld label{display:block;font-size:12px;font-weight:600;margin-bottom:6px;}
+  .fld input{width:100%;height:38px;border:1px solid var(--border);border-radius:var(--r-input);
+    padding:0 12px;font:inherit;font-size:13px;background:var(--panel);}
+  .fld input:focus{outline:none;border-color:var(--library);box-shadow:0 0 0 3px var(--chip-lib-bg);}
+  .msg{font-size:12.5px;margin:8px 0 0;min-height:16px;}
+  .msg.err{color:#b3423a;} .msg.ok{color:var(--library);}
+
+  /* roster list */
+  .addrow{display:flex;gap:8px;margin-bottom:18px;}
+  .addrow input{flex:1;height:38px;border:1px solid var(--border);border-radius:var(--r-input);
+    padding:0 12px;font:inherit;font-size:13px;}
+  .clist{list-style:none;margin:0;padding:0;}
+  .clist li{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border-lt);}
+  .clist li:last-child{border-bottom:0;}
+  .cname{font-weight:600;font-size:13.5px;}
+  .ccode{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;}
+  .cbadge{font-size:10px;padding:3px 8px;border-radius:var(--r-pill);background:var(--chip-bg);color:var(--muted-2);}
+  .cbadge.none{background:#f3ece0;} .cbadge.wl{background:var(--chip-lib-bg);color:var(--library);}
+  .cspacer{margin-left:auto;display:flex;gap:8px;}
+  .clist .btn{padding:6px 12px;font-size:12px;}
+  .cdel{border-color:#c9a9a5;color:#b3423a;}
 
   .shell{display:grid;grid-template-columns:236px minmax(0,1fr);align-items:start;}
 
@@ -106,6 +145,12 @@
 <div class="topbar">
   <img id="logo" alt="">
   <span class="brand" id="brandname">Wellness Tools</span>
+  <div class="authbar" id="authbar">
+    <button class="linkbtn" id="loginLink" onclick="openLogin()">Log in</button>
+    <span class="whoami" id="whoami" style="display:none;"></span>
+    <button class="linkbtn" id="manageLink" style="display:none;" onclick="openRoster()">Manage clients</button>
+    <button class="linkbtn" id="logoutLink" style="display:none;" onclick="doLogout()">Log out</button>
+  </div>
   <a class="back" href="../wellness_tools/index.html">&larr; Back to tools</a>
 </div>
 
@@ -150,6 +195,32 @@
     <div class="active" id="active"></div>
     <p class="count" id="count">Loading library&hellip;</p>
     <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<!-- ---- login modal ---- -->
+<div class="mask" id="loginMask">
+  <div class="modal">
+    <div class="mhead"><h2>Account manager sign-in</h2>
+      <button class="mclose" onclick="closeLogin()">&times;</button></div>
+    <div class="mbody">
+      <div class="fld"><label for="liEmail">Email</label>
+        <input id="liEmail" type="email" autocomplete="username" placeholder="you@company.com"></div>
+      <div class="fld"><label for="liPw">Password</label>
+        <input id="liPw" type="password" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn btn-primary" style="width:100%;" onclick="doLogin()">Sign in</button>
+      <p class="msg" id="liMsg"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ---- roster modal ---- -->
+<div class="mask" id="rosterMask">
+  <div class="modal wide">
+    <div class="mhead"><h2>Manage clients</h2>
+      <button class="mclose" onclick="closeRoster()">&times;</button></div>
+    <div class="mbody" id="rosterBody"></div>
   </div>
 </div>
 
@@ -399,7 +470,114 @@ async function loadBranding(){
   }catch(e){ /* branding best-effort */ }
 }
 
+/* ============================================================================
+   TEST AUTH + client roster (white-label).  DISPOSABLE — replaced by MedWell's
+   real login at production. Session id lives in sessionStorage; every authed
+   call sends it in the POST body as `session`.
+   ============================================================================ */
+let SESSION = null;   // { session, am:{id,name,is_super_admin} }
+
+function loadSession(){
+  try{ const s = sessionStorage.getItem("mw_am"); if(s) SESSION = JSON.parse(s); }catch(e){}
+}
+function saveSession(){ try{ sessionStorage.setItem("mw_am", JSON.stringify(SESSION)); }catch(e){} }
+function clearSession(){ SESSION=null; try{ sessionStorage.removeItem("mw_am"); }catch(e){} }
+
+function paintAuth(){
+  const inn = !!SESSION;
+  document.getElementById("loginLink").style.display  = inn ? "none" : "";
+  document.getElementById("whoami").style.display     = inn ? "" : "none";
+  document.getElementById("manageLink").style.display = inn ? "" : "none";
+  document.getElementById("logoutLink").style.display = inn ? "" : "none";
+  if(inn){
+    document.getElementById("whoami").textContent =
+      SESSION.am.name + (SESSION.am.is_super_admin ? " (admin)" : "");
+  }
+}
+
+/* ---- login modal ---- */
+function openLogin(){ show("loginMask"); document.getElementById("liEmail").focus(); }
+function closeLogin(){ hide("loginMask"); }
+async function doLogin(){
+  const email = document.getElementById("liEmail").value.trim();
+  const pw    = document.getElementById("liPw").value;
+  const m = document.getElementById("liMsg"); m.className="msg"; m.textContent="Signing in…";
+  try{
+    const res = await fetch(DRL_API + "/login", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ email, password: pw })
+    });
+    const d = await res.json();
+    if(!d || !d.ok){ m.className="msg err"; m.textContent="Email or password not recognized."; return; }
+    SESSION = { session: d.session, am: d.am }; saveSession(); paintAuth();
+    m.className="msg ok"; m.textContent="Signed in.";
+    document.getElementById("liPw").value="";
+    setTimeout(()=>{ closeLogin(); openRoster(); }, 300);
+  }catch(e){ m.className="msg err"; m.textContent="Could not reach the server."; }
+}
+function doLogout(){ clearSession(); paintAuth(); hide("rosterMask"); }
+
+/* ---- roster modal (list clients; add/delete come next) ---- */
+function openRoster(){ show("rosterMask"); loadRoster(); }
+function closeRoster(){ hide("rosterMask"); }
+
+async function loadRoster(){
+  const box = document.getElementById("rosterBody");
+  box.innerHTML = `<p class="msg">Loading your clients…</p>`;
+  if(!SESSION){ box.innerHTML = `<p class="msg err">Not signed in.</p>`; return; }
+  try{
+    const res = await fetch(DRL_API + "/client-list", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ session: SESSION.session })
+    });
+    const d = await res.json();
+    if(!d || !d.ok){
+      if(d && d.error==="unauthorized"){ clearSession(); paintAuth(); closeRoster(); openLogin(); return; }
+      box.innerHTML = `<p class="msg err">Could not load clients.</p>`; return;
+    }
+    renderRoster(d.clients || []);
+  }catch(e){ box.innerHTML = `<p class="msg err">Could not reach the server.</p>`; }
+}
+
+function renderRoster(clients){
+  const box = document.getElementById("rosterBody");
+  const add = `
+    <div class="addrow">
+      <input id="newClient" type="text" placeholder="Add a client — company name">
+      <button class="btn btn-primary" onclick="addClient()">Add</button>
+    </div>`;
+  if(!clients.length){
+    box.innerHTML = add + `<p class="msg">No clients yet. Add one above to get started.</p>`;
+    return;
+  }
+  const rows = clients.map(c=>{
+    const badge = c.has_brand
+      ? `<span class="cbadge wl">white-label ready</span>`
+      : `<span class="cbadge none">brand not set</span>`;
+    return `<li>
+      <span class="cname">${c.name}</span>
+      <span class="ccode">${c.code}</span>
+      ${badge}
+      <span class="cspacer">
+        <button class="btn" onclick="editBrand('${c.id}')">${c.has_brand?'Edit brand':'Add info'}</button>
+        <button class="btn cdel" onclick="delClient('${c.id}','${c.name.replace(/'/g,"\\'")}')">Delete</button>
+      </span>
+    </li>`;
+  }).join("");
+  box.innerHTML = add + `<ul class="clist">${rows}</ul>`;
+}
+
+/* stubs — built next session block */
+function addClient(){ alert("Add client: wired next (drl/client-save)."); }
+function delClient(id,name){ alert("Delete "+name+": wired next (drl/client-delete)."); }
+function editBrand(id){ alert("Brand form: wired next (drl/client-save + drl/logo)."); }
+
+/* tiny modal helpers */
+function show(id){ document.getElementById(id).classList.add("on"); }
+function hide(id){ document.getElementById(id).classList.remove("on"); }
+
 async function boot(){
+  loadSession(); paintAuth();
   await loadBranding();
   try{
     const res = await fetch(DRL_API + "/library");
