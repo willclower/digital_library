@@ -77,6 +77,14 @@
   .cspacer{margin-left:auto;display:flex;gap:8px;}
   .clist .btn{padding:6px 12px;font-size:12px;}
   .cdel{border-color:#c9a9a5;color:#b3423a;}
+  .brow{display:flex;gap:14px;flex-wrap:wrap;}
+  .brow .fld{flex:1;min-width:150px;}
+  .fld select{width:100%;height:38px;border:1px solid var(--border);border-radius:var(--r-input);padding:0 10px;font:inherit;font-size:13px;background:var(--panel);}
+  .fld input[type=color]{width:100%;height:38px;border:1px solid var(--border);border-radius:var(--r-input);padding:2px;background:var(--panel);cursor:pointer;}
+  .fldivider{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--subtle);border-top:1px solid var(--border-lt);margin:18px 0 12px;padding-top:14px;}
+  .logorow{display:flex;align-items:center;gap:14px;}
+  .logoprev{max-height:44px;max-width:160px;border:1px solid var(--border-lt);border-radius:4px;background:#fff;padding:4px;}
+  .hint{font-size:11.5px;color:var(--faint);margin-top:5px;}
 
   .shell{display:grid;grid-template-columns:236px minmax(0,1fr);align-items:start;}
 
@@ -221,6 +229,54 @@
     <div class="mhead"><h2>Manage clients</h2>
       <button class="mclose" onclick="closeRoster()">&times;</button></div>
     <div class="mbody" id="rosterBody"></div>
+  </div>
+</div>
+
+<!-- ---- brand form modal ---- -->
+<div class="mask" id="brandMask">
+  <div class="modal wide">
+    <div class="mhead"><h2 id="brandTitle">Brand profile</h2>
+      <button class="mclose" onclick="closeBrand()">&times;</button></div>
+    <div class="mbody" id="brandBody">
+      <input type="hidden" id="bfId">
+      <div class="brow">
+        <div class="fld"><label>Primary color</label><input type="color" id="bfPrimary" value="#236192"></div>
+        <div class="fld"><label>Secondary color</label><input type="color" id="bfSecondary" value="#ed8b00"></div>
+        <div class="fld"><label>Default brand for downloads</label>
+          <select id="bfDefault">
+            <option value="none">MedWell (unbranded)</option>
+            <option value="white-label">White-label (this client)</option>
+            <option value="parent">Parent (Concentra)</option>
+          </select></div>
+      </div>
+      <div class="fld"><label>Logo</label>
+        <div class="logorow">
+          <img id="bfLogoPreview" class="logoprev" alt="" style="display:none;">
+          <input type="file" id="bfLogo" accept="image/*" onchange="onLogoPick(event)">
+        </div>
+        <div class="hint" id="bfLogoHint"></div>
+      </div>
+      <div class="fldivider">Footer (appears on flyers)</div>
+      <div class="fld"><label>Onsite center name</label><input type="text" id="bf_ftName"></div>
+      <div class="brow">
+        <div class="fld"><label>Address line 1</label><input type="text" id="bf_ftAddr1"></div>
+        <div class="fld"><label>Address line 2</label><input type="text" id="bf_ftAddr2"></div>
+      </div>
+      <div class="brow">
+        <div class="fld"><label>Phone</label><input type="text" id="bf_ftPhone"></div>
+        <div class="fld"><label>Hours label</label><input type="text" id="bf_ftHoursLabel"></div>
+      </div>
+      <div class="brow">
+        <div class="fld"><label>Hours line 1</label><input type="text" id="bf_ftHours1"></div>
+        <div class="fld"><label>Hours line 2</label><input type="text" id="bf_ftHours2"></div>
+      </div>
+      <div class="fld"><label>Powered-by line</label><input type="text" id="bf_footPowered"></div>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button class="btn btn-primary" onclick="saveBrand()">Save brand profile</button>
+        <button class="btn" onclick="closeBrand()">Cancel</button>
+      </div>
+      <p class="msg" id="bfMsg"></p>
+    </div>
   </div>
 </div>
 
@@ -605,7 +661,94 @@ async function delClient(id,name){
     loadRoster();
   }catch(e){ alert("Could not reach the server."); }
 }
-function editBrand(id){ alert("Brand form: wired next (drl/client-save + drl/logo)."); }
+let bfLogoData = null;   // {b64, mime} when a new logo is picked; null = leave existing
+
+async function editBrand(id){
+  if(!SESSION) return;
+  bfLogoData = null;
+  const msg=document.getElementById("bfMsg"); msg.className="msg"; msg.textContent="Loading…";
+  show("brandMask");
+  try{
+    const res = await fetch(DRL_API + "/client-get", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ session: SESSION.session, id })
+    });
+    const d = await res.json();
+    if(!d || !d.ok){
+      if(d && d.error==="unauthorized"){ clearSession(); paintAuth(); closeBrand(); closeRoster(); openLogin(); return; }
+      msg.className="msg err"; msg.textContent="Could not load this client."; return;
+    }
+    fillBrand(d.client); msg.textContent="";
+  }catch(e){ msg.className="msg err"; msg.textContent="Could not reach the server."; }
+}
+
+function fillBrand(c){
+  document.getElementById("brandTitle").textContent = "Brand profile — " + c.name;
+  document.getElementById("bfId").value = c.id;
+  document.getElementById("bfPrimary").value   = c.brand_primary_hex   || "#236192";
+  document.getElementById("bfSecondary").value = c.brand_secondary_hex || "#ed8b00";
+  document.getElementById("bfDefault").value   = c.brand_default || "none";
+  const set = (k,v)=>{ document.getElementById(k).value = v || ""; };
+  set("bf_ftName",c.brand_ft_name); set("bf_ftAddr1",c.brand_ft_addr1);
+  set("bf_ftAddr2",c.brand_ft_addr2); set("bf_ftPhone",c.brand_ft_phone);
+  set("bf_ftHoursLabel",c.brand_ft_hours_label); set("bf_ftHours1",c.brand_ft_hours1);
+  set("bf_ftHours2",c.brand_ft_hours2); set("bf_footPowered",c.brand_ft_powered);
+  const prev=document.getElementById("bfLogoPreview"), hint=document.getElementById("bfLogoHint");
+  document.getElementById("bfLogo").value="";
+  if(c.has_logo){
+    prev.src = DRL_API + "/logo?type=client&id=" + encodeURIComponent(c.id) + "&t=" + Date.now();
+    prev.style.display="block"; hint.textContent="Current logo. Pick a file to replace it.";
+  }else{
+    prev.style.display="none"; hint.textContent="No logo set. Pick a file to add one.";
+  }
+}
+
+function onLogoPick(ev){
+  const f = ev.target.files && ev.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = reader.result;            // data:mime;base64,XXXX
+    const comma = dataUrl.indexOf(",");
+    bfLogoData = { b64: dataUrl.slice(comma+1), mime: f.type || "image/png" };
+    const prev=document.getElementById("bfLogoPreview");
+    prev.src = dataUrl; prev.style.display="block";
+    document.getElementById("bfLogoHint").textContent = "New logo ready — Save to store it.";
+  };
+  reader.readAsDataURL(f);
+}
+
+async function saveBrand(){
+  if(!SESSION) return;
+  const msg=document.getElementById("bfMsg"); msg.className="msg"; msg.textContent="Saving…";
+  const g=id=>document.getElementById(id).value;
+  const payload = {
+    session: SESSION.session,
+    id: g("bfId"),
+    brand_default: g("bfDefault"),
+    brand_primary_hex: g("bfPrimary"),
+    brand_secondary_hex: g("bfSecondary"),
+    brand_ft_name: g("bf_ftName"), brand_ft_addr1: g("bf_ftAddr1"),
+    brand_ft_addr2: g("bf_ftAddr2"), brand_ft_phone: g("bf_ftPhone"),
+    brand_ft_hours_label: g("bf_ftHoursLabel"), brand_ft_hours1: g("bf_ftHours1"),
+    brand_ft_hours2: g("bf_ftHours2"), brand_ft_powered: g("bf_footPowered")
+  };
+  if(bfLogoData){ payload.brand_logo_b64 = bfLogoData.b64; payload.brand_logo_mime = bfLogoData.mime; }
+  try{
+    const res = await fetch(DRL_API + "/client-save", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const d = await res.json();
+    if(!d || !d.ok){
+      if(d && d.error==="unauthorized"){ clearSession(); paintAuth(); closeBrand(); closeRoster(); openLogin(); return; }
+      msg.className="msg err"; msg.textContent="Could not save."; return;
+    }
+    msg.className="msg ok"; msg.textContent="Saved.";
+    setTimeout(()=>{ closeBrand(); loadRoster(); }, 400);
+  }catch(e){ msg.className="msg err"; msg.textContent="Could not reach the server."; }
+}
+function closeBrand(){ hide("brandMask"); }
 
 /* tiny modal helpers */
 function show(id){ document.getElementById(id).classList.add("on"); }
