@@ -568,7 +568,27 @@ function renderRoster(clients){
 }
 
 /* stubs — built next session block */
-function addClient(){ alert("Add client: wired next (drl/client-save)."); }
+async function addClient(){
+  const input = document.getElementById("newClient");
+  const name = input.value.trim();
+  if(!name){ input.focus(); return; }
+  if(!SESSION) return;
+  input.disabled = true;
+  try{
+    const res = await fetch(DRL_API + "/client-save", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ session: SESSION.session, name })
+    });
+    const d = await res.json();
+    if(!d || !d.ok){
+      if(d && d.error==="unauthorized"){ clearSession(); paintAuth(); closeRoster(); openLogin(); return; }
+      alert("Could not add client."); return;
+    }
+    input.value = "";
+    loadRoster();   // refresh the list
+  }catch(e){ alert("Could not reach the server."); }
+  finally{ input.disabled = false; }
+}
 function delClient(id,name){ alert("Delete "+name+": wired next (drl/client-delete)."); }
 function editBrand(id){ alert("Brand form: wired next (drl/client-save + drl/logo)."); }
 
