@@ -204,8 +204,6 @@
 .flyer-scope .ts-circle{width:150px;height:150px;border-radius:50%;overflow:hidden;
     background:#e9edf0 center/cover no-repeat;box-shadow:0 6px 18px -6px rgba(0,0,0,.4);
     border:5px solid #fff;outline:1px solid #e2e6ea;}
-.flyer-scope .ts-lead{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:0 0 14px;text-align:center;
-    max-width:520px;margin-left:auto;margin-right:auto;}
 .flyer-scope .ts-intro__head{font-family:var(--font-voice);font-weight:700;font-size:15px;line-height:1.28;
     color:var(--brand-primary);margin:0 0 4px;}
 .flyer-scope .ts-intro__body{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:0;}
@@ -1608,7 +1606,6 @@ function fl_renderBody(){
       `<path d="M0,46 L0,4 Q306,52 612,4 L612,46 Z" fill="var(--page)"></path></svg></div>`;
     bodyHTML = sweep +
       `<h1 class="ts-title">${fl_esc(title)}</h1>`+
-      `<p class="ts-lead">${fl_esc(lead)}</p>`+
       `<div class="ts-intro"><div class="ts-circle fl-zone"${circleStyle}></div>`+
       `<div>`+
       (introHead ? `<h4 class="ts-intro__head">${fl_esc(introHead)}</h4>` : "")+
