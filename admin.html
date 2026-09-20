@@ -1026,13 +1026,25 @@ function setMsg(text,cls){ const m=document.getElementById("msg"); m.textContent
 // fl_renderBody() consume EXCEPT the per-client brand seams (colors + logo +
 // footer), which the download flow overrides per client. We still store the
 // authoring-time colors/footer as a fallback for a plain "as-authored" download.
-function fl_captureManifest(){
+async function fl_captureManifest(){
   const g = id => { const el=document.getElementById(id); return el ? el.value : ""; };
   const tiles = [];
   for(let i=0;i<6;i++){
     const h=document.getElementById(`fl_in_t${i}_h`);
     const p=document.getElementById(`fl_in_t${i}_p`);
     if(h||p) tiles.push({ h: h?h.value:"", p: p?p.value:"" });
+  }
+  // Image storage: if picked from the library we store its id (banner_ref/subject_ref) and the
+  // download flow re-fetches bytes by id — keeps the manifest a few KB. For a LOCAL-file upload
+  // there's no id, so we inline a DOWNSCALED jpeg (never the full ~2.4 MB original).
+  let banner_ref=null, banner=null, subject_ref=null, subject=null;
+  if(fl_bannerData){
+    if(fl_bannerRef){ banner_ref = fl_bannerRef; }
+    else { const s=await fl_shrinkForDraft(fl_bannerData,1600,0.85); banner = s ? "data:"+s.mime+";base64,"+s.base64 : null; }
+  }
+  if(fl_subjectData){
+    if(fl_subjectRef){ subject_ref = fl_subjectRef; }
+    else { const s=await fl_shrinkForDraft(fl_subjectData,800,0.85); subject = s ? "data:"+s.mime+";base64,"+s.base64 : null; }
   }
   return {
     v: 1,
@@ -1041,9 +1053,9 @@ function fl_captureManifest(){
     eyebrow:  g("fl_in_eyebrow"),
     lead:     g("fl_in_lead"),
     tiles,
-    banner:   fl_bannerData || null,     // data: URL of the banner image
+    banner_ref, banner,     // one of the two is set (ref preferred; data URL only for local uploads)
     focus_y:  fl_bannerY,
-    subject:  fl_subjectData || null,    // twostep circle image, else null
+    subject_ref, subject,   // twostep circle; ref preferred, else small data URL, else both null
     // authoring-time brand (fallback; download flow replaces these per client)
     colors: { primary: g("fl_in_c_primary_hex"), secondary: g("fl_in_c_secondary_hex") },
     footer: {
@@ -1135,7 +1147,7 @@ async function save(){
     thumb_base64: isBuild ? buildThumb : (docThumbB64 || null),
     mime: isBuild ? buildMime : (assetMime || null),
     // Flyer re-render source (white-label download). Only for built flyers; null otherwise.
-    source_manifest: isBuild ? fl_captureManifest() : null
+    source_manifest: isBuild ? await fl_captureManifest() : null
   };
 
   // If a doc was uploaded but its thumbnail is still rendering, wait briefly.
@@ -1288,6 +1300,8 @@ const fl_TILES = [
   {h:"Lean into protein",     p:"Your body builds immune cells from protein. Include a source at each meal."},
 ];
 let fl_bannerData=null, fl_logoData=null, fl_subjectData=null;
+let fl_bannerRef=null;   // image-library id of the banner, when picked from the library
+let fl_subjectRef=null;  // image-library id of the twostep circle image, when picked
 
 // build tile editor rows
 const fl_tilesEd=document.getElementById("fl_in_tiles");
@@ -1405,8 +1419,12 @@ let fl_bannerY = 50;   // vertical crop position, 0=top … 100=bottom (backgrou
 function fl_applyBannerPos(){
   const bg = fl_$("fl_bg"); if(bg) bg.style.backgroundPosition = "50% " + fl_bannerY + "%";
 }
-function fl_setBanner(dataUrl){
+function fl_setBanner(dataUrl, libId){
   fl_bannerData = dataUrl;
+  // Library id when the banner came from the image library (null for local-file uploads).
+  // The manifest stores this ref instead of the ~2.4 MB bytes, so the download flow re-fetches
+  // banner bytes by id at render time — keeps the manifest tiny.
+  fl_bannerRef = libId || null;
   const bg = fl_$("fl_bg"); if(bg) bg.style.backgroundImage = `url('${dataUrl}')`;
   fl_applyBannerPos();
   const bd = fl_$("fl_in_bannerDrop"); if(bd){ bd.textContent="✓ banner set (click to replace)"; bd.classList.add("have"); }
@@ -1415,8 +1433,9 @@ function fl_setBanner(dataUrl){
   const sl=fl_$("fl_bannerY"), wr=fl_$("fl_bannerYWrap");
   if(sl){ sl.disabled=false; } if(wr){ wr.style.opacity="1"; }
 }
-function fl_setSubject(dataUrl){
+function fl_setSubject(dataUrl, libId){
   fl_subjectData = dataUrl;
+  fl_subjectRef = libId || null;   // image-library id of the circle image, when picked from library
   fl_draw(); // circle is painted inside fl_renderBody from fl_subjectData
 }
 // banner vertical-position slider
@@ -1485,7 +1504,7 @@ async function fl_loadPicker(){
       msg.textContent="Loading image…";
       try{
         const dataUrl = await fl_fetchImageDataUrl(r.id);
-        if(fl_pickZone==="subject") fl_setSubject(dataUrl); else fl_setBanner(dataUrl);
+        if(fl_pickZone==="subject") fl_setSubject(dataUrl, r.id); else fl_setBanner(dataUrl, r.id);
         fl_closePicker();
       }catch(e){ msg.textContent="Couldn't load that image."; }
     };
@@ -2037,7 +2056,7 @@ function fl_startNewFlyer(){
   Object.values(FL_QC_MAP).forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   ["fl_in_briefText","fl_in_lead"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   // banner + logo
-  fl_bannerData=null; fl_logoData=null; fl_subjectData=null;
+  fl_bannerData=null; fl_logoData=null; fl_subjectData=null; fl_bannerRef=null; fl_subjectRef=null;
   fl_bannerY=50;
   const slY=document.getElementById("fl_bannerY"); if(slY){ slY.value=50; slY.disabled=true; }
   const slW=document.getElementById("fl_bannerYWrap"); if(slW) slW.style.opacity=".5";
