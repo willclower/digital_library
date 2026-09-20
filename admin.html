@@ -1154,7 +1154,9 @@ async function save(){
     if(out.ok){
       setMsg(`Saved “${out.saved}”${out.width?` (${out.width}×${out.height})`:""}. It's in the library now.`,"ok");
       // Optional companion: publish a 16:9 wall screen built from the banner photo.
-      if(isBuild && document.getElementById("fl_in_alsoScreen") && document.getElementById("fl_in_alsoScreen").checked){
+      const alsoBox = document.getElementById("fl_in_alsoScreen");
+      console.log("[companion-screen] checkbox present:", !!alsoBox, "checked:", alsoBox && alsoBox.checked, "isBuild:", isBuild, "banner set:", !!fl_bannerData);
+      if(isBuild && alsoBox && alsoBox.checked){
         fl_busySet("Publishing companion screen…");
         await fl_publishBannerScreen(out.saved || id);
       }
@@ -1216,16 +1218,22 @@ async function fl_publishBannerScreen(flyerId){
     focus_y: fl_bannerY
   };
   try{
+    console.log("[companion-screen] POST", DRL_API+"/screen", "id=", payload.id, "img bytes~", (payload.image||"").length);
     const res = await fetch(DRL_API+"/screen",{
       method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
     });
     const out = await res.json();
+    console.log("[companion-screen] response:", out);
     if(fm){
       if(out.ok){ fm.textContent = `Flyer + companion screen “${out.saved}” published.`; fm.style.color="#17402F"; }
       else { fm.textContent = "Flyer published, but the screen write returned not-OK."; fm.style.color="#b3261e"; }
     }
+    if(out.ok){ setMsg(`Companion screen “${out.saved}” published.`,"ok"); }
+    else { setMsg("Companion screen write returned not-OK — check the workflow.","err"); }
   }catch(e){
+    console.error("[companion-screen] failed:", e);
     if(fm){ fm.textContent="Flyer published, but couldn't reach the screen write API."; fm.style.color="#b3261e"; }
+    setMsg("Companion screen failed: "+(e&&e.message?e.message:e),"err");
   }
 }
 
