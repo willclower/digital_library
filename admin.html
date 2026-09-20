@@ -204,7 +204,8 @@
 .flyer-scope .ts-circle{width:150px;height:150px;border-radius:50%;overflow:hidden;
     background:#e9edf0 center/cover no-repeat;box-shadow:0 6px 18px -6px rgba(0,0,0,.4);
     border:5px solid #fff;outline:1px solid #e2e6ea;}
-.flyer-scope .ts-intro__lead{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:2px 0 10px;}
+.flyer-scope .ts-lead{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:0 0 14px;text-align:center;
+    max-width:520px;margin-left:auto;margin-right:auto;}
 .flyer-scope .ts-intro__head{font-family:var(--font-voice);font-weight:700;font-size:15px;line-height:1.28;
     color:var(--brand-primary);margin:0 0 4px;}
 .flyer-scope .ts-intro__body{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:0;}
@@ -1195,6 +1196,15 @@ async function fl_publishBannerScreen(flyerId){
     const prior = await fl_existingCodeForId(screenId);
     bannerScreenCode = await fl_computeAssetCode("screen", (document.getElementById("issue_date").value||"").trim(), prior);
   }catch(e){ bannerScreenCode = null; /* screen still publishes uncoded if reserve fails */ }
+  // The screen background is a 16:9 wall image — it does NOT need the full-res banner.
+  // Downscale to a small JPEG so the POST stays well under any payload/proxy size limit
+  // (the full banner was ~2.4 MB and the write returned an empty body). 1600px is ample.
+  let screenImg = fl_bannerData;
+  let screenMime = (/^data:([^;]+);/.exec(fl_bannerData)||[])[1] || "image/png";
+  if(/^data:image\/(png|jpe?g|gif|webp);base64,/.test(fl_bannerData)){
+    const small = await fl_shrinkForDraft(fl_bannerData, 1600, 0.85);
+    if(small){ screenImg = "data:"+small.mime+";base64,"+small.base64; screenMime = small.mime; }
+  }
   const payload = {
     id: screenId,
     asset_type: "screen",
@@ -1209,9 +1219,9 @@ async function fl_publishBannerScreen(flyerId){
     // tags carried from the flyer so the screen is findable alongside it
     subject:[...sel.subject], month:[...sel.month], setting:[...sel.setting],
     tone:[...sel.tone], aspect:["16:9"],
-    // the banner photo becomes the screen background (16:9 center-crop via object-fit)
-    image: fl_bannerData,
-    mime: (/^data:([^;]+);/.exec(fl_bannerData)||[])[1] || "image/png",
+    // the banner photo (downscaled) becomes the screen background (16:9 center-crop via object-fit)
+    image: screenImg,
+    mime: screenMime,
     // vertical crop offset (0=top…100=bottom) so the screen frames the SAME region the flyer
     // banner shows. NOTE: requires overlay.js to apply object-position:50% <focus_y>% and a
     // screens.focus_y column — until then this is carried but not yet honored at render.
@@ -1222,7 +1232,13 @@ async function fl_publishBannerScreen(flyerId){
     const res = await fetch(DRL_API+"/screen",{
       method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
     });
-    const out = await res.json();
+    // Parse defensively: a blocked/oversized request can return an empty body,
+    // which res.json() throws on ("Unexpected end of JSON input"). Read text first.
+    const raw = await res.text();
+    let out = {};
+    try{ out = raw ? JSON.parse(raw) : {}; }
+    catch(pe){ throw new Error("HTTP "+res.status+", non-JSON response ("+(raw.length)+" bytes)"); }
+    if(!res.ok) throw new Error("HTTP "+res.status);
     console.log("[companion-screen] response:", out);
     if(fm){
       if(out.ok){ fm.textContent = `Flyer + companion screen “${out.saved}” published.`; fm.style.color="#17402F"; }
@@ -1232,7 +1248,7 @@ async function fl_publishBannerScreen(flyerId){
     else { setMsg("Companion screen write returned not-OK — check the workflow.","err"); }
   }catch(e){
     console.error("[companion-screen] failed:", e);
-    if(fm){ fm.textContent="Flyer published, but couldn't reach the screen write API."; fm.style.color="#b3261e"; }
+    if(fm){ fm.textContent="Flyer published, but the screen write failed: "+(e&&e.message?e.message:e); fm.style.color="#b3261e"; }
     setMsg("Companion screen failed: "+(e&&e.message?e.message:e),"err");
   }
 }
@@ -1592,8 +1608,9 @@ function fl_renderBody(){
       `<path d="M0,46 L0,4 Q306,52 612,4 L612,46 Z" fill="var(--page)"></path></svg></div>`;
     bodyHTML = sweep +
       `<h1 class="ts-title">${fl_esc(title)}</h1>`+
+      `<p class="ts-lead">${fl_esc(lead)}</p>`+
       `<div class="ts-intro"><div class="ts-circle fl-zone"${circleStyle}></div>`+
-      `<div><p class="ts-intro__lead">${fl_esc(lead)}</p>`+
+      `<div>`+
       (introHead ? `<h4 class="ts-intro__head">${fl_esc(introHead)}</h4>` : "")+
       `<p class="ts-intro__body">${fl_esc(introBody)}</p></div></div>`+
       (cards ? `<div class="ts-cards">${cards}</div>` : "");
