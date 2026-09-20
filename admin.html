@@ -204,8 +204,9 @@
 .flyer-scope .ts-circle{width:150px;height:150px;border-radius:50%;overflow:hidden;
     background:#e9edf0 center/cover no-repeat;box-shadow:0 6px 18px -6px rgba(0,0,0,.4);
     border:5px solid #fff;outline:1px solid #e2e6ea;}
-.flyer-scope .ts-intro__lead{font-family:var(--font-voice);font-weight:700;font-size:18px;line-height:1.28;
-    color:var(--brand-primary);margin:2px 0 12px;}
+.flyer-scope .ts-intro__lead{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:2px 0 10px;}
+.flyer-scope .ts-intro__head{font-family:var(--font-voice);font-weight:700;font-size:15px;line-height:1.28;
+    color:var(--brand-primary);margin:0 0 4px;}
 .flyer-scope .ts-intro__body{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:0;}
 .flyer-scope .ts-cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:18px;}
 .flyer-scope .ts-card{position:relative;background:#f4f2ea;border-radius:12px;padding:22px 20px 20px;overflow:visible;}
@@ -340,9 +341,20 @@
   .qc-editwrap button.apply{font:inherit;font-size:11.5px;font-weight:600;border:0;border-radius:6px;padding:6px 10px;cursor:pointer;background:#17402F;color:#fff;}
   .qc-disp{font-size:11px;font-weight:700;margin-left:2px;}
   .qc-disp.accepted{color:#1f6b3f;} .qc-disp.rejected{color:#a3312b;}
+/* Finalize working-overlay: shown while a build-mode flyer publishes */
+#fl_busy{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;
+    background:rgba(23,64,47,.32);backdrop-filter:blur(2px);}
+#fl_busy.on{display:flex;}
+#fl_busy .fl-busy-card{background:#fff;border-radius:14px;padding:26px 34px;display:flex;flex-direction:column;
+    align-items:center;gap:14px;box-shadow:0 18px 48px -12px rgba(0,0,0,.4);}
+#fl_busy .fl-spin{width:38px;height:38px;border-radius:50%;border:4px solid #e2e6ea;border-top-color:#17402F;
+    animation:fl_spin .8s linear infinite;}
+#fl_busy .fl-busy-txt{font-size:14px;color:#17402F;font-weight:600;}
+@keyframes fl_spin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
+<div id="fl_busy"><div class="fl-busy-card"><div class="fl-spin"></div><div class="fl-busy-txt" id="fl_busyTxt">Working…</div></div></div>
 <div class="topbar">
   <span class="brand">Digital Resource Library</span>
   <a class="back" href="index.html">&larr; Back to library</a>
@@ -1046,6 +1058,13 @@ function fl_captureManifest(){
   };
 }
 
+// Working-overlay for the Finalize flow (build mode). Gives the user feedback
+// during the several-second render+publish instead of an apparent freeze.
+function fl_busyOn(txt){ const b=document.getElementById("fl_busy"); const t=document.getElementById("fl_busyTxt");
+  if(t) t.textContent=txt||"Working…"; if(b) b.classList.add("on"); }
+function fl_busySet(txt){ const t=document.getElementById("fl_busyTxt"); if(t) t.textContent=txt; }
+function fl_busyOff(){ const b=document.getElementById("fl_busy"); if(b) b.classList.remove("on"); }
+
 async function save(){
   const isBuild = (assetType==="flyer" && flyerMode==="build");
   const id=document.getElementById("id").value.trim();
@@ -1056,6 +1075,8 @@ async function save(){
   if(!title){ setMsg("Need a title.","err"); return; }
 
   const btn=document.getElementById("save"); btn.disabled=true; setMsg("Publishing…","");
+  const finBtn=document.getElementById("fl_finalizeBtn"); if(finBtn) finBtn.disabled=true;
+  if(isBuild) fl_busyOn("Rendering flyer…");
 
   // Build mode: generate the PDF (and its thumbnail) in-browser now, then ride the
   // existing doc payload path exactly as an uploaded flyer would.
@@ -1068,7 +1089,7 @@ async function save(){
     try{
       flyerAssetCode = await fl_computeAssetCode("flyer", (document.getElementById("issue_date").value||"").trim(), existing);
     }catch(err){
-      setMsg("Couldn't reserve an asset code: "+err.message,"err"); btn.disabled=false; return;
+      setMsg("Couldn't reserve an asset code: "+err.message,"err"); btn.disabled=false; if(finBtn)finBtn.disabled=false; fl_busyOff(); return;
     }
     document.getElementById("fl_in_footCode").value = flyerAssetCode;
     fl_draw(); // repaint footer with the computed code baked in
@@ -1077,9 +1098,10 @@ async function save(){
       const r = await fl_buildFlyerPDF();
       buildFile = r.pdfB64; buildThumb = r.thumbB64; buildMime = "application/pdf";
     }catch(err){
-      setMsg("Couldn't render the flyer PDF: "+err.message,"err"); btn.disabled=false; return;
+      setMsg("Couldn't render the flyer PDF: "+err.message,"err"); btn.disabled=false; if(finBtn)finBtn.disabled=false; fl_busyOff(); return;
     }
     setMsg("Publishing…","");
+    fl_busySet("Publishing…");
   }
 
   // Plain screen publish (not a build-flyer): reserve an SCR code, reusing the
@@ -1133,17 +1155,18 @@ async function save(){
       setMsg(`Saved “${out.saved}”${out.width?` (${out.width}×${out.height})`:""}. It's in the library now.`,"ok");
       // Optional companion: publish a 16:9 wall screen built from the banner photo.
       if(isBuild && document.getElementById("fl_in_alsoScreen") && document.getElementById("fl_in_alsoScreen").checked){
+        fl_busySet("Publishing companion screen…");
         await fl_publishBannerScreen(out.saved || id);
       }
       // Build-mode finalize succeeded: fully reset the composer so the next flyer starts clean
       // (copy, brief, banner, logo, id, description, QC state) — keeps branding colors + issue lines.
-      if(isBuild){ fl_startNewFlyer(); }
+      if(isBuild){ fl_startNewFlyer(); window.scrollTo({ top: 0, behavior: "smooth" }); }
     }else{
       setMsg("Server responded but not OK — check the workflow.","err");
     }
   }catch(e){
     setMsg("Could not reach the write API. Check the endpoint/CORS.","err");
-  }finally{ btn.disabled=false; }
+  }finally{ btn.disabled=false; if(finBtn)finBtn.disabled=false; fl_busyOff(); }
 }
 
 // Publish a native 16:9 wall screen derived from the flyer's banner.
@@ -1547,8 +1570,10 @@ function fl_renderBody(){
     bodyHTML = hero + (cols ? `<div class="fl-cols">${cols}</div>` : "");
   } else if(fl_template==="twostep"){
     // Title in the body (navy serif, centered) — the banner carries no scrim text here.
-    // lead = bold intro line; item0.p = grey continuation; items 1-2 = the two badge cards.
+    // Intro area (beside the circle): lead paragraph (non-bold) under the title, then
+    // Tile 1 as heading (bold) + body. Items 1-2 are the two badge cards.
     const title = fl_$("fl_in_headline") ? fl_$("fl_in_headline").value : "";
+    const introHead = items[0] ? items[0].h : "";
     const introBody = items[0] ? items[0].p : "";
     const circleStyle = fl_subjectData ? ` style="background-image:url('${fl_subjectData}')"` : "";
     const cards = [items[1], items[2]].filter(t=>t && (t.h||t.p)).map((t,i)=>
@@ -1561,6 +1586,7 @@ function fl_renderBody(){
       `<h1 class="ts-title">${fl_esc(title)}</h1>`+
       `<div class="ts-intro"><div class="ts-circle fl-zone"${circleStyle}></div>`+
       `<div><p class="ts-intro__lead">${fl_esc(lead)}</p>`+
+      (introHead ? `<h4 class="ts-intro__head">${fl_esc(introHead)}</h4>` : "")+
       `<p class="ts-intro__body">${fl_esc(introBody)}</p></div></div>`+
       (cards ? `<div class="ts-cards">${cards}</div>` : "");
     // keep a zero-height .fl-lead so the flex spacing contract (#fl_bodyZone > :not(.fl-lead)) holds
