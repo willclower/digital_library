@@ -1010,6 +1010,42 @@ function applyDraft(d){
 
 function setMsg(text,cls){ const m=document.getElementById("msg"); m.textContent=text; m.className="msg "+(cls||""); }
 
+// Snapshot the flyer composer so a saved flyer can be re-rendered later in any
+// client's brand (white-label download flow). Captures everything fl_draw()/
+// fl_renderBody() consume EXCEPT the per-client brand seams (colors + logo +
+// footer), which the download flow overrides per client. We still store the
+// authoring-time colors/footer as a fallback for a plain "as-authored" download.
+function fl_captureManifest(){
+  const g = id => { const el=document.getElementById(id); return el ? el.value : ""; };
+  const tiles = [];
+  for(let i=0;i<6;i++){
+    const h=document.getElementById(`fl_in_t${i}_h`);
+    const p=document.getElementById(`fl_in_t${i}_p`);
+    if(h||p) tiles.push({ h: h?h.value:"", p: p?p.value:"" });
+  }
+  return {
+    v: 1,
+    template: fl_template,
+    headline: g("fl_in_headline"),
+    eyebrow:  g("fl_in_eyebrow"),
+    lead:     g("fl_in_lead"),
+    tiles,
+    banner:   fl_bannerData || null,     // data: URL of the banner image
+    focus_y:  fl_bannerY,
+    subject:  fl_subjectData || null,    // twostep circle image, else null
+    // authoring-time brand (fallback; download flow replaces these per client)
+    colors: { primary: g("fl_in_c_primary_hex"), secondary: g("fl_in_c_secondary_hex") },
+    footer: {
+      name:        g("fl_in_ftName"),
+      addr1:       g("fl_in_ftAddr1"),
+      addr2:       g("fl_in_ftAddr2"),
+      phone:       g("fl_in_ftPhone"),
+      hours_label: g("fl_in_ftHoursLabel"),
+      hours1:      g("fl_in_ftHours1")
+    }
+  };
+}
+
 async function save(){
   const isBuild = (assetType==="flyer" && flyerMode==="build");
   const id=document.getElementById("id").value.trim();
@@ -1076,7 +1112,9 @@ async function save(){
     image: imageDataUrl || null,
     file_base64: isBuild ? buildFile  : (assetB64 || null),
     thumb_base64: isBuild ? buildThumb : (docThumbB64 || null),
-    mime: isBuild ? buildMime : (assetMime || null)
+    mime: isBuild ? buildMime : (assetMime || null),
+    // Flyer re-render source (white-label download). Only for built flyers; null otherwise.
+    source_manifest: isBuild ? fl_captureManifest() : null
   };
 
   // If a doc was uploaded but its thumbnail is still rendering, wait briefly.
