@@ -858,7 +858,7 @@ function renderFlyerViaFrame(manifest, brand){
 async function buildBrand(client, mode){
   const key = client.id + "|" + mode;
   if(brandCache[key]) return brandCache[key];
-  let brand = { footCode: client.code || "" };
+  let brand = { mode: mode, footCode: client.code || "" };
 
   if(mode === "none"){
     brand.logo = null;                         // colors + footer fall back to manifest
@@ -976,7 +976,7 @@ function renderPickerList(){
     const startMode = (def==="white-label" && !c.has_brand) ? "none" : def;
     return `<li data-id="${c.id}">
       <input type="checkbox" class="dlpick" onchange="onPick(this)">
-      <span class="dlnm"><span class="n">${c.name}</span><span class="c">${c.code||""}</span></span>
+      <span class="dlnm"><span class="n">${c.name || c.code || "(unnamed client)"}</span><span class="c">${c.code||""}</span></span>
       ${warn}
       <select class="dlmode" data-mode>
         <option value="none"${startMode==="none"?" selected":""}>Unbranded</option>
@@ -1008,9 +1008,10 @@ function collectPicks(){
     const cb = li.querySelector(".dlpick"); if(!cb || !cb.checked) return;
     const id = li.getAttribute("data-id");
     const client = dlClients.find(c=>String(c.id)===String(id));
-    let mode = li.querySelector("[data-mode]").value;
-    if(mode==="white-label" && client && !client.has_brand) mode="none";  // safety net
-    picks.push({ client, mode });
+    const chosenMode = li.querySelector("[data-mode]").value;   // AM's actual selection (persisted)
+    let mode = chosenMode;
+    if(mode==="white-label" && client && !client.has_brand) mode="none";  // safety net for THIS render only
+    picks.push({ client, mode, chosenMode });
   });
   return picks;
 }
@@ -1070,7 +1071,10 @@ async function runDownload(){
 }
 
 // Fire-and-forget download log: one row per client per download batch.
+// Also persists each client's chosen brand mode as its new default.
 function logDownload(picks, files){
+  // reflect the new defaults locally so a re-opened picker shows them immediately
+  picks.forEach(p=>{ if(p.client) p.client.brand_default = p.chosenMode; });
   try{
     fetch(DRL_API + "/log-download", {
       method:"POST", headers:{"Content-Type":"application/json"},
@@ -1081,11 +1085,12 @@ function logDownload(picks, files){
         asset_code: dlScreen.asset_code || null,
         rows: picks.map((p,idx)=>({
           client_id: p.client.id,
-          brand_mode: p.mode,
+          brand_mode: p.mode,               // what was actually rendered (for the log)
+          set_default: p.chosenMode,        // AM's selection -> persist as client's default
           filename: files[idx].filename
         }))
       })
-    }).catch(()=>{});   // logging must never block or fail the download
+    }).catch(()=>{});   // logging/persist must never block or fail the download
   }catch(e){ /* non-blocking */ }
 }
 
