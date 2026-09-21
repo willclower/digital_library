@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DRL Flyer Renderer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  :root{
+    --ink:#0E2A44; --paper:#EFEBE2; --panel:#FFFDF9; --border:#E0D9CB; --border-st:#C9C2B3;
+    --muted:#5F6B77; --subtle:#8A9199; --library:#17402F; --library-hover:#1F5B41;
+    --chip-lib-bg:#E7EFEA; --cream:#F1EADC; --accent-text:#B5811F; --danger:#b23b3b;
+    --font-ui:"Instrument Sans",system-ui,sans-serif; --font-voice:"Newsreader",Georgia,serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{font-family:var(--font-ui);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;}
+  .topbar{display:flex;align-items:center;gap:12px;padding:16px 34px;background:#fbfaf7;border-bottom:1px solid var(--border);}
+  .topbar .brand{font-weight:600;color:var(--library);font-size:15px;}
+  .topbar .back{margin-left:auto;font-size:12.5px;color:var(--muted);text-decoration:none;}
+  .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px;padding:30px 34px 70px;align-items:start;max-width:1300px;}
+  /* Flyer BUILD mode: add a third column (the persistent template switcher rail). */
+  .wrap.build3{grid-template-columns:minmax(0,0.85fr) minmax(0,1.05fr) minmax(480px,0.85fr);max-width:1780px;}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-text);margin-bottom:10px;}
+  .eyebrow>span{width:22px;height:1px;background:var(--accent-text);}
+  h1{font-family:var(--font-voice);font-weight:300;font-size:32px;line-height:1.05;margin:0 0 6px;}
+  .sub{margin:0 0 22px;font-size:13px;color:var(--muted);}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12px;font-weight:600;margin-bottom:6px;}
+  .field .hint{font-weight:400;color:var(--subtle);font-size:11px;margin-left:6px;}
+  input[type=text],textarea,select{width:100%;font:inherit;font-size:13px;background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:9px 11px;color:var(--ink);}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--library);box-shadow:0 0 0 3px var(--chip-lib-bg);}
+  textarea{resize:vertical;min-height:52px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  .pills{display:flex;flex-wrap:wrap;gap:6px;}
+  .pill{font-size:11.5px;padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:var(--panel);color:var(--muted);cursor:pointer;user-select:none;}
+  .pill[data-on="1"]{border-color:var(--library);background:var(--library);color:var(--cream);}
+  .drop{border:1px dashed var(--border-st);border-radius:8px;background:var(--panel);padding:18px;text-align:center;font-size:12.5px;color:var(--muted);cursor:pointer;}
+  .drop.hasfile{border-style:solid;border-color:var(--library);color:var(--library);}
+  .swatch{display:inline-block;width:22px;height:22px;border-radius:5px;border:1px solid var(--border-st);vertical-align:middle;margin-left:8px;}
+  .actions{display:flex;gap:10px;align-items:center;margin-top:8px;}
+  .btn{font:inherit;font-size:13px;padding:10px 18px;border-radius:6px;border:1px solid var(--border-st);background:var(--panel);color:var(--ink);cursor:pointer;}
+  .btn-primary{background:var(--library);color:var(--cream);border-color:var(--library);font-weight:600;}
+  .btn-primary:hover{background:var(--library-hover);}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+  .msg{font-size:12.5px;margin-left:4px;}
+  .msg.ok{color:var(--library);}
+  .msg.err{color:var(--danger);}
+  .previewwrap{position:sticky;top:24px;}
+  .plabel{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);margin-bottom:10px;}
+  .frame{width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#111;box-shadow:0 18px 40px -26px rgba(14,42,68,.5);}
+  .frame .vwl-screen{border-radius:0;height:100%;}
+  .dims{font-size:11.5px;color:var(--muted);margin-top:10px;}
+  .dims .warn{color:var(--danger);}
+  @media(max-width:900px){ .wrap{grid-template-columns:1fr;} .wrap.build3{grid-template-columns:1fr;} .previewwrap{position:static;} }
+  /* ===== Persistent template switcher rail (flyer build, right column) ===== */
+  #fl_tplRail{position:sticky;top:24px;}
+  #fl_tplRail .rail-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);margin-bottom:10px;}
+  #fl_tplRail .rail-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+
+  /* ===== Flyer composer (scoped under #flyerBuild) ===== */
+.flyer-scope .flyer{ /* white-label brand tokens — overridden per client via the form */ --brand-primary:#123a52;    /* header band / headings / checkbox */ --brand-secondary:#e08a00;  /* eyebrow pill / accents */ --cta-bg:#3f7d55;           /* CTA footer band */ --ink:#1e2d35; --ink-soft:#4a5e66; --tile:#f4f6f7; --tile-border:#e3e8ea; --page:#ffffff; }
+/* ---------- editor ---------- */
+  .flyer-scope .editor{width:360px;flex:0 0 360px;background:#fff;border:1px solid #d9d5cc;border-radius:10px;
+          padding:22px;position:sticky;top:28px;max-height:calc(100vh - 56px);overflow:auto;}
+.flyer-scope .editor h2{font-family:var(--font-voice);font-size:20px;margin:0 0 4px;}
+.flyer-scope .editor .hint{color:#8a8478;font-size:12px;margin:0 0 16px;}
+.flyer-scope .fld{margin-bottom:13px;}
+.flyer-scope .fld label{display:block;font-size:11.5px;font-weight:600;letter-spacing:.04em;
+             text-transform:uppercase;color:#6b6459;margin-bottom:4px;}
+.flyer-scope .fld label .sub{font-weight:400;text-transform:none;letter-spacing:0;color:#a39a8b;}
+.flyer-scope .fld input[type=text], .flyer-scope .fld textarea{width:100%;border:1.5px solid #d5d0c6;border-radius:6px;
+        padding:7px 9px;font:inherit;font-size:13px;color:var(--ink);background:#fff;}
+.flyer-scope .fld textarea{resize:vertical;min-height:44px;line-height:1.4;}
+.flyer-scope .fld input:focus, .flyer-scope .fld textarea:focus{outline:none;border-color:var(--brand-primary);
+        box-shadow:0 0 0 3px rgba(18,58,82,.14);}
+.flyer-scope .row2{display:flex;gap:9px;}
+.flyer-scope .row2 .fld{flex:1;}
+.flyer-scope .colorwrap{display:flex;align-items:center;gap:7px;}
+.flyer-scope .colorwrap input[type=color]{width:34px;height:34px;padding:0;border:1px solid #d5d0c6;border-radius:6px;background:#fff;cursor:pointer;}
+.flyer-scope .colorwrap input[type=text]{flex:1;}
+.flyer-scope .tile-block{border:1px solid #ece8df;border-radius:7px;padding:10px;margin-bottom:9px;background:#faf8f3;}
+.flyer-scope .tile-block .tnum{font-size:10.5px;font-weight:700;color:#a39a8b;letter-spacing:.06em;margin-bottom:6px;}
+.flyer-scope .drop{border:1.5px dashed #cfc9bd;border-radius:7px;padding:14px;text-align:center;font-size:12.5px;
+        color:#8a8478;cursor:pointer;background:#faf8f3;}
+.flyer-scope .drop.have{color:var(--ink);border-style:solid;border-color:#b9d3c4;background:#f1f7f3;}
+.flyer-scope .seg-label{font-family:var(--font-voice);font-size:15px;margin:20px 0 8px;color:#3a352c;
+             border-top:1px solid #ece8df;padding-top:14px;}
+/* ---------- Draft Copy panel ---------- */
+  .flyer-scope .draftbox{border:1.5px solid #cdd7d0;background:#f2f7f3;border-radius:9px;padding:14px;margin:0 0 18px;}
+.flyer-scope .draftbox h3{font-family:var(--font-voice);font-size:16px;margin:0 0 3px;color:#2c4433;}
+.flyer-scope .draftbox .dhint{font-size:11.5px;color:#6f7f74;margin:0 0 10px;line-height:1.35;}
+.flyer-scope .draftbox textarea{width:100%;border:1.5px solid #bcd0c2;border-radius:6px;padding:8px 9px;
+        font:inherit;font-size:13px;line-height:1.4;resize:vertical;min-height:60px;background:#fff;color:var(--ink);}
+.flyer-scope .draftbox textarea:focus{outline:none;border-color:var(--cta-bg);box-shadow:0 0 0 3px rgba(63,125,85,.15);}
+.flyer-scope .draftbox .dbanner{font-size:11.5px;color:#6f7f74;margin:8px 0 0;}
+.flyer-scope .draftbox .dbanner b{color:#3a352c;font-weight:600;}
+.flyer-scope .draftbtn{margin-top:11px;width:100%;border:0;border-radius:7px;padding:10px;cursor:pointer;
+        background:var(--library,#17402F);color:#fff;font:inherit;font-size:13.5px;font-weight:600;letter-spacing:.01em;}
+.flyer-scope .draftbtn:hover{filter:brightness(1.08);}
+.flyer-scope .draftbtn:disabled{opacity:.5;cursor:default;}
+.flyer-scope .draftmsg{font-size:11.5px;margin-top:8px;min-height:14px;}
+.flyer-scope .draftmsg.err{color:#b23b2e;}
+.flyer-scope .draftmsg.ok{color:#2c7a4b;}
+/* ---------- flyer (US Letter 8.5x11 @ ~72dpi preview) ---------- */
+  .flyer-scope .flyer-wrap{flex:1;min-width:0;display:flex;justify-content:center;}
+.flyer-scope .flyer{width:612px;min-height:792px;background:var(--page);
+         box-shadow:0 10px 40px rgba(0,0,0,.18);position:relative;overflow:hidden;
+         display:flex;flex-direction:column;}
+/* header banner: photo fills it; left-scrim keeps white text readable (Option 2: shorter strip) */
+  .flyer-scope .fl-header{position:relative;min-height:150px;background:var(--brand-primary);overflow:hidden;flex:0 0 auto;}
+.flyer-scope .fl-header .bg{position:absolute;inset:0;background-size:cover;background-position:center;}
+.flyer-scope .fl-header .scrim{position:absolute;inset:0;
+    background:linear-gradient(90deg, rgba(6,20,30,.92) 0%, rgba(6,20,30,.75) 42%, rgba(6,20,30,.35) 70%, rgba(6,20,30,.1) 100%);}
+.flyer-scope .fl-header .htexture{position:absolute;inset:0;opacity:.16;
+    background:repeating-linear-gradient(135deg, #fff 0 2px, transparent 2px 22px);}
+.flyer-scope .fl-header .hcontent{position:relative;min-height:150px;padding:18px 40px;color:#fff;
+    display:flex;flex-direction:column;justify-content:center;}
+.flyer-scope .h-toprow{position:absolute;top:16px;right:40px;display:flex;justify-content:flex-end;align-items:flex-start;}
+.flyer-scope .issue-chip{text-align:right;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);
+    border-radius:6px;padding:7px 12px;line-height:1.35;}
+.flyer-scope .issue-chip .m{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#cfe0e8;}
+.flyer-scope .issue-chip .s{font-size:13px;font-weight:700;}
+.flyer-scope .h-logo{max-height:34px;max-width:150px;object-fit:contain;}
+.flyer-scope .eyebrow-pill{align-self:flex-start;background:var(--brand-secondary);
+    color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    padding:5px 14px;border-radius:100px;}
+.flyer-scope .fl-head{font-family:var(--font-voice);font-weight:700;font-size:30px;line-height:1.06;
+    margin:9px 0 0;text-shadow:0 2px 18px rgba(0,0,0,.45);max-width:72%;}
+/* body */
+  .flyer-scope .fl-body{padding:30px 40px 22px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:flex-start;}
+.flyer-scope .fl-lead{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:0 0 4px;max-width:92%;flex:0 0 auto;}
+/* Vertical layout: body content sits at the top; the shared address footer + fine-print line
+   are siblings AFTER .fl-body, and because .fl-body flex-grows, they pin to the page bottom.
+   #fl_bodyZone is display:contents so its children are direct flex siblings within .fl-body. */
+.flyer-scope #fl_bodyZone{display:contents;}
+.flyer-scope #fl_bodyZone > *{flex:0 0 auto;}
+/* ===== Shared address footer (all templates) — mauve band, 3 columns, subtle top arch ===== */
+.flyer-scope .fl-addr{flex:0 0 auto;position:relative;background:#e7e6f0;
+    padding:20px 40px 18px;display:grid;grid-template-columns:1fr 1fr auto;gap:24px;align-items:center;}
+.flyer-scope .fl-addr::before{content:"";position:absolute;left:0;right:0;top:-14px;height:16px;
+    background:#e7e6f0;border-radius:100% 100% 0 0/100% 100% 0 0;}
+.flyer-scope .fl-addr__name{font-weight:700;font-size:12px;color:var(--brand-primary);margin:0 0 4px;}
+.flyer-scope .fl-addr__line{font-size:10px;line-height:1.5;color:var(--ink-soft);}
+.flyer-scope .fl-addr__logo{justify-self:end;}
+.flyer-scope .fl-addr__logo img{max-height:40px;max-width:170px;object-fit:contain;}
+.flyer-scope .tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+.flyer-scope .tile{display:flex;gap:11px;background:var(--tile);border:1px solid var(--tile-border);
+    border-radius:9px;padding:14px 15px;}
+.flyer-scope .tile .box{flex:0 0 auto;width:26px;height:26px;border-radius:6px;border:2.5px solid var(--brand-primary);}
+.flyer-scope .tile .tbody h4{margin:0 0 3px;font-size:14.5px;font-weight:700;color:var(--brand-primary);}
+.flyer-scope .tile .tbody p{margin:0;font-size:12px;line-height:1.42;color:var(--ink-soft);}
+/* ===== Layout: Explainer (numbered timeline rail) ===== */
+.flyer-scope .fl-flow{position:relative;padding-left:6px;list-style:none;margin:0;}
+.flyer-scope .fl-flow::before{content:"";position:absolute;left:22px;top:14px;bottom:20px;width:1px;background:#e4e0d8;}
+.flyer-scope .fl-flow__item{position:relative;display:grid;grid-template-columns:34px 1fr;gap:18px;padding:0 0 22px 0;}
+.flyer-scope .fl-flow__item:last-child{padding-bottom:0;}
+.flyer-scope .fl-flow__num{position:relative;z-index:1;width:34px;height:34px;border-radius:999px;
+    background:var(--brand-primary);color:#fff;font-family:var(--font-voice);font-size:17px;font-weight:700;
+    line-height:1;display:flex;align-items:center;justify-content:center;}
+.flyer-scope .fl-flow__head{margin:0 0 4px;padding-top:7px;font-family:var(--font-voice);font-weight:700;
+    font-size:15px;line-height:1.2;color:var(--ink);}
+.flyer-scope .fl-flow__body{margin:0;font-size:11px;line-height:1.5;color:var(--ink-soft);}
+/* ===== Layout: Segments (hero + three-column band) ===== */
+.flyer-scope .fl-hero{border:1px solid #e4e0d8;border-left:4px solid var(--brand-primary);
+    border-radius:12px;padding:16px 20px;margin-bottom:14px;background:#fbfaf8;display:grid;grid-template-columns:1fr;gap:6px;}
+.flyer-scope .fl-hero__label{font-family:var(--font-voice);font-weight:700;font-size:19px;line-height:1.15;
+    color:var(--brand-primary);margin:0;}
+.flyer-scope .fl-hero__body{margin:0;font-size:12px;line-height:1.55;color:var(--ink-soft);}
+.flyer-scope .fl-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.flyer-scope .fl-col{border-top:2px solid var(--brand-secondary);padding-top:10px;}
+.flyer-scope .fl-col__label{margin:0 0 6px;font-size:10.5px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--brand-primary);line-height:1.3;}
+.flyer-scope .fl-col__body{margin:0;font-size:10.5px;line-height:1.5;color:var(--ink-soft);}
+/* ===== Layout: Concentra (banner + curved sweep + circle intro + badge cards) =====
+   Structurally different from the other three: the TITLE renders in the body (navy serif,
+   centered), not in the banner scrim. A curved white sweep overlaps the bottom of the banner.
+   Intro row = circular subject image (left) + bold lead + body (right). Two tinted rounded
+   cards below, each with a round orange badge. Concentra uses lead + items 0-2 of the shared
+   1-lead+4-item contract: lead = bold intro line, item0 = grey continuation paragraph,
+   items 1-2 = the two badge cards (head + body). Item 3 is unused by this layout. */
+/* twostep banner: full-bleed photo, no scrim text, taller strip; body pulls up so the
+   curved white sweep overlaps the banner bottom edge. */
+/* 2-step banner: full-bleed photo, no scrim text. Display strip is shorter than the 5:3
+   source (source stays 5:3 for the screen companion); the photo cover-fills and the crop
+   slider repositions it vertically. Height tuned to the target proportion (~32% of page). */
+.flyer-scope .ts-mode .fl-header{min-height:255px;}
+.flyer-scope .ts-mode .fl-header .scrim,
+.flyer-scope .ts-mode .fl-header .htexture,
+.flyer-scope .ts-mode .fl-header .hcontent{display:none;}
+.flyer-scope .ts-mode .fl-body{padding-top:0;}
+.flyer-scope .ts-sweep{position:relative;height:0;z-index:2;margin:0 -40px;}
+.flyer-scope .ts-sweep svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:46px;display:block;}
+.flyer-scope .ts-title{font-family:var(--font-voice);font-weight:800;font-size:34px;line-height:1.05;
+    color:var(--brand-primary);text-align:center;margin:2px 0 22px;}
+.flyer-scope .ts-intro{display:grid;grid-template-columns:150px 1fr;gap:26px;align-items:center;margin:0 0 6px;}
+.flyer-scope .ts-circle{width:150px;height:150px;border-radius:50%;overflow:hidden;
+    background:#e9edf0 center/cover no-repeat;box-shadow:0 6px 18px -6px rgba(0,0,0,.4);
+    border:5px solid #fff;outline:1px solid #e2e6ea;}
+.flyer-scope .ts-intro__head{font-family:var(--font-voice);font-weight:700;font-size:15px;line-height:1.28;
+    color:var(--brand-primary);margin:0 0 4px;}
+.flyer-scope .ts-intro__body{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:0;}
+.flyer-scope .ts-cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:18px;}
+.flyer-scope .ts-card{position:relative;background:#f4f2ea;border-radius:12px;padding:22px 20px 20px;overflow:visible;}
+/* numbered badge straddles the top-left corner, half outside the box (see model) */
+.flyer-scope .ts-badge{position:absolute;top:-16px;left:-16px;width:44px;height:44px;border-radius:50%;
+    background:var(--brand-secondary);color:#fff;border:3px solid #fff;
+    font-family:var(--font-ui,'Segoe UI',Arial,sans-serif);font-weight:800;font-size:21px;
+    display:flex;align-items:center;justify-content:center;line-height:1;
+    box-shadow:0 3px 8px -2px rgba(0,0,0,.3);}
+.flyer-scope .ts-card__head{font-family:var(--font-voice);font-weight:700;font-size:17px;line-height:1.15;
+    color:var(--brand-primary);margin:0 0 9px;padding-left:20px;}
+.flyer-scope .ts-card__body{font-size:12px;line-height:1.5;color:var(--ink-soft);margin:0;}
+/* ===== Image library picker modal (zone-click) ===== */
+#fl_pick{position:fixed;inset:0;z-index:1000;}
+#fl_pick .fl-pick__backdrop{position:absolute;inset:0;background:rgba(10,20,28,.55);}
+#fl_pick .fl-pick__panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(760px,92vw);max-height:86vh;background:#fff;border-radius:14px;overflow:hidden;
+    display:flex;flex-direction:column;box-shadow:0 24px 70px -20px rgba(0,0,0,.6);}
+#fl_pick .fl-pick__head{display:flex;justify-content:space-between;align-items:center;
+    padding:16px 20px;border-bottom:1px solid #ece8df;font-weight:700;color:#1e2d35;font-size:15px;}
+#fl_pick .fl-pick__close{border:none;background:none;font-size:26px;line-height:1;cursor:pointer;color:#8a8478;}
+#fl_pick .fl-pick__facets{display:flex;flex-wrap:wrap;gap:7px;padding:12px 20px 4px;}
+#fl_pick .fl-pick__facet{font:inherit;font-size:11.5px;border:1px solid #d5d0c6;background:#fff;
+    color:#4a5e66;border-radius:100px;padding:5px 12px;cursor:pointer;}
+#fl_pick .fl-pick__facet.on{background:#17402F;border-color:#17402F;color:#fff;}
+#fl_pick .fl-pick__grid{flex:1;overflow-y:auto;padding:16px 20px 20px;display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+#fl_pick .fl-pick__thumb{cursor:pointer;border:2px solid transparent;border-radius:9px;overflow:hidden;
+    background:#f2f0ea;aspect-ratio:16/9;position:relative;}
+#fl_pick .fl-pick__thumb.sq{aspect-ratio:1/1;}
+#fl_pick .fl-pick__thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+#fl_pick .fl-pick__thumb:hover{border-color:#17402F;}
+#fl_pick .fl-pick__thumb .cap{position:absolute;left:0;right:0;bottom:0;background:rgba(6,20,30,.62);
+    color:#fff;font-size:10px;padding:4px 7px;line-height:1.2;}
+#fl_pick .fl-pick__msg{padding:0 20px 16px;font-size:12.5px;color:#8a8478;}
+/* clickable image zones on the live preview */
+.flyer-scope .fl-zone{cursor:pointer;position:relative;}
+.flyer-scope .fl-zone::after{content:"⤢ pick image";position:absolute;inset:0;display:flex;
+    align-items:center;justify-content:center;background:rgba(23,64,47,0);color:transparent;
+    font-size:12px;font-weight:700;transition:background .12s,color .12s;pointer-events:none;z-index:3;}
+.flyer-scope .fl-zone:hover::after{background:rgba(23,64,47,.5);color:#fff;}
+/* ===== Template picker + wireframe thumbnails ===== */
+.flyer-scope #fl_picker .fl-picker-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.flyer-scope .fl-tpl-card{cursor:pointer;text-align:left;background:#fff;border:1.5px solid #d5d0c6;
+    border-radius:10px;padding:10px;font:inherit;transition:border-color .12s,box-shadow .12s;}
+.flyer-scope .fl-tpl-card:hover{border-color:#17402F;box-shadow:0 4px 14px -8px rgba(23,64,47,.5);}
+.flyer-scope .fl-tpl-card.sel{border-color:#17402F;box-shadow:0 0 0 2px rgba(23,64,47,.25);}
+.flyer-scope .fl-tpl-name{font-weight:700;font-size:13px;color:#1e2d35;margin-top:8px;}
+.flyer-scope .fl-tpl-desc{font-size:11px;color:#6f7f74;margin-top:1px;}
+/* wireframe skeleton: grey blocks that mimic each layout's shape */
+.flyer-scope .fl-wire{background:#faf8f3;border:1px solid #ece8df;border-radius:6px;padding:7px;
+    aspect-ratio:8.5/11;display:flex;flex-direction:column;gap:5px;}
+.flyer-scope .fl-wire .fw-banner{background:#c9ccc4;border-radius:3px;height:22%;position:relative;
+    display:flex;flex-direction:column;justify-content:flex-end;gap:3px;padding:5px;}
+.flyer-scope .fl-wire .fw-pill{width:34%;height:5px;background:#e08a00;border-radius:100px;}
+.flyer-scope .fl-wire .fw-title{width:70%;height:7px;background:#e9ede8;border-radius:2px;}
+.flyer-scope .fl-wire .fw-lead{height:8px;background:#e4e0d8;border-radius:2px;}
+.flyer-scope .fl-wire .fw-cta{margin-top:auto;height:16%;background:#cdd2cb;border-radius:3px;}
+/* checklist: 2x2 */
+.flyer-scope .fl-wire .fw-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:4px;}
+.flyer-scope .fl-wire .fw-grid span{background:#eef0ec;border:1px solid #e0e3dd;border-radius:3px;}
+/* explainer: vertical numbered rows */
+.flyer-scope .fl-wire .fw-flow{flex:1;display:flex;flex-direction:column;gap:4px;}
+.flyer-scope .fl-wire .fw-flow span{flex:1;background:#eef0ec;border-left:4px solid #17384d;border-radius:3px;}
+/* segments: hero + 3 cols */
+.flyer-scope .fl-wire .fw-hero{height:26%;background:#eef0ec;border-left:4px solid #17384d;border-radius:3px;}
+.flyer-scope .fl-wire .fw-cols{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
+.flyer-scope .fl-wire .fw-cols span{background:#eef0ec;border-top:3px solid #e08a00;border-radius:2px;}
+/* twostep: full-bleed banner (no scrim text) + centered title + circle intro + 2 badge cards */
+.flyer-scope .fl-wire .fw-ts-banner{background:#c9ccc4;border-radius:3px;height:26%;}
+.flyer-scope .fl-wire .fw-ts-title{width:60%;height:8px;background:#17384d;border-radius:2px;margin:5px auto 0;}
+.flyer-scope .fl-wire .fw-ts-intro{display:grid;grid-template-columns:20px 1fr;gap:5px;align-items:start;}
+.flyer-scope .fl-wire .fw-ts-circle{width:20px;height:20px;border-radius:50%;background:#dfe3e6;border:1px solid #cdd3d7;}
+.flyer-scope .fl-wire .fw-ts-lines{display:flex;flex-direction:column;gap:3px;}
+.flyer-scope .fl-wire .fw-ts-lines span{height:4px;background:#e4e0d8;border-radius:2px;}
+.flyer-scope .fl-wire .fw-ts-cards{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:auto;}
+.flyer-scope .fl-wire .fw-ts-cards span{background:#eef0ec;border-radius:3px;position:relative;}
+.flyer-scope .fl-wire .fw-ts-cards span::before{content:"";position:absolute;top:4px;left:4px;width:6px;height:6px;border-radius:50%;background:#e08a00;}
+/* CTA footer */
+  .flyer-scope .fl-cta{margin:0;flex:0 0 auto;}
+.flyer-scope .cta-head{background:var(--cta-bg);color:#fff;padding:11px 26px;display:flex;
+    justify-content:space-between;align-items:center;}
+.flyer-scope .cta-head .l{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;}
+.flyer-scope .cta-head .edition{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    background:rgba(255,255,255,.18);padding:4px 11px;border-radius:100px;}
+.flyer-scope .cta-body{background:var(--cta-tint,#eef4f0);padding:20px 26px;
+    display:flex;justify-content:space-between;align-items:center;gap:20px;}
+.flyer-scope .cta-body .txt{flex:1;}
+.flyer-scope .cta-body h3{font-family:var(--font-voice);font-size:19px;margin:0 0 5px;color:var(--brand-primary);}
+.flyer-scope .cta-body .meta{font-size:11.5px;color:var(--ink-soft);margin:0 0 6px;}
+.flyer-scope .cta-body p{font-size:12.5px;line-height:1.45;color:var(--ink-soft);margin:0;max-width:88%;}
+.flyer-scope .cta-btn{flex:0 0 auto;background:var(--brand-secondary);color:#fff;text-align:center;
+    border-radius:9px;padding:14px 20px;min-width:118px;}
+.flyer-scope .cta-btn .big{font-weight:700;font-size:14px;line-height:1.2;}
+.flyer-scope .cta-btn .sm{font-size:10px;opacity:.9;margin-top:3px;}
+/* footer strip */
+  .flyer-scope .fl-foot{border-top:none;background:#dedcec;padding:7px 40px;flex:0 0 auto;
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:9px;color:#7c7891;}
+.flyer-scope .fl-foot .powered b{color:var(--ink);}
+.flyer-scope .fl-foot .code{color:#b3ab9c;font-size:9.5px;}
+  /* ===== QC findings panel ===== */
+  .qc-summary{font-size:12.5px;padding:9px 11px;border-radius:7px;margin-bottom:9px;line-height:1.4;}
+  .qc-summary .score{font-weight:700;}
+  .qc-summary.s1,.qc-summary.s2{background:#eaf5ee;color:#1f6b3f;border:1px solid #bfe0cc;}
+  .qc-summary.s3{background:#fdf4e3;color:#8a5a10;border:1px solid #ecd6a6;}
+  .qc-summary.s4,.qc-summary.s5{background:#fbecec;color:#a3312b;border:1px solid #edc3c0;}
+  .qc-elevated{font-size:11.5px;background:#fbecec;color:#a3312b;border:1px solid #edc3c0;border-radius:7px;padding:8px 10px;margin-bottom:9px;line-height:1.4;}
+  .qc-elevated b{font-weight:700;}
+  .qc-find{border:1px solid #e3e8ea;border-radius:8px;padding:11px 12px;margin-bottom:9px;background:#fff;}
+  .qc-find.done{opacity:.62;}
+  .qc-find .qc-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .qc-tier{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:100px;}
+  .qc-tier.error{background:#a3312b;color:#fff;}
+  .qc-tier.warning{background:#c98a1a;color:#fff;}
+  .qc-tier.flag{background:#5f6b77;color:#fff;}
+  .qc-find .qc-field{font-size:10.5px;color:#8a8478;margin-left:auto;}
+  .qc-find .qc-field.unmapped{color:#a3312b;}
+  .qc-find .qc-claim{font-size:12.5px;color:#1e2d35;margin:0 0 5px;line-height:1.4;}
+  .qc-find .qc-ref{font-size:11.5px;color:#5f6b77;margin:0 0 8px;padding-top:7px;border-top:1px dashed #e3e8ea;line-height:1.4;}
+  .qc-find .qc-ref b{color:#1e2d35;font-weight:600;}
+  .qc-find .qc-edit{font-size:12px;color:#4a5e66;background:#f4f6f7;border-radius:6px;padding:7px 9px;margin:0 0 8px;line-height:1.4;}
+  .qc-find .qc-edit b{color:#2c4433;}
+  .qc-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .qc-actions button{font:inherit;font-size:11.5px;font-weight:600;border:1px solid #d5d0c6;border-radius:6px;padding:6px 10px;cursor:pointer;background:#fff;color:#1e2d35;}
+  .qc-actions button.apply{background:#17402F;color:#fff;border-color:transparent;}
+  .qc-actions button.edit{background:#fff;color:#b5811f;border-color:#e3cd9c;}
+  .qc-actions button.reject{background:#fff;color:#a3312b;border-color:#edc3c0;}
+  .qc-actions button:disabled{opacity:.45;cursor:default;}
+  .qc-editwrap{margin-top:8px;}
+  .qc-editta{width:100%;font:inherit;font-size:12px;line-height:1.4;color:#1e2d35;background:#fff;border:1.5px solid #b5811f;border-radius:6px;padding:8px 9px;min-height:60px;resize:vertical;margin-bottom:6px;}
+  .qc-editwrap button.apply{font:inherit;font-size:11.5px;font-weight:600;border:0;border-radius:6px;padding:6px 10px;cursor:pointer;background:#17402F;color:#fff;}
+  .qc-disp{font-size:11px;font-weight:700;margin-left:2px;}
+  .qc-disp.accepted{color:#1f6b3f;} .qc-disp.rejected{color:#a3312b;}
+/* Finalize working-overlay: shown while a build-mode flyer publishes */
+#fl_busy{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;
+    background:rgba(23,64,47,.32);backdrop-filter:blur(2px);}
+#fl_busy.on{display:flex;}
+#fl_busy .fl-busy-card{background:#fff;border-radius:14px;padding:26px 34px;display:flex;flex-direction:column;
+    align-items:center;gap:14px;box-shadow:0 18px 48px -12px rgba(0,0,0,.4);}
+#fl_busy .fl-spin{width:38px;height:38px;border-radius:50%;border:4px solid #e2e6ea;border-top-color:#17402F;
+    animation:fl_spin .8s linear infinite;}
+#fl_busy .fl-busy-txt{font-size:14px;color:#17402F;font-weight:600;}
+@keyframes fl_spin{to{transform:rotate(360deg);}}
+</style>
+<style>
+  /* Renderer is headless: show only the flyer itself, off-flow so layout matches authoring. */
+  body{margin:0;background:#fff;}
+  #fl_stage{position:absolute;left:0;top:0;}
+  /* Hidden inputs the verbatim render functions read from. */
+  .fl-hidden-inputs{position:absolute;left:-99999px;top:-99999px;visibility:hidden;}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<!-- Hidden input mirror: the render functions read copy from these ids. -->
+<div class="fl-hidden-inputs flyer-scope">
+  <input type="text" id="fl_in_eyebrow"><input type="text" id="fl_in_headline">
+  <textarea id="fl_in_lead"></textarea>
+  <input type="text" id="fl_in_t0_h"><textarea id="fl_in_t0_p"></textarea>
+  <input type="text" id="fl_in_t1_h"><textarea id="fl_in_t1_p"></textarea>
+  <input type="text" id="fl_in_t2_h"><textarea id="fl_in_t2_p"></textarea>
+  <input type="text" id="fl_in_t3_h"><textarea id="fl_in_t3_p"></textarea>
+  <input type="text" id="fl_in_t4_h"><textarea id="fl_in_t4_p"></textarea>
+  <input type="text" id="fl_in_t5_h"><textarea id="fl_in_t5_p"></textarea>
+  <input type="text" id="fl_in_ftName"><input type="text" id="fl_in_ftAddr1">
+  <input type="text" id="fl_in_ftAddr2"><input type="text" id="fl_in_ftPhone">
+  <input type="text" id="fl_in_ftHoursLabel"><input type="text" id="fl_in_ftHours1">
+  <input type="text" id="fl_in_ftHours2"><input type="text" id="fl_in_footPowered">
+  <input type="text" id="fl_in_footCode">
+</div>
+
+<!-- The flyer output DOM (verbatim from admin.html), wrapped in flyer-scope. -->
+<div id="fl_stage" class="flyer-scope">
+  <div class="flyer" id="fl_in_flyer">
+    <div class="fl-header">
+      <div class="bg" id="fl_bg"></div>
+      <div class="htexture"></div>
+      <div class="scrim"></div>
+      <div class="hcontent">
+        <span class="eyebrow-pill" id="fl_eyebrow"></span>
+        <div class="fl-head" id="fl_head"></div>
+      </div>
+    </div>
+    <div class="fl-body">
+      <div id="fl_bodyZone"></div>
+    </div>
+    <div class="fl-addr" id="fl_addr">
+      <div class="fl-addr__col">
+        <div class="fl-addr__name" id="fl_ftName"></div>
+        <div class="fl-addr__line" id="fl_ftAddr1"></div>
+        <div class="fl-addr__line" id="fl_ftAddr2"></div>
+        <div class="fl-addr__line" id="fl_ftPhone"></div>
+      </div>
+      <div class="fl-addr__col">
+        <div class="fl-addr__name" id="fl_ftHoursLabel"></div>
+        <div class="fl-addr__line" id="fl_ftHours1"></div>
+        <div class="fl-addr__line" id="fl_ftHours2"></div>
+      </div>
+      <div class="fl-addr__logo" id="fl_ftLogo"></div>
+    </div>
+    <div class="fl-foot">
+      <span class="powered" id="fl_footPowered"></span>
+      <span class="code" id="fl_footCode"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// DRL Flyer Renderer — canonical re-render of a flyer from its source_manifest.
+// Verbatim render functions copied from admin.html so output is pixel-identical.
+// Driven by index.html (download flow) via postMessage, or callable directly.
+// ============================================================================
+const DRL_API = "https://n8n-admin.willclower.com/webhook/drl";
+const FL_IMG_BYTES = DRL_API + "/image?id=";
+
+// ---- verbatim helpers ----
+const fl_$=id=>document.getElementById(id);
+const fl_set=(id,v)=>{ fl_$(id).textContent=v; };
+function fl_esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+const FL_ITEMS_TPL = { checklist:4, explainer:4, segments:4, twostep:3 };
+function fl_itemCount(){ return FL_ITEMS_TPL[fl_template] ?? 4; }
+// fl_TILES: render funcs iterate this to read fl_in_t{i}_h/_p (6 slots is the max).
+const fl_TILES = [0,1,2,3,4,5];
+// render-time globals the verbatim functions reference
+let fl_template = "checklist";
+let fl_logoData = null, fl_subjectData = null;
+let fl_bannerY = 50;
+
+function fl_bodyData(){
+  const lead = fl_$("fl_in_lead") ? fl_$("fl_in_lead").value : "";
+  const items = fl_TILES.map((_,i)=>({
+    h: fl_$(`fl_in_t${i}_h`) ? fl_$(`fl_in_t${i}_h`).value : "",
+    p: fl_$(`fl_in_t${i}_p`) ? fl_$(`fl_in_t${i}_p`).value : ""
+  }));
+  return { lead, items };
+}
+
+function fl_renderBody(){
+  const zone = fl_$("fl_bodyZone"); if(!zone) return;
+  const { lead, items } = fl_bodyData();
+  const shown = items.filter(t=>t.h||t.p);
+  const leadHTML = `<p class="fl-lead" id="fl_lead">${fl_esc(lead)}</p>`;
+  let bodyHTML = "";
+  if(fl_template==="explainer"){
+    const li = shown.map((t,i)=>
+      `<li class="fl-flow__item"><div class="fl-flow__num">${i+1}</div>`+
+      `<div><h4 class="fl-flow__head">${fl_esc(t.h)}</h4>`+
+      `<p class="fl-flow__body">${fl_esc(t.p)}</p></div></li>`).join("");
+    bodyHTML = `<ol class="fl-flow">${li}</ol>`;
+  } else if(fl_template==="segments"){
+    const hero = shown[0]
+      ? `<div class="fl-hero"><h4 class="fl-hero__label">${fl_esc(shown[0].h)}</h4>`+
+        `<p class="fl-hero__body">${fl_esc(shown[0].p)}</p></div>` : "";
+    const cols = shown.slice(1).map(t=>
+      `<div class="fl-col"><h4 class="fl-col__label">${fl_esc(t.h)}</h4>`+
+      `<p class="fl-col__body">${fl_esc(t.p)}</p></div>`).join("");
+    bodyHTML = hero + (cols ? `<div class="fl-cols">${cols}</div>` : "");
+  } else if(fl_template==="twostep"){
+    // Title in the body (navy serif, centered) — the banner carries no scrim text here.
+    // Intro area (beside the circle): lead paragraph (non-bold) under the title, then
+    // Tile 1 as heading (bold) + body. Items 1-2 are the two badge cards.
+    const title = fl_$("fl_in_headline") ? fl_$("fl_in_headline").value : "";
+    const introHead = items[0] ? items[0].h : "";
+    const introBody = items[0] ? items[0].p : "";
+    const circleStyle = fl_subjectData ? ` style="background-image:url('${fl_subjectData}')"` : "";
+    const cards = [items[1], items[2]].filter(t=>t && (t.h||t.p)).map((t,i)=>
+      `<div class="ts-card"><div class="ts-badge">${i+1}</div>`+
+      `<h4 class="ts-card__head">${fl_esc(t.h)}</h4>`+
+      `<p class="ts-card__body">${fl_esc(t.p)}</p></div>`).join("");
+    const sweep = `<div class="ts-sweep"><svg viewBox="0 0 612 46" preserveAspectRatio="none">`+
+      `<path d="M0,46 L0,4 Q306,52 612,4 L612,46 Z" fill="var(--page)"></path></svg></div>`;
+    bodyHTML = sweep +
+      `<h1 class="ts-title">${fl_esc(title)}</h1>`+
+      `<div class="ts-intro"><div class="ts-circle fl-zone"${circleStyle}></div>`+
+      `<div>`+
+      (introHead ? `<h4 class="ts-intro__head">${fl_esc(introHead)}</h4>` : "")+
+      `<p class="ts-intro__body">${fl_esc(introBody)}</p></div></div>`+
+      (cards ? `<div class="ts-cards">${cards}</div>` : "");
+    // keep a zero-height .fl-lead so the flex spacing contract (#fl_bodyZone > :not(.fl-lead)) holds
+    zone.innerHTML = `<p class="fl-lead" id="fl_lead" style="display:none"></p>` + bodyHTML;
+    return;
+  } else { // checklist (default)
+    const tiles = shown.map(t=>
+      `<div class="tile"><div class="box"></div>`+
+      `<div class="tbody"><h4>${fl_esc(t.h)}</h4><p>${fl_esc(t.p)}</p></div></div>`).join("");
+    bodyHTML = `<div class="tile-grid" id="fl_tiles">${tiles}</div>`;
+  }
+  zone.innerHTML = leadHTML + bodyHTML;
+}
+
+// fl_draw adapted: same body as admin, minus the live-wire listeners (none here).
+function fl_draw(){
+  const isTs = (fl_template==="twostep");
+  const flyerEl = fl_$("fl_in_flyer"); if(flyerEl) flyerEl.classList.toggle("ts-mode", isTs);
+  const lg=fl_$("fl_ftLogo");
+  if(lg) lg.innerHTML = fl_logoData ? `<img src="${fl_logoData}">` : "";
+  fl_set("fl_eyebrow", isTs ? "" : fl_$("fl_in_eyebrow").value);
+  fl_set("fl_head",    isTs ? "" : fl_$("fl_in_headline").value);
+  fl_renderBody();
+  fl_set("fl_ftName",       fl_$("fl_in_ftName").value);
+  fl_set("fl_ftAddr1",      fl_$("fl_in_ftAddr1").value);
+  fl_set("fl_ftAddr2",      fl_$("fl_in_ftAddr2").value);
+  fl_set("fl_ftPhone",      fl_$("fl_in_ftPhone").value);
+  fl_set("fl_ftHoursLabel", fl_$("fl_in_ftHoursLabel").value);
+  fl_set("fl_ftHours1",     fl_$("fl_in_ftHours1").value);
+  fl_set("fl_ftHours2",     fl_$("fl_in_ftHours2").value);
+  fl_set("fl_footPowered",  fl_$("fl_in_footPowered").value);
+  fl_set("fl_footCode",     fl_$("fl_in_footCode").value);
+}
+
+// Render the flyer once; return { pdfB64, thumbB64, imgH } WITHOUT downloading.
+// Used by both the Export button (download) and admin save() (publish).
+async function fl_buildFlyerPDF(){
+  if(typeof html2canvas==="undefined" || !window.jspdf) throw new Error("PDF libraries didn't load");
+  const flyer = fl_$("fl_in_flyer");
+  const prevShadow = flyer.style.boxShadow;
+  flyer.style.boxShadow = "none";
+  try{
+    if(document.fonts && document.fonts.ready) await document.fonts.ready;
+    const canvas = await html2canvas(flyer, {
+      scale: fl_PDF_SCALE, backgroundColor:"#ffffff", useCORS:true, logging:false,
+      width:612, height:flyer.offsetHeight, windowWidth:612
+    });
+    const img = canvas.toDataURL("image/jpeg", 0.92);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit:"pt", format:"letter" });
+    const pageW=612, pageH=792;
+    const imgH = canvas.height * (pageW / canvas.width);
+    if(imgH <= pageH){ pdf.addImage(img,"JPEG",0,0,pageW,imgH); }
+    else { const h=pageH, w=canvas.width*(pageH/canvas.height); pdf.addImage(img,"JPEG",(pageW-w)/2,0,w,h); }
+    // PDF bytes as bare base64 (strip data: prefix)
+    const pdfDataUri = pdf.output("datauristring");
+    const pdfB64 = pdfDataUri.slice(pdfDataUri.indexOf(",")+1);
+    // Thumbnail: reuse the same canvas, downscale to <=640px wide JPEG (matches makeDocThumb)
+    const tScale = Math.min(1, 640 / canvas.width);
+    const tc = document.createElement("canvas");
+    tc.width = Math.round(canvas.width*tScale); tc.height = Math.round(canvas.height*tScale);
+    tc.getContext("2d").drawImage(canvas,0,0,tc.width,tc.height);
+    const thumbB64 = tc.toDataURL("image/jpeg",0.8).split(",")[1];
+    return { pdfB64, thumbB64, imgH, pageH };
+  } finally {
+    flyer.style.boxShadow = prevShadow;
+  }
+}
+
+// ---- driver ----
+function fl_setInput(id, v){ const el=fl_$(id); if(el) el.value = (v==null?"":String(v)); }
+
+// Fetch an image (library id or data URL) and return a data URL.
+async function fl_toDataUrl(refOrData){
+  if(!refOrData) return null;
+  if(/^data:/.test(refOrData)) return refOrData;   // already a data URL (local-upload fallback)
+  // otherwise it's an image-library id
+  const res = await fetch(FL_IMG_BYTES + encodeURIComponent(refOrData));
+  if(!res.ok) throw new Error("image fetch failed: "+refOrData);
+  const blob = await res.blob();
+  return await new Promise((resolve,reject)=>{
+    const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(blob);
+  });
+}
+
+// Reconstruct a flyer from a manifest in a given brand, return { pdfB64, thumbB64 }.
+// brand = { primary, secondary, logo (data URL|null), footer:{name,addr1,addr2,phone,hours_label,hours1}, footCode }
+async function renderFlyerFromManifest(manifest, brand){
+  const m = manifest || {};
+  fl_template = m.template || "checklist";
+
+  // copy fields
+  fl_setInput("fl_in_eyebrow",  m.eyebrow);
+  fl_setInput("fl_in_headline", m.headline);
+  fl_setInput("fl_in_lead",     m.lead);
+  const tiles = Array.isArray(m.tiles) ? m.tiles : [];
+  for(let i=0;i<6;i++){
+    fl_setInput(`fl_in_t${i}_h`, tiles[i] ? tiles[i].h : "");
+    fl_setInput(`fl_in_t${i}_p`, tiles[i] ? tiles[i].p : "");
+  }
+
+  // brand tokens (per client)
+  const b = brand || {};
+  const flyer = fl_$("fl_in_flyer");
+  if(b.primary)   flyer.style.setProperty("--brand-primary", b.primary);
+  if(b.secondary) flyer.style.setProperty("--brand-secondary", b.secondary);
+
+  // footer (per client; falls back to manifest's authoring-time footer)
+  const mf = m.footer || {};
+  const bf = b.footer || {};
+  fl_setInput("fl_in_ftName",       bf.name        != null ? bf.name        : mf.name);
+  fl_setInput("fl_in_ftAddr1",      bf.addr1       != null ? bf.addr1       : mf.addr1);
+  fl_setInput("fl_in_ftAddr2",      bf.addr2       != null ? bf.addr2       : mf.addr2);
+  fl_setInput("fl_in_ftPhone",      bf.phone       != null ? bf.phone       : mf.phone);
+  fl_setInput("fl_in_ftHoursLabel", bf.hours_label != null ? bf.hours_label : mf.hours_label);
+  fl_setInput("fl_in_ftHours1",     bf.hours1      != null ? bf.hours1      : mf.hours1);
+  fl_setInput("fl_in_footCode",     b.footCode || "");
+
+  // logo (per client) — none for unbranded
+  fl_logoData = b.logo || null;
+
+  // banner background (from ref or inline data URL)
+  fl_bannerY = (m.focus_y==null || isNaN(+m.focus_y)) ? 50 : Math.max(0,Math.min(100,+m.focus_y));
+  const bannerData = await fl_toDataUrl(m.banner_ref || m.banner);
+  const bg = fl_$("fl_bg");
+  if(bg && bannerData){ bg.style.backgroundImage = `url('${bannerData}')`; bg.style.backgroundPosition = `50% ${fl_bannerY}%`; }
+
+  // twostep circle image
+  fl_subjectData = (m.subject_ref || m.subject) ? await fl_toDataUrl(m.subject_ref || m.subject) : null;
+
+  fl_draw();
+  if(document.fonts && document.fonts.ready) await document.fonts.ready;
+  // let layout settle a frame before rasterizing
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  return await fl_buildFlyerPDF();
+}
+
+// postMessage bridge for the hidden-iframe caller.
+// Request:  { type:"render", reqId, manifest, brand }
+// Response: { type:"render-result", reqId, ok, pdfB64, thumbB64, error }
+window.addEventListener("message", async (ev)=>{
+  const d = ev.data || {};
+  if(d.type !== "render") return;
+  try{
+    const out = await renderFlyerFromManifest(d.manifest, d.brand);
+    (ev.source||window.parent).postMessage({ type:"render-result", reqId:d.reqId, ok:true,
+      pdfB64: out.pdfB64, thumbB64: out.thumbB64 }, "*");
+  }catch(e){
+    (ev.source||window.parent).postMessage({ type:"render-result", reqId:d.reqId, ok:false,
+      error: (e&&e.message)?e.message:String(e) }, "*");
+  }
+});
+
+// signal readiness so the parent can queue renders
+window.addEventListener("load", ()=>{ try{ (window.parent||window).postMessage({type:"render-ready"},"*"); }catch(e){} });
+window.renderFlyerFromManifest = renderFlyerFromManifest;
+</script>
+</body>
+</html>
