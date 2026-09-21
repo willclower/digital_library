@@ -14,6 +14,8 @@
      The library INTERFACE chrome is inlined below so this page is self-contained
      and never depends on the asset path resolving. -->
 <link rel="stylesheet" href="assets/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root{
     --brand-blue:#236192; --brand-navy:#002855; --brand-orange:#ED8B00; --brand-spruce:#126e46;
@@ -85,6 +87,25 @@
   .logorow{display:flex;align-items:center;gap:14px;}
   .logoprev{max-height:44px;max-width:160px;border:1px solid var(--border-lt);border-radius:4px;background:#fff;padding:4px;}
   .hint{font-size:11.5px;color:var(--faint);margin-top:5px;}
+
+  /* --- download picker --- */
+  .dlsub{font-size:12.5px;color:var(--muted);margin:0 0 14px;}
+  .dlall{display:flex;align-items:center;justify-content:space-between;padding:0 0 10px;border-bottom:1px solid var(--border-lt);margin-bottom:6px;}
+  .dlall label{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;}
+  .dlall input{accent-color:var(--library);}
+  .dlcount{font-size:11.5px;color:var(--faint);}
+  .dllist{list-style:none;margin:0;padding:0;max-height:340px;overflow:auto;}
+  .dllist li{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--border-lt);}
+  .dllist li:last-child{border-bottom:0;}
+  .dlpick{accent-color:var(--library);}
+  .dlnm{display:flex;flex-direction:column;min-width:0;flex:1;}
+  .dlnm .n{font-weight:600;font-size:13.5px;}
+  .dlnm .c{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;}
+  .dlmode{width:150px;height:34px;border:1px solid var(--border);border-radius:var(--r-input);padding:0 8px;font:inherit;font-size:12.5px;background:var(--panel);}
+  .dlmode:disabled{opacity:.5;}
+  .dlwarn{font-size:10.5px;color:#b3423a;margin-left:auto;max-width:150px;text-align:right;}
+  .dlfoot{display:flex;gap:8px;margin-top:16px;}
+  .dllist li.off{opacity:.55;}
 
   .shell{display:grid;grid-template-columns:236px minmax(0,1fr);align-items:start;}
 
@@ -276,6 +297,28 @@
   </div>
 </div>
 
+<!-- ---- download picker modal (white-label download flow) ---- -->
+<div class="mask" id="dlMask">
+  <div class="modal wide">
+    <div class="mhead"><h2 id="dlTitle">Download</h2>
+      <button class="mclose" onclick="closePicker()">&times;</button></div>
+    <div class="mbody">
+      <p class="dlsub" id="dlSub">Choose which clients to build this for. Each gets its own branded copy in one ZIP.</p>
+      <div class="dlall">
+        <label><input type="checkbox" id="dlAll" onchange="dlToggleAll(this)"> <b>All clients</b></label>
+        <span class="dlcount" id="dlSel">0 selected</span>
+      </div>
+      <ul class="dllist" id="dlList"></ul>
+      <div class="dlfoot">
+        <button class="btn btn-primary" id="dlGo" onclick="runDownload()">Build &amp; download ZIP</button>
+        <button class="btn" onclick="closePicker()">Cancel</button>
+      </div>
+      <p class="msg" id="dlMsg"></p>
+    </div>
+  </div>
+</div>
+<!-- hidden render iframe (built on first download); off-screen but real layout -->
+
 <script src="assets/overlay.js"></script>
 <script>
 let DATA = { screens: [] };
@@ -338,6 +381,16 @@ function normalize(row){
     treatment: row.treatment, accent: row.accent, format: row.format,
     qrUrl: row.qr_url,
     asset_code: row.asset_code || null,
+    // Brand-neutral render manifest for flyers (jsonb from /library via screens_public).
+    // Arrives as a real object through row_to_json; kept as-is for the download render loop.
+    // Screens don't use it (they re-render from their own columns via overlay.js).
+    source_manifest: (row.source_manifest && typeof row.source_manifest === "string")
+      ? (()=>{ try { return JSON.parse(row.source_manifest); } catch(e){ return null; } })()
+      : (row.source_manifest || null),
+    // Extra screen render fields the download loop's screen branch needs
+    // (treatment/accent/cta/qrUrl/subtitle are already set above).
+    background_ref: row.background_ref,
+    focus_y: row.focus_y, overlay_bullets: row.overlay_bullets,
     assetType: at, isDoc,
     description: row.description, issueDate: row.issue_date,
     thumbUrl: row.thumb_url ? resolveThumb(row.thumb_url) : null,
@@ -457,7 +510,7 @@ function render(){
           <div class="tags">${badges}</div>
           <div class="rowbtns">
             <a class="btn" href="${fileUrl}" target="_blank" rel="noopener">Preview</a>
-            <a class="btn btn-primary" href="${fileUrl}" download onclick="trackDownload(${JSON.stringify(s).replace(/"/g,'&quot;')})">Download</a>
+            <button class="btn btn-primary" onclick="openPicker('${s.id}')">Download</button>
           </div>
         </div>`;
       grid.appendChild(card);
@@ -480,7 +533,7 @@ function render(){
         <div class="tags">${badges}</div>
         <div class="rowbtns">
           <a class="btn" href="screen.html?id=${encodeURIComponent(s.id)}" target="_blank" rel="noopener">Preview</a>
-          <a class="btn btn-primary" href="${s.background.startsWith('gradient')?'#':s.background}" download onclick="trackDownload(${JSON.stringify(s).replace(/"/g,'&quot;')})">Download</a>
+          <button class="btn btn-primary" onclick="openPicker('${s.id}')">Download</button>
         </div>
       </div>`;
     grid.appendChild(card);
@@ -748,6 +801,293 @@ function closeBrand(){ hide("brandMask"); }
 /* tiny modal helpers */
 function show(id){ document.getElementById(id).classList.add("on"); }
 function hide(id){ document.getElementById(id).classList.remove("on"); }
+
+/* ============================================================================
+   DOWNLOAD PICKER + RENDER LOOP  (white-label download flow, Task 2)
+   One tile -> pick N clients, each with a brand mode (none/white-label/parent)
+   -> render one branded asset per client -> POST all to the zip endpoint
+   -> receive ONE ZIP. Flyers render via render.html (hidden iframe, manifest+
+   brand). Screens rasterize in-page via overlay.js with an accent override -> PNG.
+   ============================================================================ */
+
+let dlScreen = null;      // the tile being downloaded
+let dlClients = [];       // [{id,name,code,brand_default,has_brand}]
+const brandCache = {};    // clientId+mode -> resolved brand object (per-session)
+let RENDER_FRAME = null;  // hidden iframe -> render.html
+let renderReady = null;   // promise that resolves when render.html posts render-ready
+let _reqSeq = 0;
+
+// --- hidden render.html iframe (built once, reused) -------------------------
+function ensureRenderFrame(){
+  if(RENDER_FRAME) return renderReady;
+  RENDER_FRAME = document.createElement("iframe");
+  // Off-flow but REAL layout (html2canvas/render.html need it painted, not display:none).
+  RENDER_FRAME.style.cssText =
+    "position:absolute;left:-99999px;top:0;width:840px;height:1200px;border:0;visibility:hidden;";
+  RENDER_FRAME.src = "render.html";
+  renderReady = new Promise((resolve)=>{
+    const onMsg = (ev)=>{ if(ev.data && ev.data.type==="render-ready"){ window.removeEventListener("message",onMsg); resolve(true); } };
+    window.addEventListener("message", onMsg);
+  });
+  document.body.appendChild(RENDER_FRAME);
+  return renderReady;
+}
+
+// One flyer render via the iframe. Returns bare base64 PDF (no data: prefix).
+function renderFlyerViaFrame(manifest, brand){
+  return new Promise((resolve,reject)=>{
+    const reqId = "r" + (++_reqSeq);
+    const timer = setTimeout(()=>{ window.removeEventListener("message",onMsg); reject(new Error("render timed out")); }, 30000);
+    const onMsg = (ev)=>{
+      const d = ev.data||{};
+      if(d.type!=="render-result" || d.reqId!==reqId) return;
+      clearTimeout(timer); window.removeEventListener("message",onMsg);
+      if(d.ok) resolve(d.pdfB64); else reject(new Error(d.error||"render failed"));
+    };
+    window.addEventListener("message", onMsg);
+    RENDER_FRAME.contentWindow.postMessage({ type:"render", reqId, manifest, brand }, "*");
+  });
+}
+
+// --- brand builder ----------------------------------------------------------
+// Resolve the render `brand` object for one client in one mode.
+//   none        -> {logo:null}, manifest colors/footer fall back
+//   white-label -> client's own colors/footer (/client-get) + client logo
+//   parent      -> parent org's colors/footer (/parent-brand) + parent logo
+// footCode carries the CLIENT code in every mode (filenames + on-flyer code).
+async function buildBrand(client, mode){
+  const key = client.id + "|" + mode;
+  if(brandCache[key]) return brandCache[key];
+  let brand = { footCode: client.code || "" };
+
+  if(mode === "none"){
+    brand.logo = null;                         // colors + footer fall back to manifest
+  } else if(mode === "white-label"){
+    const c = await fetchJson("/client-get", { id: client.id });
+    if(!c || !c.ok) throw new Error("client brand unavailable");
+    Object.assign(brand, brandFromRow(c.client));
+    brand.logo = c.client.has_logo ? await fetchLogo("client", client.id) : null;
+  } else if(mode === "parent"){
+    const p = await fetchJson("/parent-brand", {});   // parent resolved server-side from session
+    if(!p || !p.ok) throw new Error("parent brand unavailable");
+    Object.assign(brand, brandFromRow(p.parent));
+    brand.logo = p.parent.has_logo ? await fetchLogo("parent", p.parent.id) : null;
+  }
+  brandCache[key] = brand;
+  return brand;
+}
+
+// Map a parent_org / client_company brand row -> render brand shape.
+function brandFromRow(r){
+  return {
+    primary:   r.brand_primary_hex   || undefined,
+    secondary: r.brand_secondary_hex || undefined,
+    footer: {
+      name:        r.brand_ft_name,
+      addr1:       r.brand_ft_addr1,
+      addr2:       r.brand_ft_addr2,
+      phone:       r.brand_ft_phone,
+      hours_label: r.brand_ft_hours_label,
+      hours1:      r.brand_ft_hours1
+    }
+  };
+}
+
+// authed POST helper -> parsed JSON (session auto-attached)
+async function fetchJson(path, body){
+  const res = await fetch(DRL_API + path, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(Object.assign({ session: SESSION && SESSION.session }, body||{}))
+  });
+  return await res.json();
+}
+
+// fetch a logo binary -> data URL (render.html wants a data URL, not bytes)
+async function fetchLogo(type, id){
+  try{
+    const res = await fetch(DRL_API + "/logo?type=" + type + "&id=" + encodeURIComponent(id));
+    if(!res.ok) return null;
+    const blob = await res.blob();
+    if(!blob || blob.size < 64) return null;   // To Binary returns ~empty when no logo
+    return await new Promise((resolve)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=()=>resolve(null); r.readAsDataURL(blob); });
+  }catch(e){ return null; }
+}
+
+// --- screen render (PNG) via overlay.js with accent override ----------------
+// Renders into an off-screen 1280x720 stage, rasterizes, returns bare base64 PNG.
+async function renderScreenPng(screen, brand){
+  const stage = document.createElement("div");
+  stage.className = "vwl-screen";
+  stage.style.cssText = "position:absolute;left:-99999px;top:0;width:1280px;height:720px;";
+  document.body.appendChild(stage);
+  const sc = Object.assign({}, screen);
+  if(brand && brand.primary) sc.accent = brand.primary;   // white-label v1 = eyebrow accent only
+  sc.asset_code = screen.asset_code || screen.assetCode || "";
+  renderScreen(stage, sc, { scale:1, chrome:true, qr: !!(screen.qrUrl||screen.qr_url) });
+  if(document.fonts && document.fonts.ready) await document.fonts.ready;
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  const canvas = await html2canvas(stage, { width:1280, height:720, scale:1, useCORS:true, backgroundColor:null });
+  document.body.removeChild(stage);
+  return canvas.toDataURL("image/png").split(",")[1];   // bare base64
+}
+
+// --- picker UI --------------------------------------------------------------
+function openPicker(id){
+  if(!SESSION){ openLogin(); return; }
+  dlScreen = DATA.screens.find(s => String(s.id) === String(id));
+  if(!dlScreen){ alert("Asset not found."); return; }
+  document.getElementById("dlTitle").textContent = "Download — " + (dlScreen.title||"");
+  const msg=document.getElementById("dlMsg"); msg.className="msg"; msg.textContent="";
+  document.getElementById("dlGo").disabled = false;
+  document.getElementById("dlList").innerHTML = `<li><p class="msg">Loading your clients…</p></li>`;
+  show("dlMask");
+  loadPickerClients();
+}
+function closePicker(){ hide("dlMask"); }
+
+async function loadPickerClients(){
+  try{
+    const d = await fetchJson("/client-list", {});
+    if(!d || !d.ok){
+      if(d && d.error==="unauthorized"){ clearSession(); paintAuth(); closePicker(); openLogin(); return; }
+      document.getElementById("dlList").innerHTML = `<li><p class="msg err">Could not load clients.</p></li>`; return;
+    }
+    dlClients = d.clients || [];
+    renderPickerList();
+  }catch(e){
+    document.getElementById("dlList").innerHTML = `<li><p class="msg err">Could not reach the server.</p></li>`;
+  }
+}
+
+const MODE_LABEL = { none:"Unbranded", "white-label":"Client brand", parent:"Default brand" };
+function renderPickerList(){
+  const list = document.getElementById("dlList");
+  document.getElementById("dlAll").checked = false;
+  if(!dlClients.length){
+    list.innerHTML = `<li><p class="msg">No clients yet. Add clients under “Manage clients,” then download.</p></li>`;
+    document.getElementById("dlGo").disabled = true; updateSel(); return;
+  }
+  list.innerHTML = dlClients.map(c=>{
+    const def = c.brand_default || "none";
+    // white-label option only meaningful if the client actually has brand data
+    const wlOpt = `<option value="white-label"${def==="white-label"?" selected":""}${c.has_brand?"":" disabled"}>Client brand</option>`;
+    const warn = (def==="white-label" && !c.has_brand)
+      ? `<span class="dlwarn">no brand on file — using Unbranded</span>` : "";
+    const startMode = (def==="white-label" && !c.has_brand) ? "none" : def;
+    return `<li data-id="${c.id}">
+      <input type="checkbox" class="dlpick" onchange="onPick(this)">
+      <span class="dlnm"><span class="n">${c.name}</span><span class="c">${c.code||""}</span></span>
+      ${warn}
+      <select class="dlmode" data-mode>
+        <option value="none"${startMode==="none"?" selected":""}>Unbranded</option>
+        ${wlOpt}
+        <option value="parent"${startMode==="parent"?" selected":""}>Default brand</option>
+      </select>
+    </li>`;
+  }).join("");
+  updateSel();
+}
+
+function onPick(cb){
+  cb.closest("li").classList.toggle("off", !cb.checked);
+  updateSel();
+}
+function dlToggleAll(box){
+  document.querySelectorAll("#dlList .dlpick").forEach(cb=>{ cb.checked = box.checked; cb.closest("li").classList.toggle("off", !box.checked); });
+  updateSel();
+}
+function updateSel(){
+  const n = document.querySelectorAll("#dlList .dlpick:checked").length;
+  document.getElementById("dlSel").textContent = n + " selected";
+}
+
+// Collect the AM's picks: [{client, mode}]
+function collectPicks(){
+  const picks=[];
+  document.querySelectorAll("#dlList li[data-id]").forEach(li=>{
+    const cb = li.querySelector(".dlpick"); if(!cb || !cb.checked) return;
+    const id = li.getAttribute("data-id");
+    const client = dlClients.find(c=>String(c.id)===String(id));
+    let mode = li.querySelector("[data-mode]").value;
+    if(mode==="white-label" && client && !client.has_brand) mode="none";  // safety net
+    picks.push({ client, mode });
+  });
+  return picks;
+}
+
+// --- the run: render each pick, then zip -----------------------------------
+async function runDownload(){
+  const picks = collectPicks();
+  const msg = document.getElementById("dlMsg");
+  if(!picks.length){ msg.className="msg err"; msg.textContent="Select at least one client."; return; }
+  const go = document.getElementById("dlGo");
+  go.disabled = true; msg.className="msg"; 
+
+  const isDoc = dlScreen.isDoc;
+  const ym = new Date().toISOString().slice(0,7).replace("-","");   // YYYYMM
+  const assetSlug = (dlScreen.asset_code || dlScreen.id || "asset");
+  const files = [];
+
+  try{
+    if(isDoc){
+      if(!dlScreen.source_manifest) throw new Error("This flyer has no render manifest yet — re-finalize it in admin.");
+      await ensureRenderFrame();
+    }
+    for(let i=0;i<picks.length;i++){
+      const { client, mode } = picks[i];
+      msg.textContent = `Building ${i+1} of ${picks.length}: ${client.name}…`;
+      const brand = await buildBrand(client, mode);
+      const cc = (client.code || client.id);
+      if(isDoc){
+        const pdfB64 = await renderFlyerViaFrame(dlScreen.source_manifest, brand);
+        files.push({ filename: `${cc}-${assetSlug}-${ym}.pdf`, b64: pdfB64, mime:"application/pdf" });
+      }else{
+        const pngB64 = await renderScreenPng(dlScreen, brand);
+        files.push({ filename: `${cc}-${assetSlug}-${ym}.png`, b64: pngB64, mime:"image/png" });
+      }
+    }
+
+    msg.textContent = `Zipping ${files.length} file${files.length>1?"s":""}…`;
+    const ym2 = ym;
+    const zipName = `${assetSlug}-${ym2}.zip`;
+    const zip = new JSZip();
+    for(const f of files){ zip.file(f.filename, f.b64, { base64:true }); }  // filenames already carry .pdf/.png
+    const blob = await zip.generateAsync({ type:"blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href=url; a.download=zipName; document.body.appendChild(a); a.click();
+    a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 4000);
+
+    // Log the batch (one row per client) — separate tiny POST, best-effort, non-blocking.
+    logDownload(picks, files);
+
+    msg.className="msg ok"; msg.textContent=`Done — ${files.length} file${files.length>1?"s":""} in ${zipName}.`;
+    setTimeout(closePicker, 900);
+  }catch(e){
+    msg.className="msg err"; msg.textContent = (e&&e.message)?e.message:"Download failed.";
+  }finally{
+    go.disabled = false;
+  }
+}
+
+// Fire-and-forget download log: one row per client per download batch.
+function logDownload(picks, files){
+  try{
+    fetch(DRL_API + "/log-download", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        session: SESSION.session,
+        asset_id: dlScreen.id,
+        asset_type: dlScreen.assetType,
+        asset_code: dlScreen.asset_code || null,
+        rows: picks.map((p,idx)=>({
+          client_id: p.client.id,
+          brand_mode: p.mode,
+          filename: files[idx].filename
+        }))
+      })
+    }).catch(()=>{});   // logging must never block or fail the download
+  }catch(e){ /* non-blocking */ }
+}
 
 async function boot(){
   loadSession(); paintAuth();
