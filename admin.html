@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="assets/flyer.css">
 <style>
   :root{
     --ink:#0E2A44; --paper:#EFEBE2; --panel:#FFFDF9; --border:#E0D9CB; --border-st:#C9C2B3;
@@ -66,7 +67,6 @@
   #fl_tplRail .rail-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
 
   /* ===== Flyer composer (scoped under #flyerBuild) ===== */
-.flyer-scope .flyer{ /* white-label brand tokens — overridden per client via the form */ --brand-primary:#123a52;    /* header band / headings / checkbox */ --brand-secondary:#e08a00;  /* eyebrow pill / accents */ --cta-bg:#3f7d55;           /* CTA footer band */ --ink:#1e2d35; --ink-soft:#4a5e66; --tile:#f4f6f7; --tile-border:#e3e8ea; --page:#ffffff; }
 /* ---------- editor ---------- */
   .flyer-scope .editor{width:360px;flex:0 0 360px;background:#fff;border:1px solid #d9d5cc;border-radius:10px;
           padding:22px;position:sticky;top:28px;max-height:calc(100vh - 56px);overflow:auto;}
@@ -111,74 +111,14 @@
 .flyer-scope .draftmsg.ok{color:#2c7a4b;}
 /* ---------- flyer (US Letter 8.5x11 @ ~72dpi preview) ---------- */
   .flyer-scope .flyer-wrap{flex:1;min-width:0;display:flex;justify-content:center;}
-.flyer-scope .flyer{width:612px;min-height:792px;background:var(--page);
-         box-shadow:0 10px 40px rgba(0,0,0,.18);position:relative;overflow:hidden;
-         display:flex;flex-direction:column;}
 /* header banner: photo fills it; left-scrim keeps white text readable (Option 2: shorter strip) */
-  .flyer-scope .fl-header{position:relative;min-height:150px;background:var(--brand-primary);overflow:hidden;flex:0 0 auto;}
-.flyer-scope .fl-header .bg{position:absolute;inset:0;background-size:cover;background-position:center;}
-.flyer-scope .fl-header .scrim{position:absolute;inset:0;
-    background:linear-gradient(90deg, rgba(6,20,30,.92) 0%, rgba(6,20,30,.75) 42%, rgba(6,20,30,.35) 70%, rgba(6,20,30,.1) 100%);}
-.flyer-scope .fl-header .htexture{position:absolute;inset:0;opacity:.16;
-    background:repeating-linear-gradient(135deg, #fff 0 2px, transparent 2px 22px);}
-.flyer-scope .fl-header .hcontent{position:relative;min-height:150px;padding:18px 40px;color:#fff;
-    display:flex;flex-direction:column;justify-content:center;}
-.flyer-scope .h-toprow{position:absolute;top:16px;right:40px;display:flex;justify-content:flex-end;align-items:flex-start;}
-.flyer-scope .issue-chip{text-align:right;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);
-    border-radius:6px;padding:7px 12px;line-height:1.35;}
-.flyer-scope .issue-chip .m{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#cfe0e8;}
-.flyer-scope .issue-chip .s{font-size:13px;font-weight:700;}
-.flyer-scope .h-logo{max-height:34px;max-width:150px;object-fit:contain;}
-.flyer-scope .eyebrow-pill{align-self:flex-start;background:var(--brand-secondary);
-    color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-    padding:5px 14px;border-radius:100px;}
-.flyer-scope .fl-head{font-family:var(--font-voice);font-weight:700;font-size:30px;line-height:1.06;
-    margin:9px 0 0;text-shadow:0 2px 18px rgba(0,0,0,.45);max-width:72%;}
 /* body */
-  .flyer-scope .fl-body{padding:30px 40px 22px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:flex-start;}
-.flyer-scope .fl-lead{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:0 0 4px;max-width:92%;flex:0 0 auto;}
 /* Vertical layout: body content sits at the top; the shared address footer + fine-print line
    are siblings AFTER .fl-body, and because .fl-body flex-grows, they pin to the page bottom.
    #fl_bodyZone is display:contents so its children are direct flex siblings within .fl-body. */
-.flyer-scope #fl_bodyZone{display:contents;}
-.flyer-scope #fl_bodyZone > *{flex:0 0 auto;}
 /* ===== Shared address footer (all templates) — mauve band, 3 columns, subtle top arch ===== */
-.flyer-scope .fl-addr{flex:0 0 auto;position:relative;background:#e7e6f0;
-    padding:20px 40px 18px;display:grid;grid-template-columns:1fr 1fr auto;gap:24px;align-items:center;}
-.flyer-scope .fl-addr::before{content:"";position:absolute;left:0;right:0;top:-14px;height:16px;
-    background:#e7e6f0;border-radius:100% 100% 0 0/100% 100% 0 0;}
-.flyer-scope .fl-addr__name{font-weight:700;font-size:12px;color:var(--brand-primary);margin:0 0 4px;}
-.flyer-scope .fl-addr__line{font-size:10px;line-height:1.5;color:var(--ink-soft);}
-.flyer-scope .fl-addr__logo{justify-self:end;}
-.flyer-scope .fl-addr__logo img{max-height:40px;max-width:170px;object-fit:contain;}
-.flyer-scope .tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
-.flyer-scope .tile{display:flex;gap:11px;background:var(--tile);border:1px solid var(--tile-border);
-    border-radius:9px;padding:14px 15px;}
-.flyer-scope .tile .box{flex:0 0 auto;width:26px;height:26px;border-radius:6px;border:2.5px solid var(--brand-primary);}
-.flyer-scope .tile .tbody h4{margin:0 0 3px;font-size:14.5px;font-weight:700;color:var(--brand-primary);}
-.flyer-scope .tile .tbody p{margin:0;font-size:12px;line-height:1.42;color:var(--ink-soft);}
 /* ===== Layout: Explainer (numbered timeline rail) ===== */
-.flyer-scope .fl-flow{position:relative;padding-left:6px;list-style:none;margin:0;}
-.flyer-scope .fl-flow::before{content:"";position:absolute;left:22px;top:14px;bottom:20px;width:1px;background:#e4e0d8;}
-.flyer-scope .fl-flow__item{position:relative;display:grid;grid-template-columns:34px 1fr;gap:18px;padding:0 0 22px 0;}
-.flyer-scope .fl-flow__item:last-child{padding-bottom:0;}
-.flyer-scope .fl-flow__num{position:relative;z-index:1;width:34px;height:34px;border-radius:999px;
-    background:var(--brand-primary);color:#fff;font-family:var(--font-voice);font-size:17px;font-weight:700;
-    line-height:1;display:flex;align-items:center;justify-content:center;}
-.flyer-scope .fl-flow__head{margin:0 0 4px;padding-top:7px;font-family:var(--font-voice);font-weight:700;
-    font-size:15px;line-height:1.2;color:var(--ink);}
-.flyer-scope .fl-flow__body{margin:0;font-size:11px;line-height:1.5;color:var(--ink-soft);}
 /* ===== Layout: Segments (hero + three-column band) ===== */
-.flyer-scope .fl-hero{border:1px solid #e4e0d8;border-left:4px solid var(--brand-primary);
-    border-radius:12px;padding:16px 20px;margin-bottom:14px;background:#fbfaf8;display:grid;grid-template-columns:1fr;gap:6px;}
-.flyer-scope .fl-hero__label{font-family:var(--font-voice);font-weight:700;font-size:19px;line-height:1.15;
-    color:var(--brand-primary);margin:0;}
-.flyer-scope .fl-hero__body{margin:0;font-size:12px;line-height:1.55;color:var(--ink-soft);}
-.flyer-scope .fl-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
-.flyer-scope .fl-col{border-top:2px solid var(--brand-secondary);padding-top:10px;}
-.flyer-scope .fl-col__label{margin:0 0 6px;font-size:10.5px;font-weight:700;letter-spacing:.08em;
-    text-transform:uppercase;color:var(--brand-primary);line-height:1.3;}
-.flyer-scope .fl-col__body{margin:0;font-size:10.5px;line-height:1.5;color:var(--ink-soft);}
 /* ===== Layout: Concentra (banner + curved sweep + circle intro + badge cards) =====
    Structurally different from the other three: the TITLE renders in the body (navy serif,
    centered), not in the banner scrim. A curved white sweep overlaps the bottom of the banner.
@@ -191,33 +131,7 @@
 /* 2-step banner: full-bleed photo, no scrim text. Display strip is shorter than the 5:3
    source (source stays 5:3 for the screen companion); the photo cover-fills and the crop
    slider repositions it vertically. Height tuned to the target proportion (~32% of page). */
-.flyer-scope .ts-mode .fl-header{min-height:255px;}
-.flyer-scope .ts-mode .fl-header .scrim,
-.flyer-scope .ts-mode .fl-header .htexture,
-.flyer-scope .ts-mode .fl-header .hcontent{display:none;}
-.flyer-scope .ts-mode .fl-body{padding-top:0;}
-.flyer-scope .ts-sweep{position:relative;height:0;z-index:2;margin:0 -40px;}
-.flyer-scope .ts-sweep svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:46px;display:block;}
-.flyer-scope .ts-title{font-family:var(--font-voice);font-weight:800;font-size:34px;line-height:1.05;
-    color:var(--brand-primary);text-align:center;margin:2px 0 22px;}
-.flyer-scope .ts-intro{display:grid;grid-template-columns:150px 1fr;gap:26px;align-items:center;margin:0 0 6px;}
-.flyer-scope .ts-circle{width:150px;height:150px;border-radius:50%;overflow:hidden;
-    background:#e9edf0 center/cover no-repeat;box-shadow:0 6px 18px -6px rgba(0,0,0,.4);
-    border:5px solid #fff;outline:1px solid #e2e6ea;}
-.flyer-scope .ts-intro__head{font-family:var(--font-voice);font-weight:700;font-size:15px;line-height:1.28;
-    color:var(--brand-primary);margin:0 0 4px;}
-.flyer-scope .ts-intro__body{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:0;}
-.flyer-scope .ts-cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:18px;}
-.flyer-scope .ts-card{position:relative;background:#f4f2ea;border-radius:12px;padding:22px 20px 20px;overflow:visible;}
 /* numbered badge straddles the top-left corner, half outside the box (see model) */
-.flyer-scope .ts-badge{position:absolute;top:-16px;left:-16px;width:44px;height:44px;border-radius:50%;
-    background:var(--brand-secondary);color:#fff;border:3px solid #fff;
-    font-family:var(--font-ui,'Segoe UI',Arial,sans-serif);font-weight:800;font-size:21px;
-    display:flex;align-items:center;justify-content:center;line-height:1;
-    box-shadow:0 3px 8px -2px rgba(0,0,0,.3);}
-.flyer-scope .ts-card__head{font-family:var(--font-voice);font-weight:700;font-size:17px;line-height:1.15;
-    color:var(--brand-primary);margin:0 0 9px;padding-left:20px;}
-.flyer-scope .ts-card__body{font-size:12px;line-height:1.5;color:var(--ink-soft);margin:0;}
 /* ===== Image library picker modal (zone-click) ===== */
 #fl_pick{position:fixed;inset:0;z-index:1000;}
 #fl_pick .fl-pick__backdrop{position:absolute;inset:0;background:rgba(10,20,28,.55);}
@@ -242,50 +156,14 @@
     color:#fff;font-size:10px;padding:4px 7px;line-height:1.2;}
 #fl_pick .fl-pick__msg{padding:0 20px 16px;font-size:12.5px;color:#8a8478;}
 /* clickable image zones on the live preview */
-.flyer-scope .fl-zone{cursor:pointer;position:relative;}
-.flyer-scope .fl-zone::after{content:"⤢ pick image";position:absolute;inset:0;display:flex;
-    align-items:center;justify-content:center;background:rgba(23,64,47,0);color:transparent;
-    font-size:12px;font-weight:700;transition:background .12s,color .12s;pointer-events:none;z-index:3;}
-.flyer-scope .fl-zone:hover::after{background:rgba(23,64,47,.5);color:#fff;}
 /* ===== Template picker + wireframe thumbnails ===== */
 .flyer-scope #fl_picker .fl-picker-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-.flyer-scope .fl-tpl-card{cursor:pointer;text-align:left;background:#fff;border:1.5px solid #d5d0c6;
-    border-radius:10px;padding:10px;font:inherit;transition:border-color .12s,box-shadow .12s;}
-.flyer-scope .fl-tpl-card:hover{border-color:#17402F;box-shadow:0 4px 14px -8px rgba(23,64,47,.5);}
-.flyer-scope .fl-tpl-card.sel{border-color:#17402F;box-shadow:0 0 0 2px rgba(23,64,47,.25);}
-.flyer-scope .fl-tpl-name{font-weight:700;font-size:13px;color:#1e2d35;margin-top:8px;}
-.flyer-scope .fl-tpl-desc{font-size:11px;color:#6f7f74;margin-top:1px;}
 /* wireframe skeleton: grey blocks that mimic each layout's shape */
-.flyer-scope .fl-wire{background:#faf8f3;border:1px solid #ece8df;border-radius:6px;padding:7px;
-    aspect-ratio:8.5/11;display:flex;flex-direction:column;gap:5px;}
-.flyer-scope .fl-wire .fw-banner{background:#c9ccc4;border-radius:3px;height:22%;position:relative;
-    display:flex;flex-direction:column;justify-content:flex-end;gap:3px;padding:5px;}
-.flyer-scope .fl-wire .fw-pill{width:34%;height:5px;background:#e08a00;border-radius:100px;}
-.flyer-scope .fl-wire .fw-title{width:70%;height:7px;background:#e9ede8;border-radius:2px;}
-.flyer-scope .fl-wire .fw-lead{height:8px;background:#e4e0d8;border-radius:2px;}
-.flyer-scope .fl-wire .fw-cta{margin-top:auto;height:16%;background:#cdd2cb;border-radius:3px;}
 /* checklist: 2x2 */
-.flyer-scope .fl-wire .fw-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:4px;}
-.flyer-scope .fl-wire .fw-grid span{background:#eef0ec;border:1px solid #e0e3dd;border-radius:3px;}
 /* explainer: vertical numbered rows */
-.flyer-scope .fl-wire .fw-flow{flex:1;display:flex;flex-direction:column;gap:4px;}
-.flyer-scope .fl-wire .fw-flow span{flex:1;background:#eef0ec;border-left:4px solid #17384d;border-radius:3px;}
 /* segments: hero + 3 cols */
-.flyer-scope .fl-wire .fw-hero{height:26%;background:#eef0ec;border-left:4px solid #17384d;border-radius:3px;}
-.flyer-scope .fl-wire .fw-cols{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
-.flyer-scope .fl-wire .fw-cols span{background:#eef0ec;border-top:3px solid #e08a00;border-radius:2px;}
 /* twostep: full-bleed banner (no scrim text) + centered title + circle intro + 2 badge cards */
-.flyer-scope .fl-wire .fw-ts-banner{background:#c9ccc4;border-radius:3px;height:26%;}
-.flyer-scope .fl-wire .fw-ts-title{width:60%;height:8px;background:#17384d;border-radius:2px;margin:5px auto 0;}
-.flyer-scope .fl-wire .fw-ts-intro{display:grid;grid-template-columns:20px 1fr;gap:5px;align-items:start;}
-.flyer-scope .fl-wire .fw-ts-circle{width:20px;height:20px;border-radius:50%;background:#dfe3e6;border:1px solid #cdd3d7;}
-.flyer-scope .fl-wire .fw-ts-lines{display:flex;flex-direction:column;gap:3px;}
-.flyer-scope .fl-wire .fw-ts-lines span{height:4px;background:#e4e0d8;border-radius:2px;}
-.flyer-scope .fl-wire .fw-ts-cards{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:auto;}
-.flyer-scope .fl-wire .fw-ts-cards span{background:#eef0ec;border-radius:3px;position:relative;}
-.flyer-scope .fl-wire .fw-ts-cards span::before{content:"";position:absolute;top:4px;left:4px;width:6px;height:6px;border-radius:50%;background:#e08a00;}
 /* CTA footer */
-  .flyer-scope .fl-cta{margin:0;flex:0 0 auto;}
 .flyer-scope .cta-head{background:var(--cta-bg);color:#fff;padding:11px 26px;display:flex;
     justify-content:space-between;align-items:center;}
 .flyer-scope .cta-head .l{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;}
@@ -302,11 +180,6 @@
 .flyer-scope .cta-btn .big{font-weight:700;font-size:14px;line-height:1.2;}
 .flyer-scope .cta-btn .sm{font-size:10px;opacity:.9;margin-top:3px;}
 /* footer strip */
-  .flyer-scope .fl-foot{border-top:none;background:#dedcec;padding:7px 40px;flex:0 0 auto;
-    display:flex;justify-content:space-between;align-items:center;
-    font-size:9px;color:#7c7891;}
-.flyer-scope .fl-foot .powered b{color:var(--ink);}
-.flyer-scope .fl-foot .code{color:#b3ab9c;font-size:9.5px;}
   /* ===== QC findings panel ===== */
   .qc-summary{font-size:12.5px;padding:9px 11px;border-radius:7px;margin-bottom:9px;line-height:1.4;}
   .qc-summary .score{font-weight:700;}
@@ -755,6 +628,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="assets/flyer-render.js"></script>
 <script>
 if (window.pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -1293,19 +1167,20 @@ var flQcReview = null;          // last QC review object (schema), or null if no
 var _tagHome = null, _tagAfter = null;
 var fl_suppressInvalidate = false;
 
-const fl_TILES = [
+// Seed content for the tile editor rows (NOT the render index array — that's the shared
+// fl_TILES=[0..5] in flyer-render.js). Renamed to fl_SEED so it doesn't collide with the shared one.
+const fl_SEED = [
   {h:"Eat the fall colors",   p:"Squash, carrots, corn, dark leafy greens — seasonal produce packed with immune-supporting nutrients."},
   {h:"Add a vitamin-C source",p:"Citrus, peppers, broccoli. A little at most meals beats a big dose once."},
   {h:"Hydrate on schedule",   p:"Dry fall air and heated buildings dehydrate you fast. Keep a bottle within reach and refill it."},
   {h:"Lean into protein",     p:"Your body builds immune cells from protein. Include a source at each meal."},
 ];
-let fl_bannerData=null, fl_logoData=null, fl_subjectData=null;
-let fl_bannerRef=null;   // image-library id of the banner, when picked from the library
-let fl_subjectRef=null;  // image-library id of the twostep circle image, when picked
+// fl_bannerData/fl_logoData/fl_subjectData + fl_bannerRef/fl_subjectRef now declared in
+// the shared flyer-render.js (loaded before this script).
 
 // build tile editor rows
 const fl_tilesEd=document.getElementById("fl_in_tiles");
-fl_TILES.forEach((t,i)=>{
+fl_SEED.forEach((t,i)=>{
   const b=document.createElement("div"); b.className="tile-block";
   b.innerHTML=`<div class="tnum">TILE ${i+1}</div>
     <div class="fld"><input type="text" id="fl_in_t${i}_h" value="${t.h.replace(/"/g,'&quot;')}"></div>
@@ -1313,8 +1188,7 @@ fl_TILES.forEach((t,i)=>{
   fl_tilesEd.appendChild(b);
 });
 
-const fl_$=id=>document.getElementById(id);
-const fl_set=(id,v)=>{ fl_$(id).textContent=v; };
+// fl_$ / fl_set now declared in the shared flyer-render.js.
 
 // ---- Print-fit caps (Letter 8.5x11) ----
 // Character limits per copy field, sized so a full 4-tile flyer always fits one page.
@@ -1344,8 +1218,7 @@ const FL_CAPS_TPL = {
 // The tile editor still shows 4 fields; this only bounds what's populated/reviewed/rendered.
 // twostep: slot0 = intro continuation (body only, no visible title), slots1-2 = the two step
 // cards. 3 slots, 2 visible "steps". slot3 unused.
-const FL_ITEMS_TPL = { checklist:4, explainer:4, segments:4, twostep:3 };
-function fl_itemCount(){ return FL_ITEMS_TPL[fl_template] ?? 4; }
+// FL_ITEMS_TPL + fl_itemCount() now declared in the shared flyer-render.js.
 // Cap for a field id under the CURRENT template. Tile fields are index-aware so segments
 // item 0 (the hero) gets the hero caps and items 1-3 get the column caps.
 function fl_capFor(id){
@@ -1415,7 +1288,7 @@ function fl_fileToData(input,cb){
 }
 // Single set-points for the two image zones — used by BOTH the file-upload fallback and the
 // library picker, so the two paths never diverge.
-let fl_bannerY = 50;   // vertical crop position, 0=top … 100=bottom (background-position Y%)
+// fl_bannerY now declared in the shared flyer-render.js.
 function fl_applyBannerPos(){
   const bg = fl_$("fl_bg"); if(bg) bg.style.backgroundPosition = "50% " + fl_bannerY + "%";
 }
@@ -1553,9 +1426,7 @@ document.addEventListener("click",e=>{
   if(c) fl_openPicker("subject");
 });
 
-// Current flyer template: 'checklist' | 'explainer' | 'segments'. Same 4-item data
-// (fl_TILES + fl_in_t{i}_h/_p + lead) renders three different ways.
-var fl_template = "checklist";
+// fl_template now declared in the shared flyer-render.js; fl_setTemplate below reassigns it.
 // Select a template: outline its rail card, set the body layout, re-render the CENTER
 // live preview into that template with the same data reflowed. No show/hide — the rail
 // stays persistent and doubles as the switcher (replaces the old picker flow).
@@ -1576,93 +1447,8 @@ function fl_showPicker(){
   document.querySelectorAll("#fl_tplRail .fl-tpl-card").forEach(c=>
     c.classList.toggle("sel", c.dataset.tpl===fl_template));
 }
-function fl_esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-
-// Read the shared body data: lead + the (up to 4) filled items.
-function fl_bodyData(){
-  const lead = fl_$("fl_in_lead") ? fl_$("fl_in_lead").value : "";
-  const items = fl_TILES.map((_,i)=>({
-    h: fl_$(`fl_in_t${i}_h`) ? fl_$(`fl_in_t${i}_h`).value : "",
-    p: fl_$(`fl_in_t${i}_p`) ? fl_$(`fl_in_t${i}_p`).value : ""
-  }));
-  return { lead, items };
-}
-
-// Render the body zone for the currently selected template.
-function fl_renderBody(){
-  const zone = fl_$("fl_bodyZone"); if(!zone) return;
-  const { lead, items } = fl_bodyData();
-  const shown = items.filter(t=>t.h||t.p);
-  const leadHTML = `<p class="fl-lead" id="fl_lead">${fl_esc(lead)}</p>`;
-  let bodyHTML = "";
-  if(fl_template==="explainer"){
-    const li = shown.map((t,i)=>
-      `<li class="fl-flow__item"><div class="fl-flow__num">${i+1}</div>`+
-      `<div><h4 class="fl-flow__head">${fl_esc(t.h)}</h4>`+
-      `<p class="fl-flow__body">${fl_esc(t.p)}</p></div></li>`).join("");
-    bodyHTML = `<ol class="fl-flow">${li}</ol>`;
-  } else if(fl_template==="segments"){
-    const hero = shown[0]
-      ? `<div class="fl-hero"><h4 class="fl-hero__label">${fl_esc(shown[0].h)}</h4>`+
-        `<p class="fl-hero__body">${fl_esc(shown[0].p)}</p></div>` : "";
-    const cols = shown.slice(1).map(t=>
-      `<div class="fl-col"><h4 class="fl-col__label">${fl_esc(t.h)}</h4>`+
-      `<p class="fl-col__body">${fl_esc(t.p)}</p></div>`).join("");
-    bodyHTML = hero + (cols ? `<div class="fl-cols">${cols}</div>` : "");
-  } else if(fl_template==="twostep"){
-    // Title in the body (navy serif, centered) — the banner carries no scrim text here.
-    // Intro area (beside the circle): lead paragraph (non-bold) under the title, then
-    // Tile 1 as heading (bold) + body. Items 1-2 are the two badge cards.
-    const title = fl_$("fl_in_headline") ? fl_$("fl_in_headline").value : "";
-    const introHead = items[0] ? items[0].h : "";
-    const introBody = items[0] ? items[0].p : "";
-    const circleStyle = fl_subjectData ? ` style="background-image:url('${fl_subjectData}')"` : "";
-    const cards = [items[1], items[2]].filter(t=>t && (t.h||t.p)).map((t,i)=>
-      `<div class="ts-card"><div class="ts-badge">${i+1}</div>`+
-      `<h4 class="ts-card__head">${fl_esc(t.h)}</h4>`+
-      `<p class="ts-card__body">${fl_esc(t.p)}</p></div>`).join("");
-    const sweep = `<div class="ts-sweep"><svg viewBox="0 0 612 46" preserveAspectRatio="none">`+
-      `<path d="M0,46 L0,4 Q306,52 612,4 L612,46 Z" fill="var(--page)"></path></svg></div>`;
-    bodyHTML = sweep +
-      `<h1 class="ts-title">${fl_esc(title)}</h1>`+
-      `<div class="ts-intro"><div class="ts-circle fl-zone"${circleStyle}></div>`+
-      `<div>`+
-      (introHead ? `<h4 class="ts-intro__head">${fl_esc(introHead)}</h4>` : "")+
-      `<p class="ts-intro__body">${fl_esc(introBody)}</p></div></div>`+
-      (cards ? `<div class="ts-cards">${cards}</div>` : "");
-    // keep a zero-height .fl-lead so the flex spacing contract (#fl_bodyZone > :not(.fl-lead)) holds
-    zone.innerHTML = `<p class="fl-lead" id="fl_lead" style="display:none"></p>` + bodyHTML;
-    return;
-  } else { // checklist (default)
-    const tiles = shown.map(t=>
-      `<div class="tile"><div class="box"></div>`+
-      `<div class="tbody"><h4>${fl_esc(t.h)}</h4><p>${fl_esc(t.p)}</p></div></div>`).join("");
-    bodyHTML = `<div class="tile-grid" id="fl_tiles">${tiles}</div>`;
-  }
-  zone.innerHTML = leadHTML + bodyHTML;
-}
-
-function fl_draw(){
-  // twostep puts the title/eyebrow in the body, so its banner carries no scrim text.
-  const isTs = (fl_template==="twostep");
-  const flyerEl = fl_$("fl_in_flyer"); if(flyerEl) flyerEl.classList.toggle("ts-mode", isTs);
-  // logo now lives in the address footer (bottom-right), not the banner
-  const lg=fl_$("fl_ftLogo");
-  if(lg) lg.innerHTML = fl_logoData ? `<img src="${fl_logoData}">` : "";
-  fl_set("fl_eyebrow", isTs ? "" : fl_$("fl_in_eyebrow").value);
-  fl_set("fl_head",    isTs ? "" : fl_$("fl_in_headline").value);
-  fl_renderBody();
-  // shared address footer
-  fl_set("fl_ftName",       fl_$("fl_in_ftName").value);
-  fl_set("fl_ftAddr1",      fl_$("fl_in_ftAddr1").value);
-  fl_set("fl_ftAddr2",      fl_$("fl_in_ftAddr2").value);
-  fl_set("fl_ftPhone",      fl_$("fl_in_ftPhone").value);
-  fl_set("fl_ftHoursLabel", fl_$("fl_in_ftHoursLabel").value);
-  fl_set("fl_ftHours1",     fl_$("fl_in_ftHours1").value);
-  fl_set("fl_ftHours2",     fl_$("fl_in_ftHours2").value);
-  fl_set("fl_footPowered",fl_$("fl_in_footPowered").value);
-  fl_set("fl_footCode",fl_$("fl_in_footCode").value);
-}
+// fl_esc / fl_bodyData / fl_renderBody / fl_draw now declared in the shared flyer-render.js.
+// The live-wire listeners below still bind the shared fl_draw to the authoring inputs.
 // live-wire every text input
 document.querySelectorAll(".flyer-scope input[type=text], .flyer-scope textarea").forEach(el=>el.addEventListener("input",fl_draw));
 // attach print-fit counters to every capped copy field
@@ -1751,44 +1537,7 @@ async function fl_draftCopy(){
 }
 fl_$("fl_in_draftBtn").onclick = fl_draftCopy;
 
-/* ---------- Export PDF: render .flyer at 300dpi -> single-page US-Letter PDF ---------- */
-// .flyer is 612x792 CSS px = US Letter at 72dpi. scale 4.1667 -> 2550x3300 = 300dpi.
-const fl_PDF_SCALE = 300/72;
-
-// Render the flyer once; return { pdfB64, thumbB64, imgH } WITHOUT downloading.
-// Used by both the Export button (download) and admin save() (publish).
-async function fl_buildFlyerPDF(){
-  if(typeof html2canvas==="undefined" || !window.jspdf) throw new Error("PDF libraries didn't load");
-  const flyer = fl_$("fl_in_flyer");
-  const prevShadow = flyer.style.boxShadow;
-  flyer.style.boxShadow = "none";
-  try{
-    if(document.fonts && document.fonts.ready) await document.fonts.ready;
-    const canvas = await html2canvas(flyer, {
-      scale: fl_PDF_SCALE, backgroundColor:"#ffffff", useCORS:true, logging:false,
-      width:612, height:flyer.offsetHeight, windowWidth:612
-    });
-    const img = canvas.toDataURL("image/jpeg", 0.92);
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ unit:"pt", format:"letter" });
-    const pageW=612, pageH=792;
-    const imgH = canvas.height * (pageW / canvas.width);
-    if(imgH <= pageH){ pdf.addImage(img,"JPEG",0,0,pageW,imgH); }
-    else { const h=pageH, w=canvas.width*(pageH/canvas.height); pdf.addImage(img,"JPEG",(pageW-w)/2,0,w,h); }
-    // PDF bytes as bare base64 (strip data: prefix)
-    const pdfDataUri = pdf.output("datauristring");
-    const pdfB64 = pdfDataUri.slice(pdfDataUri.indexOf(",")+1);
-    // Thumbnail: reuse the same canvas, downscale to <=640px wide JPEG (matches makeDocThumb)
-    const tScale = Math.min(1, 640 / canvas.width);
-    const tc = document.createElement("canvas");
-    tc.width = Math.round(canvas.width*tScale); tc.height = Math.round(canvas.height*tScale);
-    tc.getContext("2d").drawImage(canvas,0,0,tc.width,tc.height);
-    const thumbB64 = tc.toDataURL("image/jpeg",0.8).split(",")[1];
-    return { pdfB64, thumbB64, imgH, pageH };
-  } finally {
-    flyer.style.boxShadow = prevShadow;
-  }
-}
+// fl_PDF_SCALE + fl_buildFlyerPDF() now declared in the shared flyer-render.js (used by save()).
 
 // (Export-PDF button removed — the PDF is generated automatically at Finalize via
 //  fl_buildFlyerPDF(). That function is retained above and called from save().)
@@ -1989,7 +1738,7 @@ function fl_qcRender(){
   fl_updateFinalizeGate();
 }
 
-function fl_esc(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+// fl_esc now declared in the shared flyer-render.js (canonical null-safe copy).
 
 // Accept the AI suggestion verbatim: write suggested_edit into the mapped field.
 function fl_qcAcceptSuggestion(idx){
