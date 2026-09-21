@@ -113,15 +113,25 @@ async function renderFlyerFromManifest(manifest, brand){
 
   const mf = m.footer || {};
   const bf = b.footer || {};
-  fl_setInput("fl_in_ftName",       bf.name        != null ? bf.name        : mf.name);
-  fl_setInput("fl_in_ftAddr1",      bf.addr1       != null ? bf.addr1       : mf.addr1);
-  fl_setInput("fl_in_ftAddr2",      bf.addr2       != null ? bf.addr2       : mf.addr2);
-  fl_setInput("fl_in_ftPhone",      bf.phone       != null ? bf.phone       : mf.phone);
-  fl_setInput("fl_in_ftHoursLabel", bf.hours_label != null ? bf.hours_label : mf.hours_label);
-  fl_setInput("fl_in_ftHours1",     bf.hours1      != null ? bf.hours1      : mf.hours1);
-  fl_setInput("fl_in_footCode",     b.footCode || "");
+  const unbranded = (b.mode === "none");   // AM chose Unbranded -> no contact/logo footer
 
-  fl_logoData = b.logo || null;
+  const addrEl = fl_$("fl_addr");
+  if(unbranded){
+    // Clean, generic handout: no name/address/phone/hours, no logo.
+    fl_setInput("fl_in_ftName","");  fl_setInput("fl_in_ftAddr1","");
+    fl_setInput("fl_in_ftAddr2",""); fl_setInput("fl_in_ftPhone","");
+    fl_setInput("fl_in_ftHoursLabel",""); fl_setInput("fl_in_ftHours1","");
+    fl_logoData = null;
+  }else{
+    fl_setInput("fl_in_ftName",       bf.name        != null ? bf.name        : mf.name);
+    fl_setInput("fl_in_ftAddr1",      bf.addr1       != null ? bf.addr1       : mf.addr1);
+    fl_setInput("fl_in_ftAddr2",      bf.addr2       != null ? bf.addr2       : mf.addr2);
+    fl_setInput("fl_in_ftPhone",      bf.phone       != null ? bf.phone       : mf.phone);
+    fl_setInput("fl_in_ftHoursLabel", bf.hours_label != null ? bf.hours_label : mf.hours_label);
+    fl_setInput("fl_in_ftHours1",     bf.hours1      != null ? bf.hours1      : mf.hours1);
+    fl_logoData = b.logo || null;
+  }
+  fl_setInput("fl_in_footCode",     b.footCode || "");
 
   fl_bannerY = (m.focus_y==null || isNaN(+m.focus_y)) ? 50 : Math.max(0,Math.min(100,+m.focus_y));
   const bannerData = await fl_toDataUrl(m.banner_ref || m.banner);
@@ -129,6 +139,10 @@ async function renderFlyerFromManifest(manifest, brand){
   if(bg && bannerData){ bg.style.backgroundImage = `url('${bannerData}')`; bg.style.backgroundPosition = `50% ${fl_bannerY}%`; }
 
   fl_subjectData = (m.subject_ref || m.subject) ? await fl_toDataUrl(m.subject_ref || m.subject) : null;
+
+  // Collapse the whole contact/logo block for unbranded; restore it otherwise
+  // (the iframe is reused across clients, so always set it explicitly).
+  if(addrEl) addrEl.style.display = unbranded ? "none" : "";
 
   fl_draw();
   if(document.fonts && document.fonts.ready) await document.fonts.ready;
