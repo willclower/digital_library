@@ -85,6 +85,14 @@
   .fld input[type=color]{width:100%;height:38px;border:1px solid var(--border);border-radius:var(--r-input);padding:2px;background:var(--panel);cursor:pointer;}
   .fldivider{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--subtle);border-top:1px solid var(--border-lt);margin:18px 0 12px;padding-top:14px;}
   .logorow{display:flex;align-items:center;gap:14px;}
+  .hexrow{display:flex;align-items:center;gap:8px;}
+  .swatch{width:26px;height:26px;border-radius:6px;border:1px solid rgba(0,0,0,.18);flex:0 0 auto;background:#eee;}
+  .hexin{font-family:ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase;}
+  .hexerr{color:#b3261e;font-size:.78rem;margin-top:4px;min-height:1em;}
+  .hexin.bad{border-color:#b3261e;}
+  /* read-only preview state (Unbranded / Parent Brand modes in the client modal) */
+  #brandBody.ro input:not(#bfDefault),
+  #brandBody.ro .hexin{background:#f2f2f2;color:#666;pointer-events:none;}
   .logoprev{max-height:44px;max-width:160px;border:1px solid var(--border-lt);border-radius:4px;background:#fff;padding:4px;}
   .hint{font-size:11.5px;color:var(--faint);margin-top:5px;}
 
@@ -271,16 +279,24 @@
     <div class="mbody" id="brandBody">
       <input type="hidden" id="bfId">
       <div class="brow">
-        <div class="fld"><label>Primary color</label><input type="color" id="bfPrimary" value="#236192"></div>
-        <div class="fld"><label>Secondary color</label><input type="color" id="bfSecondary" value="#ed8b00"></div>
+        <div class="fld"><label>Primary color</label>
+          <div class="hexrow"><span class="swatch" id="bfPrimarySw"></span>
+            <input type="text" id="bfPrimary" class="hexin" placeholder="#236192" maxlength="7"
+              oninput="onHexInput('bfPrimary')" onblur="normHex('bfPrimary')"></div>
+          <div class="hexerr" id="bfPrimaryErr"></div></div>
+        <div class="fld"><label>Secondary color</label>
+          <div class="hexrow"><span class="swatch" id="bfSecondarySw"></span>
+            <input type="text" id="bfSecondary" class="hexin" placeholder="#ed8b00" maxlength="7"
+              oninput="onHexInput('bfSecondary')" onblur="normHex('bfSecondary')"></div>
+          <div class="hexerr" id="bfSecondaryErr"></div></div>
         <div class="fld" id="bfDefaultFld"><label>Brand for downloads</label>
-          <select id="bfDefault">
+          <select id="bfDefault" onchange="paintForMode(this.value)">
             <option value="none">Unbranded</option>
             <option value="white-label">Client Brand</option>
             <option value="parent">Parent Brand</option>
           </select></div>
       </div>
-      <div class="fld"><label>Logo</label>
+      <div class="fld" id="bfLogoFld"><label>Logo</label>
         <div class="logorow">
           <img id="bfLogoPreview" class="logoprev" alt="" style="display:none;">
           <input type="file" id="bfLogo" accept="image/png,image/svg+xml,image/jpeg" onchange="onLogoPick(event)">
@@ -723,6 +739,34 @@ async function delClient(id,name){
 }
 let bfLogoData = null;   // {b64, mime} when a new logo is picked; null = leave existing
 let brandScope = "client";   // "client" (AM-managed) | "parent" (super-admin-managed)
+let clientRow  = null;   // the client's own stored row (for Client Brand mode)
+let parentPreview = null; // cached parent brand (for Parent Brand preview); {…row, has_logo}
+
+// ---- hex color field helpers ----------------------------------------------
+const HEX_RE = /^#?[0-9a-fA-F]{6}$|^#?[0-9a-fA-F]{3}$/;
+function paintSwatch(id){
+  const v = document.getElementById(id).value.trim();
+  const sw = document.getElementById(id+"Sw");
+  sw.style.background = HEX_RE.test(v) ? (v[0]==="#"?v:"#"+v) : "#eee";
+}
+function onHexInput(id){
+  const el=document.getElementById(id);
+  const ok = el.value.trim()==="" || HEX_RE.test(el.value.trim());
+  el.classList.toggle("bad", !ok);
+  document.getElementById(id+"Err").textContent = ok ? "" : "Use a hex value like #0C6DB5";
+  paintSwatch(id);
+}
+function normHex(id){                          // on blur: normalize to #RRGGBB uppercase
+  const el=document.getElementById(id); let v=el.value.trim();
+  if(v==="") { onHexInput(id); return; }
+  if(v[0]!=="#") v="#"+v;
+  if(/^#[0-9a-fA-F]{3}$/.test(v)) v="#"+v.slice(1).split("").map(c=>c+c).join(""); // #abc -> #aabbcc
+  if(/^#[0-9a-fA-F]{6}$/.test(v)) el.value=v.toUpperCase();
+  onHexInput(id);
+}
+function setHex(id,val){ document.getElementById(id).value = (val||""); onHexInput(id); }
+function hexValid(id){ const v=document.getElementById(id).value.trim(); return v==="" || HEX_RE.test(v); }
+
 
 /* ---- parent roster modal (super-admin: MedWell manages parent orgs) ---- */
 function openParents(){ show("parentMask"); loadParents(); }
@@ -796,7 +840,7 @@ function applyBrandScope(){
 async function editBrand(id){
   if(!SESSION) return;
   brandScope = "client";
-  bfLogoData = null;
+  bfLogoData = null; parentPreview = null;
   const msg=document.getElementById("bfMsg"); msg.className="msg"; msg.textContent="Loading…";
   applyBrandScope();
   show("brandMask");
@@ -810,27 +854,85 @@ async function editBrand(id){
       if(d && d.error==="unauthorized"){ clearSession(); paintAuth(); closeBrand(); closeRoster(); openLogin(); return; }
       msg.className="msg err"; msg.textContent="Could not load this client."; return;
     }
-    fillBrand(d.client); msg.textContent="";
+    clientRow = d.client;
+    document.getElementById("brandTitle").textContent = "Brand profile — " + (clientRow.name||"");
+    document.getElementById("bfId").value = clientRow.id;
+    document.getElementById("bfDefault").value = clientRow.brand_default || "none";
+    await paintForMode(clientRow.brand_default || "none");   // open in the saved mode
+    msg.textContent="";
   }catch(e){ msg.className="msg err"; msg.textContent="Could not reach the server."; }
 }
 
+// Populate + lock the client modal's fields for the chosen download mode.
+//   none        -> everything blank, read-only, no logo control
+//   white-label -> the client's OWN stored data, editable, logo control shown
+//   parent      -> the parent org's data (preview), read-only, no logo control
+async function paintForMode(mode){
+  const body = document.getElementById("brandBody");
+  const setFt = (k,v)=>{ document.getElementById(k).value = v || ""; };
+  const prev=document.getElementById("bfLogoPreview"), logoFld=document.getElementById("bfLogoFld");
+  const GUIDE = "PNG, SVG, or JPG. A PNG with a transparent background works best. At least 400px wide keeps it sharp in print.";
+  document.getElementById("bfLogo").value=""; bfLogoData=null;
+
+  if(mode==="white-label"){
+    const c = clientRow || {};
+    setHex("bfPrimary", c.brand_primary_hex || "");
+    setHex("bfSecondary", c.brand_secondary_hex || "");
+    setFt("bf_ftName",c.brand_ft_name); setFt("bf_ftAddr1",c.brand_ft_addr1);
+    setFt("bf_ftAddr2",c.brand_ft_addr2); setFt("bf_ftPhone",c.brand_ft_phone);
+    setFt("bf_ftHoursLabel",c.brand_ft_hours_label); setFt("bf_ftHours1",c.brand_ft_hours1);
+    body.classList.remove("ro"); logoFld.style.display="";
+    if(c.has_logo){
+      prev.src = DRL_API + "/logo?type=client&id=" + encodeURIComponent(c.id) + "&t=" + Date.now();
+      prev.style.display="block"; document.getElementById("bfLogoHint").textContent="Current logo shown. Pick a file to replace it. " + GUIDE;
+    }else{ prev.style.display="none"; document.getElementById("bfLogoHint").textContent="No logo set. " + GUIDE; }
+    return;
+  }
+
+  if(mode==="parent"){
+    if(!parentPreview){
+      try{
+        const res = await fetch(DRL_API + "/parent-brand", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ session: SESSION.session })
+        });
+        const d = await res.json();
+        parentPreview = (d && d.ok) ? d.parent : {};
+      }catch(e){ parentPreview = {}; }
+    }
+    const p = parentPreview || {};
+    setHex("bfPrimary", p.brand_primary_hex || "");
+    setHex("bfSecondary", p.brand_secondary_hex || "");
+    setFt("bf_ftName",p.brand_ft_name); setFt("bf_ftAddr1",p.brand_ft_addr1);
+    setFt("bf_ftAddr2",p.brand_ft_addr2); setFt("bf_ftPhone",p.brand_ft_phone);
+    setFt("bf_ftHoursLabel",p.brand_ft_hours_label); setFt("bf_ftHours1",p.brand_ft_hours1);
+    body.classList.add("ro"); logoFld.style.display="none"; prev.style.display="none";
+    return;
+  }
+
+  // none / unbranded -> all blank, read-only, no logo
+  setHex("bfPrimary",""); setHex("bfSecondary","");
+  ["bf_ftName","bf_ftAddr1","bf_ftAddr2","bf_ftPhone","bf_ftHoursLabel","bf_ftHours1"].forEach(k=>setFt(k,""));
+  body.classList.add("ro"); logoFld.style.display="none"; prev.style.display="none";
+}
+
+// Parent (super-admin) modal: always editable, no dropdown, logo shown.
 function fillBrand(c){
-  const label = (brandScope==="parent") ? "Parent brand — " : "Brand profile — ";
-  document.getElementById("brandTitle").textContent = label + c.name;
+  document.getElementById("brandTitle").textContent = "Parent brand — " + c.name;
   document.getElementById("bfId").value = c.id;
-  document.getElementById("bfPrimary").value   = c.brand_primary_hex   || "#236192";
-  document.getElementById("bfSecondary").value = c.brand_secondary_hex || "#ed8b00";
-  document.getElementById("bfDefault").value   = c.brand_default || "none";  // parent rows have none; field is hidden in parent scope
+  document.getElementById("brandBody").classList.remove("ro");
+  document.getElementById("bfLogoFld").style.display="";
+  setHex("bfPrimary", c.brand_primary_hex || "");
+  setHex("bfSecondary", c.brand_secondary_hex || "");
   const set = (k,v)=>{ document.getElementById(k).value = v || ""; };
   set("bf_ftName",c.brand_ft_name); set("bf_ftAddr1",c.brand_ft_addr1);
   set("bf_ftAddr2",c.brand_ft_addr2); set("bf_ftPhone",c.brand_ft_phone);
   set("bf_ftHoursLabel",c.brand_ft_hours_label); set("bf_ftHours1",c.brand_ft_hours1);
   const prev=document.getElementById("bfLogoPreview"), hint=document.getElementById("bfLogoHint");
   const GUIDE = "PNG, SVG, or JPG. A PNG with a transparent background works best. At least 400px wide keeps it sharp in print.";
-  document.getElementById("bfLogo").value="";
-  const logoType = (brandScope==="parent") ? "parent" : "client";
+  document.getElementById("bfLogo").value=""; bfLogoData=null;
   if(c.has_logo){
-    prev.src = DRL_API + "/logo?type=" + logoType + "&id=" + encodeURIComponent(c.id) + "&t=" + Date.now();
+    prev.src = DRL_API + "/logo?type=parent&id=" + encodeURIComponent(c.id) + "&t=" + Date.now();
     prev.style.display="block"; hint.textContent="Current logo shown. Pick a file to replace it. " + GUIDE;
   }else{
     prev.style.display="none"; hint.textContent="No logo set. " + GUIDE;
@@ -855,20 +957,57 @@ function onLogoPick(ev){
 async function saveBrand(){
   if(!SESSION) return;
   const isParent = (brandScope==="parent");
+  const mode = isParent ? "parent-editor" : (document.getElementById("bfDefault").value || "none");
   const msg=document.getElementById("bfMsg"); msg.className="msg"; msg.textContent="Saving…";
   const g=id=>document.getElementById(id).value;
-  const payload = {
-    session: SESSION.session,
-    id: g("bfId"),
-    brand_primary_hex: g("bfPrimary"),
-    brand_secondary_hex: g("bfSecondary"),
-    brand_ft_name: g("bf_ftName"), brand_ft_addr1: g("bf_ftAddr1"),
-    brand_ft_addr2: g("bf_ftAddr2"), brand_ft_phone: g("bf_ftPhone"),
-    brand_ft_hours_label: g("bf_ftHoursLabel"), brand_ft_hours1: g("bf_ftHours1")
-  };
-  if(!isParent) payload.brand_default = g("bfDefault");   // client-only field
-  if(bfLogoData){ payload.brand_logo_b64 = bfLogoData.b64; payload.brand_logo_mime = bfLogoData.mime; }
-  const endpoint = isParent ? "/parent-save" : "/client-save";
+
+  // Fields are editable only in the parent editor and in client "Client Brand" mode.
+  const editable = isParent || (mode==="white-label");
+
+  // Validate hex only when the fields are the ones being written.
+  if(editable && (!hexValid("bfPrimary") || !hexValid("bfSecondary"))){
+    msg.className="msg err"; msg.textContent="Fix the color hex values before saving."; return;
+  }
+
+  let payload, endpoint;
+  if(isParent){
+    endpoint = "/parent-save";
+    payload = {
+      session: SESSION.session, id: g("bfId"),
+      brand_primary_hex: g("bfPrimary"), brand_secondary_hex: g("bfSecondary"),
+      brand_ft_name: g("bf_ftName"), brand_ft_addr1: g("bf_ftAddr1"),
+      brand_ft_addr2: g("bf_ftAddr2"), brand_ft_phone: g("bf_ftPhone"),
+      brand_ft_hours_label: g("bf_ftHoursLabel"), brand_ft_hours1: g("bf_ftHours1")
+    };
+    if(bfLogoData){ payload.brand_logo_b64 = bfLogoData.b64; payload.brand_logo_mime = bfLogoData.mime; }
+  } else if(mode==="white-label"){
+    endpoint = "/client-save";
+    payload = {
+      session: SESSION.session, id: g("bfId"), brand_default: "white-label",
+      brand_primary_hex: g("bfPrimary"), brand_secondary_hex: g("bfSecondary"),
+      brand_ft_name: g("bf_ftName"), brand_ft_addr1: g("bf_ftAddr1"),
+      brand_ft_addr2: g("bf_ftAddr2"), brand_ft_phone: g("bf_ftPhone"),
+      brand_ft_hours_label: g("bf_ftHoursLabel"), brand_ft_hours1: g("bf_ftHours1")
+    };
+    if(bfLogoData){ payload.brand_logo_b64 = bfLogoData.b64; payload.brand_logo_mime = bfLogoData.mime; }
+  } else {
+    // Unbranded / Parent Brand: fields are preview only. Persist the mode, and
+    // resend the client's OWN stored values so a blanket UPDATE in /client-save
+    // cannot wipe their brand data. (Defensive: does not rely on client-save
+    // being null-safe.)
+    const c = clientRow || {};
+    endpoint = "/client-save";
+    payload = {
+      session: SESSION.session, id: g("bfId"), brand_default: mode,
+      brand_primary_hex: c.brand_primary_hex || "", brand_secondary_hex: c.brand_secondary_hex || "",
+      brand_ft_name: c.brand_ft_name || "", brand_ft_addr1: c.brand_ft_addr1 || "",
+      brand_ft_addr2: c.brand_ft_addr2 || "", brand_ft_phone: c.brand_ft_phone || "",
+      brand_ft_hours_label: c.brand_ft_hours_label || "", brand_ft_hours1: c.brand_ft_hours1 || ""
+    };
+    // NOTE: logo not resent — no logo b64 means client-save leaves logo bytes as-is
+    // (confirmed pattern in parent-save; verify client-save does the same).
+  }
+
   try{
     const res = await fetch(DRL_API + endpoint, {
       method:"POST", headers:{"Content-Type":"application/json"},
