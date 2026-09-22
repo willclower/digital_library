@@ -178,6 +178,7 @@
     <button class="linkbtn" id="loginLink" onclick="openLogin()">Log in</button>
     <span class="whoami" id="whoami" style="display:none;"></span>
     <button class="linkbtn" id="manageLink" style="display:none;" onclick="openRoster()">Manage clients</button>
+    <button class="linkbtn" id="parentLink" style="display:none;" onclick="openParents()">Parent brands</button>
     <button class="linkbtn" id="logoutLink" style="display:none;" onclick="doLogout()">Log out</button>
   </div>
   <a class="back" href="../wellness_tools/index.html">&larr; Back to tools</a>
@@ -253,6 +254,15 @@
   </div>
 </div>
 
+<!-- ---- parent roster modal (super-admin: MedWell manages parent orgs) ---- -->
+<div class="mask" id="parentMask">
+  <div class="modal wide">
+    <div class="mhead"><h2>Parent brands</h2>
+      <button class="mclose" onclick="closeParents()">&times;</button></div>
+    <div class="mbody" id="parentBody"></div>
+  </div>
+</div>
+
 <!-- ---- brand form modal ---- -->
 <div class="mask" id="brandMask">
   <div class="modal wide">
@@ -263,11 +273,11 @@
       <div class="brow">
         <div class="fld"><label>Primary color</label><input type="color" id="bfPrimary" value="#236192"></div>
         <div class="fld"><label>Secondary color</label><input type="color" id="bfSecondary" value="#ed8b00"></div>
-        <div class="fld"><label>Default brand for downloads</label>
+        <div class="fld" id="bfDefaultFld"><label>Brand for downloads</label>
           <select id="bfDefault">
             <option value="none">Unbranded</option>
-            <option value="white-label">Client brand</option>
-            <option value="parent">Default brand (Parent Co)</option>
+            <option value="white-label">Client Brand</option>
+            <option value="parent">Parent Brand</option>
           </select></div>
       </div>
       <div class="fld"><label>Logo</label>
@@ -593,6 +603,7 @@ function paintAuth(){
   document.getElementById("loginLink").style.display  = inn ? "none" : "";
   document.getElementById("whoami").style.display     = inn ? "" : "none";
   document.getElementById("manageLink").style.display = inn ? "" : "none";
+  document.getElementById("parentLink").style.display = (inn && SESSION.am.is_super_admin) ? "" : "none";
   document.getElementById("logoutLink").style.display = inn ? "" : "none";
   if(inn){
     document.getElementById("whoami").textContent =
@@ -620,7 +631,7 @@ async function doLogin(){
     setTimeout(()=>{ closeLogin(); openRoster(); }, 300);
   }catch(e){ m.className="msg err"; m.textContent="Could not reach the server."; }
 }
-function doLogout(){ clearSession(); paintAuth(); hide("rosterMask"); }
+function doLogout(){ clearSession(); paintAuth(); hide("rosterMask"); hide("parentMask"); }
 
 /* ---- roster modal (list clients; add/delete come next) ---- */
 function openRoster(){ show("rosterMask"); loadRoster(); }
@@ -711,11 +722,83 @@ async function delClient(id,name){
   }catch(e){ alert("Could not reach the server."); }
 }
 let bfLogoData = null;   // {b64, mime} when a new logo is picked; null = leave existing
+let brandScope = "client";   // "client" (AM-managed) | "parent" (super-admin-managed)
+
+/* ---- parent roster modal (super-admin: MedWell manages parent orgs) ---- */
+function openParents(){ show("parentMask"); loadParents(); }
+function closeParents(){ hide("parentMask"); }
+
+async function loadParents(){
+  const box = document.getElementById("parentBody");
+  box.innerHTML = `<p class="msg">Loading parent organizations…</p>`;
+  if(!SESSION){ box.innerHTML = `<p class="msg err">Not signed in.</p>`; return; }
+  try{
+    const res = await fetch(DRL_API + "/parent-list", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ session: SESSION.session })
+    });
+    const d = await res.json();
+    if(!d || !d.ok){
+      if(d && d.error==="unauthorized"){ clearSession(); paintAuth(); closeParents(); openLogin(); return; }
+      box.innerHTML = `<p class="msg err">Could not load parent organizations.</p>`; return;
+    }
+    renderParents(d.parents || []);
+  }catch(e){ box.innerHTML = `<p class="msg err">Could not reach the server.</p>`; }
+}
+
+function renderParents(parents){
+  const box = document.getElementById("parentBody");
+  if(!parents.length){ box.innerHTML = `<p class="msg">No parent organizations found.</p>`; return; }
+  const rows = parents.map(p=>{
+    const badge = p.has_brand
+      ? `<span class="cbadge wl">brand set</span>`
+      : `<span class="cbadge none">brand not set</span>`;
+    return `<li>
+      <span class="cname">${p.name}</span>
+      <span class="ccode">${p.code}</span>
+      ${badge}
+      <span class="cspacer">
+        <button class="btn" onclick="editParent('${p.id}')">Edit brand</button>
+      </span>
+    </li>`;
+  }).join("");
+  box.innerHTML = `<ul class="clist">${rows}</ul>`;
+}
+
+async function editParent(id){
+  if(!SESSION) return;
+  brandScope = "parent";
+  bfLogoData = null;
+  const msg=document.getElementById("bfMsg"); msg.className="msg"; msg.textContent="Loading…";
+  applyBrandScope();
+  show("brandMask");
+  try{
+    const res = await fetch(DRL_API + "/parent-get", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ session: SESSION.session, id })
+    });
+    const d = await res.json();
+    if(!d || !d.ok){
+      if(d && d.error==="unauthorized"){ clearSession(); paintAuth(); closeBrand(); closeParents(); openLogin(); return; }
+      msg.className="msg err"; msg.textContent="Could not load this parent org."; return;
+    }
+    fillBrand(d.parent); msg.textContent="";
+  }catch(e){ msg.className="msg err"; msg.textContent="Could not reach the server."; }
+}
+
+// Show/hide the "Brand for downloads" field: meaningful for a client
+// (AM picks a default mode), meaningless for a parent (a parent IS the brand).
+function applyBrandScope(){
+  const fld=document.getElementById("bfDefaultFld");
+  if(fld) fld.style.display = (brandScope==="parent") ? "none" : "";
+}
 
 async function editBrand(id){
   if(!SESSION) return;
+  brandScope = "client";
   bfLogoData = null;
   const msg=document.getElementById("bfMsg"); msg.className="msg"; msg.textContent="Loading…";
+  applyBrandScope();
   show("brandMask");
   try{
     const res = await fetch(DRL_API + "/client-get", {
@@ -732,11 +815,12 @@ async function editBrand(id){
 }
 
 function fillBrand(c){
-  document.getElementById("brandTitle").textContent = "Brand profile — " + c.name;
+  const label = (brandScope==="parent") ? "Parent brand — " : "Brand profile — ";
+  document.getElementById("brandTitle").textContent = label + c.name;
   document.getElementById("bfId").value = c.id;
   document.getElementById("bfPrimary").value   = c.brand_primary_hex   || "#236192";
   document.getElementById("bfSecondary").value = c.brand_secondary_hex || "#ed8b00";
-  document.getElementById("bfDefault").value   = c.brand_default || "none";
+  document.getElementById("bfDefault").value   = c.brand_default || "none";  // parent rows have none; field is hidden in parent scope
   const set = (k,v)=>{ document.getElementById(k).value = v || ""; };
   set("bf_ftName",c.brand_ft_name); set("bf_ftAddr1",c.brand_ft_addr1);
   set("bf_ftAddr2",c.brand_ft_addr2); set("bf_ftPhone",c.brand_ft_phone);
@@ -744,8 +828,9 @@ function fillBrand(c){
   const prev=document.getElementById("bfLogoPreview"), hint=document.getElementById("bfLogoHint");
   const GUIDE = "PNG, SVG, or JPG. A PNG with a transparent background works best. At least 400px wide keeps it sharp in print.";
   document.getElementById("bfLogo").value="";
+  const logoType = (brandScope==="parent") ? "parent" : "client";
   if(c.has_logo){
-    prev.src = DRL_API + "/logo?type=client&id=" + encodeURIComponent(c.id) + "&t=" + Date.now();
+    prev.src = DRL_API + "/logo?type=" + logoType + "&id=" + encodeURIComponent(c.id) + "&t=" + Date.now();
     prev.style.display="block"; hint.textContent="Current logo shown. Pick a file to replace it. " + GUIDE;
   }else{
     prev.style.display="none"; hint.textContent="No logo set. " + GUIDE;
@@ -769,31 +854,33 @@ function onLogoPick(ev){
 
 async function saveBrand(){
   if(!SESSION) return;
+  const isParent = (brandScope==="parent");
   const msg=document.getElementById("bfMsg"); msg.className="msg"; msg.textContent="Saving…";
   const g=id=>document.getElementById(id).value;
   const payload = {
     session: SESSION.session,
     id: g("bfId"),
-    brand_default: g("bfDefault"),
     brand_primary_hex: g("bfPrimary"),
     brand_secondary_hex: g("bfSecondary"),
     brand_ft_name: g("bf_ftName"), brand_ft_addr1: g("bf_ftAddr1"),
     brand_ft_addr2: g("bf_ftAddr2"), brand_ft_phone: g("bf_ftPhone"),
     brand_ft_hours_label: g("bf_ftHoursLabel"), brand_ft_hours1: g("bf_ftHours1")
   };
+  if(!isParent) payload.brand_default = g("bfDefault");   // client-only field
   if(bfLogoData){ payload.brand_logo_b64 = bfLogoData.b64; payload.brand_logo_mime = bfLogoData.mime; }
+  const endpoint = isParent ? "/parent-save" : "/client-save";
   try{
-    const res = await fetch(DRL_API + "/client-save", {
+    const res = await fetch(DRL_API + endpoint, {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify(payload)
     });
     const d = await res.json();
     if(!d || !d.ok){
-      if(d && d.error==="unauthorized"){ clearSession(); paintAuth(); closeBrand(); closeRoster(); openLogin(); return; }
+      if(d && d.error==="unauthorized"){ clearSession(); paintAuth(); closeBrand(); closeRoster(); closeParents(); openLogin(); return; }
       msg.className="msg err"; msg.textContent="Could not save."; return;
     }
     msg.className="msg ok"; msg.textContent="Saved.";
-    setTimeout(()=>{ closeBrand(); loadRoster(); }, 400);
+    setTimeout(()=>{ closeBrand(); if(isParent) loadParents(); else loadRoster(); }, 400);
   }catch(e){ msg.className="msg err"; msg.textContent="Could not reach the server."; }
 }
 function closeBrand(){ hide("brandMask"); }
@@ -959,7 +1046,7 @@ async function loadPickerClients(){
   }
 }
 
-const MODE_LABEL = { none:"Unbranded", "white-label":"Client brand", parent:"Default brand" };
+const MODE_LABEL = { none:"Unbranded", "white-label":"Client Brand", parent:"Parent Brand" };
 function renderPickerList(){
   const list = document.getElementById("dlList");
   document.getElementById("dlAll").checked = false;
@@ -970,7 +1057,7 @@ function renderPickerList(){
   list.innerHTML = dlClients.map(c=>{
     const def = c.brand_default || "none";
     // white-label option only meaningful if the client actually has brand data
-    const wlOpt = `<option value="white-label"${def==="white-label"?" selected":""}${c.has_brand?"":" disabled"}>Client brand</option>`;
+    const wlOpt = `<option value="white-label"${def==="white-label"?" selected":""}${c.has_brand?"":" disabled"}>Client Brand</option>`;
     const warn = (def==="white-label" && !c.has_brand)
       ? `<span class="dlwarn">no brand on file — using Unbranded</span>` : "";
     const startMode = (def==="white-label" && !c.has_brand) ? "none" : def;
@@ -981,7 +1068,7 @@ function renderPickerList(){
       <select class="dlmode" data-mode>
         <option value="none"${startMode==="none"?" selected":""}>Unbranded</option>
         ${wlOpt}
-        <option value="parent"${startMode==="parent"?" selected":""}>Default brand</option>
+        <option value="parent"${startMode==="parent"?" selected":""}>Parent Brand</option>
       </select>
     </li>`;
   }).join("");
