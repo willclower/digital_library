@@ -1269,14 +1269,53 @@ function renderPickerList(){
       <input type="checkbox" class="dlpick" onchange="onPick(this)">
       <span class="dlnm"><span class="n">${c.name || c.code || "(unnamed client)"}</span><span class="c">${c.code||""}</span></span>
       ${warn}
-      <select class="dlmode" data-mode>
+      <select class="dlmode" data-mode onchange="onModeChange(this)">
         <option value="none"${startMode==="none"?" selected":""}>Unbranded</option>
         ${wlOpt}
         <option value="parent"${startMode==="parent"?" selected":""}>Parent Brand</option>
       </select>
+      <select class="dlqr" data-qr>
+        <option value="none">No QR</option>
+        <option value="open_flyer">QR: Open flyer</option>
+        <option value="book_schedule">QR: Book &amp; schedule</option>
+      </select>
     </li>`;
   }).join("");
+  // initialize each row's QR availability for its starting mode
+  document.querySelectorAll("#dlList li[data-id]").forEach(li=>{
+    syncQrOptions(li, li.querySelector("[data-mode]").value);
+  });
   updateSel();
+}
+
+// Resolve whether "Book & schedule" is available for a client in a given mode.
+//   none         -> client's own scheduler
+//   white-label  -> client's own, else parent's
+//   parent       -> parent's
+function schedulerAvailable(client, mode){
+  if(!client) return false;
+  const self = !!client.has_scheduler_self;
+  const par  = !!client.has_scheduler_parent;
+  if(mode==="parent") return par;
+  if(mode==="white-label") return self || par;
+  return self; // none
+}
+
+// Enable/disable the "Book & schedule" option on a row's QR select for the mode.
+function syncQrOptions(li, mode){
+  const id = li.getAttribute("data-id");
+  const client = dlClients.find(c=>String(c.id)===String(id));
+  const qr = li.querySelector("[data-qr]");
+  const bookOpt = qr.querySelector('option[value="book_schedule"]');
+  const ok = schedulerAvailable(client, mode);
+  bookOpt.disabled = !ok;
+  bookOpt.textContent = ok ? "QR: Book & schedule" : "QR: Book & schedule (no link)";
+  if(!ok && qr.value==="book_schedule") qr.value="none";  // fall back if it becomes unavailable
+}
+
+function onModeChange(sel){
+  const li = sel.closest("li[data-id]");
+  syncQrOptions(li, sel.value);
 }
 
 function onPick(cb){
@@ -1302,7 +1341,10 @@ function collectPicks(){
     const chosenMode = li.querySelector("[data-mode]").value;   // AM's actual selection (persisted)
     let mode = chosenMode;
     if(mode==="white-label" && client && !client.has_brand) mode="none";  // safety net for THIS render only
-    picks.push({ client, mode, chosenMode });
+    let qr = li.querySelector("[data-qr]").value || "none";
+    // guard: never emit book_schedule if it isn't available for the rendered mode
+    if(qr==="book_schedule" && !schedulerAvailable(client, mode)) qr="none";
+    picks.push({ client, mode, chosenMode, qr });
   });
   return picks;
 }
