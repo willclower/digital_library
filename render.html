@@ -63,6 +63,12 @@
       </div>
       <div class="fl-addr__logo" id="fl_ftLogo"></div>
     </div>
+    <div class="fl-resource" id="fl_resource" style="display:none;">
+      <div class="tbody">
+        <h4 id="fl_res_h"></h4>
+        <p id="fl_res_p"></p>
+      </div>
+    </div>
     <div class="fl-foot">
       <span class="powered" id="fl_footPowered"></span>
       <span class="code" id="fl_footCode"></span>
@@ -139,6 +145,24 @@ async function renderFlyerFromManifest(manifest, brand){
   if(bg && bannerData){ bg.style.backgroundImage = `url('${bannerData}')`; bg.style.backgroundPosition = `50% ${fl_bannerY}%`; }
 
   fl_subjectData = (m.subject_ref || m.subject) ? await fl_toDataUrl(m.subject_ref || m.subject) : null;
+
+  // Bottom-zone pop-in/pop-out:
+  //   branded    -> address footer shown, resource hidden
+  //   unbranded  -> address footer hidden; if a resource block exists, show it
+  //                 (tile-card look); if empty, both hidden -> body spreads to fill.
+  const resEl = fl_$("fl_resource");
+  const res = m.resource || {};
+  const hasRes = unbranded && ((res.h && res.h.trim()) || (res.p && res.p.trim()));
+  if(resEl){
+    if(hasRes){
+      const rh = fl_$("fl_res_h"), rp = fl_$("fl_res_p");
+      if(rh) rh.textContent = res.h || "";
+      if(rp) rp.textContent = res.p || "";
+      resEl.style.display = "";
+    } else {
+      resEl.style.display = "none";
+    }
+  }
 
   // Collapse the whole contact/logo block for unbranded; restore it otherwise
   // (the iframe is reused across clients, so always set it explicitly).
