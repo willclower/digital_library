@@ -70,8 +70,6 @@
     text-transform:uppercase;color:var(--brand-primary);line-height:1.3;}
 .flyer-scope .fl-col__body{margin:0;font-size:10.5px;line-height:1.5;color:var(--ink-soft);}
 .flyer-scope .ts-mode .fl-header{min-height:255px;}
-.flyer-scope .ts-mode .fl-header .scrim,
-.flyer-scope .ts-mode .fl-header .htexture,
 .flyer-scope .ts-mode .fl-header .hcontent{display:none;}
 .flyer-scope .ts-mode .fl-body{padding-top:0;}
 .flyer-scope .ts-sweep{position:relative;height:0;z-index:2;margin:0 -40px;}
@@ -136,3 +134,15 @@
     font-size:9px;color:#7c7891;}
 .flyer-scope .fl-foot .powered b{color:var(--ink);}
 .flyer-scope .fl-foot .code{color:#b3ab9c;font-size:9.5px;}
+
+/* ===== Closing resource block (unbranded download only) =====
+   Sibling of .fl-body; when the address footer is hidden (unbranded), .fl-body
+   flex-grows and pins this to the page bottom. Reuses the tile-card look so it
+   reads as a continuation of the body, not a stray footer. render.html toggles
+   its display; it is never shown on branded downloads. */
+.flyer-scope .fl-resource{flex:0 0 auto;margin:0 40px 30px;
+  background:var(--tile);border:1px solid var(--tile-border);border-radius:9px;padding:14px 16px;}
+.flyer-scope .fl-resource .tbody h4{margin:0 0 3px;font-size:14.5px;font-weight:700;color:var(--brand-primary);}
+.flyer-scope .fl-resource .tbody p{margin:0;font-size:12px;line-height:1.42;color:var(--ink-soft);}
+/* In two-step mode the body already ends with a sweep; keep the resource tidy under it. */
+.flyer-scope .ts-mode .fl-resource{margin-top:4px;}
