@@ -91,8 +91,10 @@
   .hexerr{color:#b3261e;font-size:.78rem;margin-top:4px;min-height:1em;}
   .hexin.bad{border-color:#b3261e;}
   /* read-only preview state (Unbranded / Parent Brand modes in the client modal) */
-  #brandBody.ro input:not(#bfDefault),
+  #brandBody.ro input:not(#bfDefault):not(.profin),
   #brandBody.ro .hexin{background:#f2f2f2;color:#666;pointer-events:none;}
+  /* profile/action fields stay editable regardless of brand mode */
+  #profileSection input{background:#fff;color:inherit;pointer-events:auto;}
   .logoprev{max-height:44px;max-width:160px;border:1px solid var(--border-lt);border-radius:4px;background:#fff;padding:4px;}
   .hint{font-size:11.5px;color:var(--faint);margin-top:5px;}
 
@@ -314,6 +316,27 @@
         <div class="fld"><label>Contact Location</label><input type="text" id="bf_ftHoursLabel"></div>
       </div>
       <div class="fld"><label>Hours of Operation</label><input type="text" id="bf_ftHours1"></div>
+      <div class="fldivider" id="profileDivider">Company profile &amp; actions</div>
+      <div id="profileSection">
+        <div class="hint" style="margin-bottom:8px;">These power QR actions and are independent of the flyer's look. The scheduler link enables the &ldquo;Book &amp; schedule&rdquo; QR.</div>
+        <div class="fld"><label>Scheduler / booking URL</label><input type="text" class="profin" id="bf_schedulerUrl" placeholder="https://…"></div>
+        <div class="brow">
+          <div class="fld"><label>Clinic / center name</label><input type="text" class="profin" id="bf_clinicName"></div>
+          <div class="fld"><label>Clinic / center URL</label><input type="text" class="profin" id="bf_clinicUrl" placeholder="https://…"></div>
+        </div>
+        <div class="brow">
+          <div class="fld"><label>Location finder URL</label><input type="text" class="profin" id="bf_locatorUrl" placeholder="https://…"></div>
+          <div class="fld"><label>Benefits URL</label><input type="text" class="profin" id="bf_benefitsUrl" placeholder="https://…"></div>
+        </div>
+        <div class="brow">
+          <div class="fld"><label>EAP phone</label><input type="text" class="profin" id="bf_eapPhone"></div>
+          <div class="fld"><label>EAP URL</label><input type="text" class="profin" id="bf_eapUrl" placeholder="https://…"></div>
+        </div>
+        <div class="brow">
+          <div class="fld"><label>Nurse line phone</label><input type="text" class="profin" id="bf_nurseLinePhone"></div>
+          <div class="fld"><label>Program URL</label><input type="text" class="profin" id="bf_programUrl" placeholder="https://…"></div>
+        </div>
+      </div>
       <div style="display:flex;gap:8px;margin-top:6px;">
         <button class="btn btn-primary" onclick="saveBrand()">Save brand profile</button>
         <button class="btn" onclick="closeBrand()">Cancel</button>
@@ -867,6 +890,13 @@ async function editBrand(id){
 //   none        -> everything blank, read-only, no logo control
 //   white-label -> the client's OWN stored data, editable, logo control shown
 //   parent      -> the parent org's data (preview), read-only, no logo control
+function setProfileVisible(on){
+  const sec=document.getElementById("profileSection");
+  const div=document.getElementById("profileDivider");
+  const d = on ? "" : "none";
+  if(sec) sec.style.display=d; if(div) div.style.display=d;
+}
+
 async function paintForMode(mode){
   const body = document.getElementById("brandBody");
   const setFt = (k,v)=>{ document.getElementById(k).value = v || ""; };
@@ -881,6 +911,8 @@ async function paintForMode(mode){
     setFt("bf_ftName",c.brand_ft_name); setFt("bf_ftAddr1",c.brand_ft_addr1);
     setFt("bf_ftAddr2",c.brand_ft_addr2); setFt("bf_ftPhone",c.brand_ft_phone);
     setFt("bf_ftHoursLabel",c.brand_ft_hours_label); setFt("bf_ftHours1",c.brand_ft_hours1);
+    setFt("bf_schedulerUrl",c.scheduler_url);     setFt("bf_locatorUrl",c.locator_url);     setFt("bf_clinicName",c.clinic_name);     setFt("bf_clinicUrl",c.clinic_url);     setFt("bf_benefitsUrl",c.benefits_url);     setFt("bf_eapPhone",c.eap_phone);     setFt("bf_eapUrl",c.eap_url);     setFt("bf_nurseLinePhone",c.nurse_line_phone);     setFt("bf_programUrl",c.program_url);
+    setProfileVisible(true);
     body.classList.remove("ro"); logoFld.style.display="";
     if(c.has_logo){
       prev.src = DRL_API + "/logo?type=client&id=" + encodeURIComponent(c.id) + "&t=" + Date.now();
@@ -906,6 +938,8 @@ async function paintForMode(mode){
     setFt("bf_ftName",p.brand_ft_name); setFt("bf_ftAddr1",p.brand_ft_addr1);
     setFt("bf_ftAddr2",p.brand_ft_addr2); setFt("bf_ftPhone",p.brand_ft_phone);
     setFt("bf_ftHoursLabel",p.brand_ft_hours_label); setFt("bf_ftHours1",p.brand_ft_hours1);
+    setFt("bf_schedulerUrl",(clientRow||{}).scheduler_url);     setFt("bf_locatorUrl",(clientRow||{}).locator_url);     setFt("bf_clinicName",(clientRow||{}).clinic_name);     setFt("bf_clinicUrl",(clientRow||{}).clinic_url);     setFt("bf_benefitsUrl",(clientRow||{}).benefits_url);     setFt("bf_eapPhone",(clientRow||{}).eap_phone);     setFt("bf_eapUrl",(clientRow||{}).eap_url);     setFt("bf_nurseLinePhone",(clientRow||{}).nurse_line_phone);     setFt("bf_programUrl",(clientRow||{}).program_url);
+    setProfileVisible(true);
     body.classList.add("ro"); logoFld.style.display="none"; prev.style.display="none";
     return;
   }
@@ -913,6 +947,8 @@ async function paintForMode(mode){
   // none / unbranded -> all blank, read-only, no logo
   setHex("bfPrimary",""); setHex("bfSecondary","");
   ["bf_ftName","bf_ftAddr1","bf_ftAddr2","bf_ftPhone","bf_ftHoursLabel","bf_ftHours1"].forEach(k=>setFt(k,""));
+  setFt("bf_schedulerUrl",(clientRow||{}).scheduler_url);   setFt("bf_locatorUrl",(clientRow||{}).locator_url);   setFt("bf_clinicName",(clientRow||{}).clinic_name);   setFt("bf_clinicUrl",(clientRow||{}).clinic_url);   setFt("bf_benefitsUrl",(clientRow||{}).benefits_url);   setFt("bf_eapPhone",(clientRow||{}).eap_phone);   setFt("bf_eapUrl",(clientRow||{}).eap_url);   setFt("bf_nurseLinePhone",(clientRow||{}).nurse_line_phone);   setFt("bf_programUrl",(clientRow||{}).program_url);
+  setProfileVisible(true);
   body.classList.add("ro"); logoFld.style.display="none"; prev.style.display="none";
 }
 
@@ -928,6 +964,8 @@ function fillBrand(c){
   set("bf_ftName",c.brand_ft_name); set("bf_ftAddr1",c.brand_ft_addr1);
   set("bf_ftAddr2",c.brand_ft_addr2); set("bf_ftPhone",c.brand_ft_phone);
   set("bf_ftHoursLabel",c.brand_ft_hours_label); set("bf_ftHours1",c.brand_ft_hours1);
+  set("bf_schedulerUrl",c.scheduler_url);   set("bf_locatorUrl",c.locator_url);   set("bf_clinicName",c.clinic_name);   set("bf_clinicUrl",c.clinic_url);   set("bf_benefitsUrl",c.benefits_url);   set("bf_eapPhone",c.eap_phone);   set("bf_eapUrl",c.eap_url);   set("bf_nurseLinePhone",c.nurse_line_phone);   set("bf_programUrl",c.program_url);
+  setProfileVisible(true);
   const prev=document.getElementById("bfLogoPreview"), hint=document.getElementById("bfLogoHint");
   const GUIDE = "PNG, SVG, or JPG. A PNG with a transparent background works best. At least 400px wide keeps it sharp in print.";
   document.getElementById("bfLogo").value=""; bfLogoData=null;
@@ -977,7 +1015,16 @@ async function saveBrand(){
       brand_primary_hex: g("bfPrimary"), brand_secondary_hex: g("bfSecondary"),
       brand_ft_name: g("bf_ftName"), brand_ft_addr1: g("bf_ftAddr1"),
       brand_ft_addr2: g("bf_ftAddr2"), brand_ft_phone: g("bf_ftPhone"),
-      brand_ft_hours_label: g("bf_ftHoursLabel"), brand_ft_hours1: g("bf_ftHours1")
+      brand_ft_hours_label: g("bf_ftHoursLabel"), brand_ft_hours1: g("bf_ftHours1"),
+      scheduler_url: g("bf_schedulerUrl"),
+      locator_url: g("bf_locatorUrl"),
+      clinic_name: g("bf_clinicName"),
+      clinic_url: g("bf_clinicUrl"),
+      benefits_url: g("bf_benefitsUrl"),
+      eap_phone: g("bf_eapPhone"),
+      eap_url: g("bf_eapUrl"),
+      nurse_line_phone: g("bf_nurseLinePhone"),
+      program_url: g("bf_programUrl")
     };
     if(bfLogoData){ payload.brand_logo_b64 = bfLogoData.b64; payload.brand_logo_mime = bfLogoData.mime; }
   } else if(mode==="white-label"){
@@ -987,7 +1034,16 @@ async function saveBrand(){
       brand_primary_hex: g("bfPrimary"), brand_secondary_hex: g("bfSecondary"),
       brand_ft_name: g("bf_ftName"), brand_ft_addr1: g("bf_ftAddr1"),
       brand_ft_addr2: g("bf_ftAddr2"), brand_ft_phone: g("bf_ftPhone"),
-      brand_ft_hours_label: g("bf_ftHoursLabel"), brand_ft_hours1: g("bf_ftHours1")
+      brand_ft_hours_label: g("bf_ftHoursLabel"), brand_ft_hours1: g("bf_ftHours1"),
+      scheduler_url: g("bf_schedulerUrl"),
+      locator_url: g("bf_locatorUrl"),
+      clinic_name: g("bf_clinicName"),
+      clinic_url: g("bf_clinicUrl"),
+      benefits_url: g("bf_benefitsUrl"),
+      eap_phone: g("bf_eapPhone"),
+      eap_url: g("bf_eapUrl"),
+      nurse_line_phone: g("bf_nurseLinePhone"),
+      program_url: g("bf_programUrl")
     };
     if(bfLogoData){ payload.brand_logo_b64 = bfLogoData.b64; payload.brand_logo_mime = bfLogoData.mime; }
   } else {
@@ -1002,7 +1058,16 @@ async function saveBrand(){
       brand_primary_hex: c.brand_primary_hex || "", brand_secondary_hex: c.brand_secondary_hex || "",
       brand_ft_name: c.brand_ft_name || "", brand_ft_addr1: c.brand_ft_addr1 || "",
       brand_ft_addr2: c.brand_ft_addr2 || "", brand_ft_phone: c.brand_ft_phone || "",
-      brand_ft_hours_label: c.brand_ft_hours_label || "", brand_ft_hours1: c.brand_ft_hours1 || ""
+      brand_ft_hours_label: c.brand_ft_hours_label || "", brand_ft_hours1: c.brand_ft_hours1 || "",
+      scheduler_url: g("bf_schedulerUrl"),
+      locator_url: g("bf_locatorUrl"),
+      clinic_name: g("bf_clinicName"),
+      clinic_url: g("bf_clinicUrl"),
+      benefits_url: g("bf_benefitsUrl"),
+      eap_phone: g("bf_eapPhone"),
+      eap_url: g("bf_eapUrl"),
+      nurse_line_phone: g("bf_nurseLinePhone"),
+      program_url: g("bf_programUrl")
     };
     // NOTE: logo not resent — no logo b64 means client-save leaves logo bytes as-is
     // (confirmed pattern in parent-save; verify client-save does the same).
