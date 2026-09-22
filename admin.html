@@ -395,6 +395,11 @@
   <div class="fld"><label>Lead paragraph</label><textarea id="fl_in_lead">Check the box each time you land one. Six simple moves that give your body the raw material to hold the line through cold-and-flu season.</textarea></div>
   <div id="fl_in_tiles"></div>
 
+  <div class="seg-label">Closing resource <span class="sub">shown when unbranded</span></div>
+  <p class="dhint" style="margin:0 0 10px;">Replaces the address footer on un-branded downloads. Same topic as the flyer; a "where to go next" beat. Drafted by AI with the rest.</p>
+  <div class="fld"><label>Resource title</label><input type="text" id="fl_in_res_h" oninput="fl_draw()" placeholder="Keep it going"></div>
+  <div class="fld"><label>Resource body</label><textarea id="fl_in_res_p" oninput="fl_draw()" placeholder="One or two sentences pointing to a general next step."></textarea></div>
+
   <div class="seg-label">Center info (footer)</div>
   <p class="dhint" style="margin:0 0 10px;">The shared address footer. Defaults to Concentra; edit for a white-label client.</p>
   <div class="fld"><label>Onsite center name</label><input type="text" id="fl_in_ftName" value="Onsite Center Name"></div>
@@ -927,6 +932,7 @@ async function fl_captureManifest(){
     eyebrow:  g("fl_in_eyebrow"),
     lead:     g("fl_in_lead"),
     tiles,
+    resource: { h: g("fl_in_res_h"), p: g("fl_in_res_p") },   // unbranded footer-zone content
     banner_ref, banner,     // one of the two is set (ref preferred; data URL only for local uploads)
     focus_y:  fl_bannerY,
     subject_ref, subject,   // twostep circle; ref preferred, else small data URL, else both null
@@ -1525,6 +1531,7 @@ async function fl_draftCopy(){
     const _n = fl_itemCount();
     (d.tiles||[]).slice(0,_n).forEach((t,i)=>{ fl_setFld(`fl_in_t${i}_h`, t.h); fl_setFld(`fl_in_t${i}_p`, t.p); });
     for(let i=_n;i<6;i++){ fl_setFld(`fl_in_t${i}_h`,""); fl_setFld(`fl_in_t${i}_p`,""); }
+    if(d.resource){ fl_setFld("fl_in_res_h", d.resource.h); fl_setFld("fl_in_res_p", d.resource.p); }
 
     fl_draw();
     msg.className="draftmsg ok"; msg.textContent="Drafted — edit any field below.";
