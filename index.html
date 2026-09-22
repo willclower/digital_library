@@ -1269,7 +1269,7 @@ function renderPickerList(){
       <input type="checkbox" class="dlpick" onchange="onPick(this)">
       <span class="dlnm"><span class="n">${c.name || c.code || "(unnamed client)"}</span><span class="c">${c.code||""}</span></span>
       ${warn}
-      <select class="dlmode" data-mode onchange="onModeChange(this)">
+      <select class="dlmode" data-mode>
         <option value="none"${startMode==="none"?" selected":""}>Unbranded</option>
         ${wlOpt}
         <option value="parent"${startMode==="parent"?" selected":""}>Parent Brand</option>
@@ -1281,41 +1281,28 @@ function renderPickerList(){
       </select>
     </li>`;
   }).join("");
-  // initialize each row's QR availability for its starting mode
-  document.querySelectorAll("#dlList li[data-id]").forEach(li=>{
-    syncQrOptions(li, li.querySelector("[data-mode]").value);
-  });
+  // initialize each row's QR availability (independent of brand mode)
+  document.querySelectorAll("#dlList li[data-id]").forEach(li=>{ syncQrOptions(li); });
   updateSel();
 }
 
-// Resolve whether "Book & schedule" is available for a client in a given mode.
-//   none         -> client's own scheduler
-//   white-label  -> client's own, else parent's
-//   parent       -> parent's
-function schedulerAvailable(client, mode){
+// "Book & schedule" is available if a scheduler link is resolvable at all:
+// the client's own, or failing that the parent's. Independent of brand mode.
+function schedulerAvailable(client){
   if(!client) return false;
-  const self = !!client.has_scheduler_self;
-  const par  = !!client.has_scheduler_parent;
-  if(mode==="parent") return par;
-  if(mode==="white-label") return self || par;
-  return self; // none
+  return !!client.has_scheduler_self || !!client.has_scheduler_parent;
 }
 
-// Enable/disable the "Book & schedule" option on a row's QR select for the mode.
-function syncQrOptions(li, mode){
+// Enable/disable the "Book & schedule" option on a row's QR select.
+function syncQrOptions(li){
   const id = li.getAttribute("data-id");
   const client = dlClients.find(c=>String(c.id)===String(id));
   const qr = li.querySelector("[data-qr]");
   const bookOpt = qr.querySelector('option[value="book_schedule"]');
-  const ok = schedulerAvailable(client, mode);
+  const ok = schedulerAvailable(client);
   bookOpt.disabled = !ok;
   bookOpt.textContent = ok ? "QR: Book & schedule" : "QR: Book & schedule (no link)";
-  if(!ok && qr.value==="book_schedule") qr.value="none";  // fall back if it becomes unavailable
-}
-
-function onModeChange(sel){
-  const li = sel.closest("li[data-id]");
-  syncQrOptions(li, sel.value);
+  if(!ok && qr.value==="book_schedule") qr.value="none";
 }
 
 function onPick(cb){
@@ -1343,7 +1330,7 @@ function collectPicks(){
     if(mode==="white-label" && client && !client.has_brand) mode="none";  // safety net for THIS render only
     let qr = li.querySelector("[data-qr]").value || "none";
     // guard: never emit book_schedule if it isn't available for the rendered mode
-    if(qr==="book_schedule" && !schedulerAvailable(client, mode)) qr="none";
+    if(qr==="book_schedule" && !schedulerAvailable(client)) qr="none";
     picks.push({ client, mode, chosenMode, qr });
   });
   return picks;
