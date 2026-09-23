@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="assets/styles.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.4/qrcode.min.js"></script>
 <style>
   :root{
     --brand-blue:#236192; --brand-navy:#002855; --brand-orange:#ED8B00; --brand-spruce:#126e46;
@@ -1336,6 +1337,27 @@ function collectPicks(){
   return picks;
 }
 
+// --- QR: mint a unique code server-side, draw it to a PNG data-URL ----------
+// Returns { qrData, scan_url, short_code } or null on any failure (QR is
+// best-effort: a QR problem must never block the asset download).
+async function mintAndDrawQr(client, mode, action, screen){
+  try{
+    const r = await fetchJson("/qr-mint", {
+      screen_id:    screen.id,
+      screen_title: screen.title || "",
+      client_id:    client.id,
+      action:       action,            // 'open_flyer' | 'book_schedule'
+      brand_mode:   mode,
+      site_tag:     null               // reserved for per-site campaigns
+    });
+    if(!r || !r.ok || !r.scan_url) return null;
+    if(typeof QRCode === "undefined" || !QRCode.toDataURL) return null;
+    const qrData = await QRCode.toDataURL(r.scan_url, { margin:1, width:512,
+      errorCorrectionLevel:"M", color:{ dark:"#111111", light:"#ffffff" } });
+    return { qrData, scan_url:r.scan_url, short_code:r.short_code };
+  }catch(e){ return null; }
+}
+
 // --- the run: render each pick, then zip -----------------------------------
 async function runDownload(){
   const picks = collectPicks();
@@ -1355,15 +1377,28 @@ async function runDownload(){
       await ensureRenderFrame();
     }
     for(let i=0;i<picks.length;i++){
-      const { client, mode } = picks[i];
+      const { client, mode, qr } = picks[i];
       msg.textContent = `Building ${i+1} of ${picks.length}: ${client.name}…`;
       const brand = await buildBrand(client, mode);
       const cc = (client.code || client.id);
+      // QR (best-effort): mint a unique code + draw a PNG data-URL for this pick.
+      // action maps from the picker choice; "none" -> no QR.
+      let qrOut = null;
+      if(qr && qr !== "none"){
+        const action = (qr === "book_schedule") ? "book_schedule" : "open_flyer";
+        qrOut = await mintAndDrawQr(client, mode, action, dlScreen);
+      }
       if(isDoc){
-        const pdfB64 = await renderFlyerViaFrame(dlScreen.source_manifest, brand);
+        // never mutate the cached brand object — clone, then attach the per-pick QR
+        const brandForRender = qrOut ? Object.assign({}, brand, { qrData: qrOut.qrData }) : brand;
+        const pdfB64 = await renderFlyerViaFrame(dlScreen.source_manifest, brandForRender);
         files.push({ filename: `${cc}-${assetSlug}-${ym}.pdf`, b64: pdfB64, mime:"application/pdf" });
       }else{
-        const pngB64 = await renderScreenPng(dlScreen, brand);
+        // screen: pass the real QR data-URL + force the QR on for this render
+        const screenForRender = qrOut
+          ? Object.assign({}, dlScreen, { qrDataUrl: qrOut.qrData, qr_url: (dlScreen.qr_url || "1") })
+          : dlScreen;
+        const pngB64 = await renderScreenPng(screenForRender, brand);
         files.push({ filename: `${cc}-${assetSlug}-${ym}.png`, b64: pngB64, mime:"image/png" });
       }
     }
