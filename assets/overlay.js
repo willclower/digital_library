@@ -60,7 +60,8 @@ function renderScreen(el, screen, opts = {}) {
   const accent = screen.accent || "#d9b98f";
   const showChrome = opts.chrome !== false; // false = thumbnail (headline only)
   const hasQrLink = !!(screen.qrUrl || screen.qr_url);
-  const showQr = opts.qr !== false && hasQrLink; // no link = no QR
+  const qrImg = screen.qrDataUrl || screen.qr_data_url || null;  // real QR (data-URL) if minted
+  const showQr = opts.qr !== false && (hasQrLink || !!qrImg); // link OR a real image = show
   // Optional action bullets (banner-derived screens): short list on the opposite
   // side from the copy. Accept overlay_bullets (DB) or bullets; ignore if empty.
   const bulletsRaw = screen.overlay_bullets || screen.bullets || [];
@@ -84,7 +85,7 @@ function renderScreen(el, screen, opts = {}) {
       ${showChrome && screen.cta ? `<span class="vwl-cta" style="font-size:${0.95*scale}em;">${screen.cta}</span>` : ""}
     </div>
     ${showBullets ? `<div class="vwl-bullets-card"><ul class="vwl-bullets" style="font-size:${1.15*scale}em;">${bullets.map(b=>`<li>${b}</li>`).join("")}</ul></div>` : ""}
-    ${showQr ? `<div class="vwl-qr"><div class="vwl-qrbox">${qrPlaceholder("#111")}</div><span class="vwl-qrlabel">Scan for support</span></div>` : ""}
+    ${showQr ? `<div class="vwl-qr"><div class="vwl-qrbox">${qrImg ? `<img src="${qrImg}" alt="Scan for support" style="width:100%;height:100%;display:block;">` : qrPlaceholder("#111")}</div><span class="vwl-qrlabel">Scan for support</span></div>` : ""}
     ${showCode ? `<span class="vwl-code" style="font-size:${0.62*scale}em;">${assetCode}</span>` : ""}
   `;
 }
