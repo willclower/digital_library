@@ -62,12 +62,20 @@
         <div class="fl-addr__line" id="fl_ftHours2"></div>
       </div>
       <div class="fl-addr__logo" id="fl_ftLogo"></div>
+      <div class="fl-addr__qr" id="fl_qr_addr" style="display:none;">
+        <div class="fl-qr"><div class="fl-qrbox"><img id="fl_qr_addr_img" alt=""></div>
+          <span class="fl-qrlabel">Scan for support</span></div>
+      </div>
     </div>
     <div class="fl-resource" id="fl_resource" style="display:none;">
       <div class="tbody">
         <h4 id="fl_res_h"></h4>
         <p id="fl_res_p"></p>
       </div>
+    </div>
+    <div class="fl-qr fl-qr-float" id="fl_qr_float" style="display:none;">
+      <div class="fl-qrbox"><img id="fl_qr_float_img" alt=""></div>
+      <span class="fl-qrlabel">Scan for support</span>
     </div>
     <div class="fl-foot">
       <span class="powered" id="fl_footPowered"></span>
@@ -168,7 +176,38 @@ async function renderFlyerFromManifest(manifest, brand){
   // (the iframe is reused across clients, so always set it explicitly).
   if(addrEl) addrEl.style.display = unbranded ? "none" : "";
 
+  // QR placement: exactly one of the two containers is shown, chosen by brand mode.
+  //   branded   -> cell inside the address grid (beside the logo)
+  //   unbranded -> floating bottom-right (address footer is hidden)
+  // brand.qrData is a PNG data-URL minted at download time; absent -> no QR (reset both,
+  // since the iframe is reused across clients).
+  const qrData = b.qrData || null;
+  const qrAddr = fl_$("fl_qr_addr"), qrFloat = fl_$("fl_qr_float");
+  const qrAddrImg = fl_$("fl_qr_addr_img"), qrFloatImg = fl_$("fl_qr_float_img");
+  // reset
+  if(qrAddr) qrAddr.style.display = "none";
+  if(qrFloat) qrFloat.style.display = "none";
+  if(qrAddrImg) qrAddrImg.removeAttribute("src");
+  if(qrFloatImg) qrFloatImg.removeAttribute("src");
+  if(addrEl) addrEl.classList.remove("has-qr");
+  if(qrData){
+    if(unbranded){
+      if(qrFloatImg) qrFloatImg.src = qrData;
+      if(qrFloat) qrFloat.style.display = "";
+    }else{
+      if(qrAddrImg) qrAddrImg.src = qrData;
+      if(qrAddr) qrAddr.style.display = "";
+      if(addrEl) addrEl.classList.add("has-qr");
+    }
+  }
+
   fl_draw();
+  // ensure the QR data-URL image is decoded before rasterizing (html2canvas
+  // captures the DOM as-is; an undecoded img would render blank).
+  try{
+    const qImg = unbranded ? qrFloatImg : qrAddrImg;
+    if(qrData && qImg && qImg.decode) await qImg.decode();
+  }catch(e){ /* decode() can reject on some engines; the rAF waits below still cover it */ }
   if(document.fonts && document.fonts.ready) await document.fonts.ready;
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   return await fl_buildFlyerPDF();
