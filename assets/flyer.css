@@ -146,3 +146,23 @@
 .flyer-scope .fl-resource .tbody p{margin:0;font-size:12px;line-height:1.42;color:var(--ink-soft);}
 /* In two-step mode the body already ends with a sweep; keep the resource tidy under it. */
 .flyer-scope .ts-mode .fl-resource{margin-top:4px;}
+
+/* ===== QR code (download-time; scan -> tracked redirect) =====
+   Two placements so the QR never collides with the logo:
+   - branded   -> a cell inside the address footer grid, beside the logo
+   - unbranded -> floating bottom-right of the page, mirroring the screen's .vwl-qr
+   The render driver shows exactly one of #fl_qr_addr / #fl_qr_float per mode. */
+.flyer-scope .fl-qr{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.flyer-scope .fl-qr .fl-qrbox{width:64px;height:64px;padding:4px;background:#fff;
+    border-radius:6px;line-height:0;box-shadow:0 1px 4px rgba(0,0,0,.12);}
+.flyer-scope .fl-qr .fl-qrbox img{width:100%;height:100%;display:block;}
+.flyer-scope .fl-qr .fl-qrlabel{font-size:8.5px;font-weight:600;letter-spacing:.02em;
+    color:var(--ink-soft);white-space:nowrap;}
+
+/* branded: sits in the address grid; widen the grid to hold logo + QR */
+.flyer-scope .fl-addr.has-qr{grid-template-columns:1fr 1fr auto auto;}
+.flyer-scope .fl-addr__qr{justify-self:end;}
+
+/* unbranded: absolute, bottom-right, clear of the CTA/resource content */
+.flyer-scope .fl-qr-float{position:absolute;right:26px;bottom:26px;z-index:4;}
+.flyer-scope .fl-qr-float .fl-qrlabel{color:#4a5e66;}
