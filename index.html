@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="assets/styles.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   :root{
     --brand-blue:#236192; --brand-navy:#002855; --brand-orange:#ED8B00; --brand-spruce:#126e46;
@@ -1351,9 +1351,30 @@ async function mintAndDrawQr(client, mode, action, screen){
       site_tag:     null               // reserved for per-site campaigns
     });
     if(!r || !r.ok || !r.scan_url) return null;
-    if(typeof QRCode === "undefined" || !QRCode.toDataURL) return null;
-    const qrData = await QRCode.toDataURL(r.scan_url, { margin:1, width:512,
-      errorCorrectionLevel:"M", color:{ dark:"#111111", light:"#ffffff" } });
+    if(typeof QRCode === "undefined") { console.warn("QR lib not loaded"); return null; }
+    // qrcodejs (davidshimjs) renders into a container element (canvas), from
+    // which we pull a PNG data-URL. Draw offscreen, extract, discard.
+    const qrData = await new Promise((resolve)=>{
+      try{
+        const holder = document.createElement("div");
+        holder.style.cssText = "position:absolute;left:-99999px;top:0;";
+        document.body.appendChild(holder);
+        // eslint-disable-next-line no-new
+        new QRCode(holder, { text: r.scan_url, width:512, height:512,
+          colorDark:"#111111", colorLight:"#ffffff",
+          correctLevel: QRCode.CorrectLevel.M });
+        // canvas is drawn synchronously, but give it one frame to be safe
+        requestAnimationFrame(()=>{
+          let url = null;
+          const cv = holder.querySelector("canvas");
+          if(cv && cv.toDataURL) url = cv.toDataURL("image/png");
+          else { const im = holder.querySelector("img"); if(im && im.src) url = im.src; }
+          document.body.removeChild(holder);
+          resolve(url);
+        });
+      }catch(e){ resolve(null); }
+    });
+    if(!qrData) return null;
     return { qrData, scan_url:r.scan_url, short_code:r.short_code };
   }catch(e){ return null; }
 }
