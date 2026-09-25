@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wellness Compass — Reporting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --brand-blue:#236192; --brand-navy:#002855; --brand-orange:#ED8B00; --brand-spruce:#126e46;
+    --accent:var(--brand-orange); --accent-text:#B5811F;
+    --ink:#0E2A44; --ink-deep:#0C2135;
+    --paper:#EFEBE2; --paper-lt:#F6F3ED; --panel:#FFFDF9;
+    --border:#E0D9CB; --border-lt:#EFE9DE; --border-st:#C9C2B3;
+    --muted:#5F6B77; --muted-2:#6B7885; --subtle:#8A9199; --faint:#A9A192;
+    --cream:#F1EADC; --chip-bg:#F1ECE1;
+    --r-input:5px; --r-card:8px; --r-pill:20px;
+    --shadow-asset:0 18px 40px -26px rgba(14,42,68,0.5);
+    --font-ui:"Instrument Sans",system-ui,-apple-system,sans-serif;
+    --font-voice:"Newsreader",Georgia,serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{font-family:var(--font-ui);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;}
+
+  .topbar{display:flex;align-items:center;gap:12px;padding:16px 34px;background:#fbfaf7;border-bottom:1px solid var(--border);}
+  .topbar .brand{font-weight:600;color:var(--brand-blue);font-size:15px;}
+  .topbar .back{font-size:12.5px;color:var(--muted);text-decoration:none;}
+  .topbar .back:hover{color:var(--accent-text);}
+  .topbar .authbar{margin-left:auto;display:flex;align-items:center;gap:14px;}
+  .linkbtn{font:inherit;font-size:12.5px;color:var(--muted);background:none;border:0;padding:0;cursor:pointer;}
+  .linkbtn:hover{color:var(--accent-text);}
+  .whoami{font-size:12.5px;color:var(--brand-blue);font-weight:600;}
+
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 34px 80px;}
+  h1{font-family:var(--font-voice);font-weight:400;font-size:30px;margin:0 0 4px;color:var(--ink-deep);}
+  .sub{font-size:13px;color:var(--muted);margin:0 0 22px;}
+
+  /* controls */
+  .controls{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;padding:16px 18px;background:var(--panel);
+    border:1px solid var(--border);border-radius:var(--r-card);margin-bottom:24px;}
+  .ctl{display:flex;flex-direction:column;gap:5px;}
+  .ctl label{font-size:11.5px;color:var(--muted-2);font-weight:500;}
+  .ctl input,.ctl select{font:inherit;font-size:13px;color:var(--ink);background:var(--paper-lt);
+    border:1px solid var(--border-st);border-radius:var(--r-input);padding:7px 9px;min-width:150px;}
+  .ctl.grow{min-width:200px;}
+  .btn{font:inherit;font-size:13px;padding:8px 15px;border-radius:var(--r-input);border:1px solid var(--border-st);
+    background:var(--panel);color:var(--ink);cursor:pointer;}
+  .btn-primary{background:var(--brand-blue);border-color:var(--brand-blue);color:#fff;font-weight:500;}
+  .btn-primary:hover{background:#1c527c;}
+  .ctl-btn{align-self:flex-end;}
+
+  /* kpi tiles */
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:26px;}
+  .kpi{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-card);padding:16px 16px 14px;}
+  .kpi .n{font-family:var(--font-voice);font-size:30px;line-height:1;color:var(--ink-deep);}
+  .kpi .l{font-size:11.5px;color:var(--muted);margin-top:7px;}
+  .kpi.accent .n{color:var(--brand-orange);}
+  @media(max-width:900px){ .kpis{grid-template-columns:repeat(3,1fr);} }
+  @media(max-width:520px){ .kpis{grid-template-columns:repeat(2,1fr);} }
+
+  /* panels */
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-card);padding:20px 22px;margin-bottom:24px;}
+  .panel h2{font-family:var(--font-voice);font-weight:400;font-size:20px;margin:0 0 3px;color:var(--ink-deep);}
+  .panel .ph{font-size:12.5px;color:var(--muted);margin:0 0 16px;}
+  .chartbox{position:relative;height:320px;}
+
+  .cols{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;}
+  @media(max-width:820px){ .cols{grid-template-columns:1fr;} }
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border-lt);}
+  th{font-size:11px;color:var(--muted-2);font-weight:600;letter-spacing:.02em;}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  tbody tr:last-child td{border-bottom:0;}
+  .asset-name{font-weight:500;color:var(--ink);}
+  .rate{color:var(--brand-spruce);font-weight:500;}
+  .zero{color:var(--faint);}
+
+  .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .qcell{background:var(--paper-lt);border:1px solid var(--border-lt);border-radius:var(--r-input);padding:12px 13px;}
+  .qcell .qn{font-family:var(--font-voice);font-size:22px;color:var(--ink-deep);}
+  .qcell .ql{font-size:11.5px;color:var(--muted);margin-top:3px;}
+
+  .msg{font-size:13px;color:var(--muted);padding:8px 0;}
+  .msg.err{color:#9b2c2c;}
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:26px 0;}
+
+  /* modal (login) */
+  .mask{position:fixed;inset:0;background:rgba(12,33,53,0.42);display:none;align-items:flex-start;
+    justify-content:center;padding:80px 16px;z-index:50;overflow:auto;}
+  .mask.on{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-card);
+    width:100%;max-width:400px;box-shadow:0 30px 70px -30px rgba(14,42,68,0.6);}
+  .modal .mhead{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);}
+  .modal .mhead h2{font-family:var(--font-voice);font-weight:400;font-size:22px;margin:0;}
+  .modal .mclose{font-size:20px;line-height:1;color:var(--muted);background:none;border:0;cursor:pointer;}
+  .modal .mbody{padding:22px;}
+  .field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+  .field label{font-size:12px;color:var(--muted-2);}
+  .field input{font:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--border-st);border-radius:var(--r-input);background:var(--paper-lt);}
+  .hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">Wellness Compass</span>
+  <a class="back" href="index.html">← Library</a>
+  <div class="authbar">
+    <span class="whoami" id="whoami"></span>
+    <button class="linkbtn" id="loginBtn" onclick="openLogin()">Sign in</button>
+    <button class="linkbtn hidden" id="logoutBtn" onclick="doLogout()">Sign out</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <h1>Reporting</h1>
+  <p class="sub" id="scopeNote">Downloads and QR scans across your collateral.</p>
+
+  <div class="controls" id="controls">
+    <div class="ctl">
+      <label for="fromDate">From</label>
+      <input type="date" id="fromDate">
+    </div>
+    <div class="ctl">
+      <label for="toDate">To</label>
+      <input type="date" id="toDate">
+    </div>
+    <div class="ctl grow hidden" id="clientCtl">
+      <label for="clientSel">Client</label>
+      <select id="clientSel"><option value="">All clients</option></select>
+    </div>
+    <button class="btn btn-primary ctl-btn" onclick="loadReport()">Update</button>
+  </div>
+
+  <div id="reportArea">
+    <p class="msg" id="loadMsg">Sign in to view reporting.</p>
+  </div>
+</div>
+
+<!-- report template (populated by JS) -->
+<template id="tpl">
+  <div class="kpis">
+    <div class="kpi"><div class="n" data-k="downloads">0</div><div class="l">Downloads</div></div>
+    <div class="kpi accent"><div class="n" data-k="scans">0</div><div class="l">QR scans</div></div>
+    <div class="kpi"><div class="n" data-k="human_scans">0</div><div class="l">Human scans</div></div>
+    <div class="kpi"><div class="n" data-k="codes_minted">0</div><div class="l">Codes minted</div></div>
+    <div class="kpi"><div class="n" data-k="clients_active">0</div><div class="l">Clients active</div></div>
+    <div class="kpi"><div class="n" data-k="assets_downloaded">0</div><div class="l">Assets used</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>Activity over time</h2>
+    <p class="ph">Daily downloads and scans across the selected range.</p>
+    <div class="chartbox"><canvas id="trend"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <h2>By asset</h2>
+    <p class="ph">Each piece of collateral: how often it went out, and whether its QR drove scans.</p>
+    <div id="assetTable"></div>
+  </div>
+
+  <div class="cols">
+    <div class="panel">
+      <h2>By client</h2>
+      <p class="ph">Downloads and scans per client.</p>
+      <div id="clientTable"></div>
+    </div>
+    <div class="panel">
+      <h2>Scan quality</h2>
+      <p class="ph">Real phone scans vs. bots, and whether each scan reached its destination.</p>
+      <div class="qgrid" id="quality"></div>
+      <div style="margin-top:16px;" id="actionTable"></div>
+    </div>
+  </div>
+</template>
+
+<!-- login modal -->
+<div class="mask" id="loginMask">
+  <div class="modal">
+    <div class="mhead"><h2>Sign in</h2><button class="mclose" onclick="hide('loginMask')">×</button></div>
+    <div class="mbody">
+      <div class="field"><label for="liEmail">Email</label><input id="liEmail" type="email" autocomplete="username"></div>
+      <div class="field"><label for="liPwd">Password</label><input id="liPwd" type="password" autocomplete="current-password"></div>
+      <p class="msg err hidden" id="liErr">Sign-in failed. Check your details.</p>
+      <button class="btn btn-primary" style="width:100%;" onclick="doLogin()">Sign in</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DRL_API = "https://n8n-admin.willclower.com/webhook/drl";
+let SESSION = null;   // { session, am:{id,name,is_super_admin} }
+let trendChart = null;
+
+function loadSession(){ try{ const s=sessionStorage.getItem("mw_am"); if(s) SESSION=JSON.parse(s); }catch(e){} }
+function saveSession(){ try{ sessionStorage.setItem("mw_am", JSON.stringify(SESSION)); }catch(e){} }
+function clearSession(){ SESSION=null; try{ sessionStorage.removeItem("mw_am"); }catch(e){} }
+function show(id){ document.getElementById(id).classList.add("on"); }
+function hide(id){ document.getElementById(id).classList.remove("on"); }
+function openLogin(){ document.getElementById("liErr").classList.add("hidden"); show("loginMask"); }
+
+function paintAuth(){
+  const inn = !!SESSION;
+  document.getElementById("loginBtn").classList.toggle("hidden", inn);
+  document.getElementById("logoutBtn").classList.toggle("hidden", !inn);
+  document.getElementById("whoami").textContent =
+    inn ? SESSION.am.name + (SESSION.am.is_super_admin ? " (admin)" : "") : "";
+  const isSuper = inn && SESSION.am.is_super_admin;
+  document.getElementById("clientCtl").classList.toggle("hidden", !isSuper);
+  document.getElementById("scopeNote").textContent = isSuper
+    ? "Downloads and QR scans across all clients."
+    : "Downloads and QR scans across your clients.";
+}
+
+async function doLogin(){
+  const email = document.getElementById("liEmail").value.trim();
+  const pwd = document.getElementById("liPwd").value;
+  const err = document.getElementById("liErr");
+  err.classList.add("hidden");
+  try{
+    const res = await fetch(DRL_API + "/login", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ email, password: pwd })
+    });
+    const d = await res.json();
+    if(!d || !d.ok){ err.classList.remove("hidden"); return; }
+    SESSION = { session:d.session, am:d.am }; saveSession(); paintAuth();
+    hide("loginMask");
+    if(SESSION.am.is_super_admin) await populateClients();
+    loadReport();
+  }catch(e){ err.classList.remove("hidden"); }
+}
+function doLogout(){ clearSession(); paintAuth(); document.getElementById("reportArea").innerHTML =
+  '<p class="msg">Signed out.</p>'; }
+
+async function populateClients(){
+  try{
+    const res = await fetch(DRL_API + "/client-list", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ session: SESSION.session })
+    });
+    const d = await res.json();
+    if(!d || !d.ok) return;
+    const sel = document.getElementById("clientSel");
+    sel.innerHTML = '<option value="">All clients</option>' +
+      (d.clients||[]).map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+  }catch(e){}
+}
+
+function fmt(n){ return (n==null?0:n).toLocaleString(); }
+function pct(a,b){ if(!b) return "—"; return Math.round((a/b)*100) + "%"; }
+
+async function loadReport(){
+  const area = document.getElementById("reportArea");
+  if(!SESSION){ area.innerHTML = '<p class="msg">Sign in to view reporting.</p>'; openLogin(); return; }
+  area.innerHTML = '<p class="msg">Loading…</p>';
+  const body = {
+    session: SESSION.session,
+    client_filter: (document.getElementById("clientSel")||{}).value || "",
+    from_date: document.getElementById("fromDate").value || "",
+    to_date: document.getElementById("toDate").value || ""
+  };
+  try{
+    const res = await fetch(DRL_API + "/report", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body)
+    });
+    const d = await res.json();
+    if(!d || !d.ok){
+      if(d && d.error==="unauthorized"){ clearSession(); paintAuth(); area.innerHTML=''; openLogin(); return; }
+      area.innerHTML = '<p class="msg err">Could not load the report.</p>'; return;
+    }
+    renderReport(d.report);
+  }catch(e){ area.innerHTML = '<p class="msg err">Could not reach the server.</p>'; }
+}
+
+function renderReport(r){
+  const area = document.getElementById("reportArea");
+  area.innerHTML = "";
+  area.appendChild(document.getElementById("tpl").content.cloneNode(true));
+
+  // KPIs
+  const t = r.totals || {};
+  area.querySelectorAll(".kpi .n[data-k]").forEach(el=>{ el.textContent = fmt(t[el.dataset.k]); });
+
+  // trend chart
+  const series = r.series || [];
+  const labels = series.map(s=>s.date);
+  const ctx = area.querySelector("#trend").getContext("2d");
+  if(trendChart){ trendChart.destroy(); }
+  trendChart = new Chart(ctx, {
+    type:"line",
+    data:{ labels, datasets:[
+      { label:"Downloads", data:series.map(s=>s.downloads), borderColor:"#236192", backgroundColor:"#236192",
+        tension:.25, pointRadius:0, borderWidth:2 },
+      { label:"Scans", data:series.map(s=>s.scans), borderColor:"#ED8B00", backgroundColor:"#ED8B00",
+        tension:.25, pointRadius:0, borderWidth:2 },
+      { label:"Human scans", data:series.map(s=>s.human_scans), borderColor:"#126e46", backgroundColor:"#126e46",
+        tension:.25, pointRadius:0, borderWidth:2, borderDash:[4,3] }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false, interaction:{mode:"index",intersect:false},
+      scales:{
+        x:{ ticks:{ maxTicksLimit:10, color:"#6B7885", font:{size:11} }, grid:{display:false} },
+        y:{ beginAtZero:true, ticks:{ precision:0, color:"#6B7885", font:{size:11} }, grid:{color:"#EFE9DE"} }
+      },
+      plugins:{ legend:{ position:"top", labels:{ color:"#0E2A44", font:{size:12}, boxWidth:14, usePointStyle:true } } }
+    }
+  });
+
+  // by asset funnel
+  const assets = r.by_asset || [];
+  const at = area.querySelector("#assetTable");
+  if(!assets.length){ at.innerHTML = '<p class="empty">No collateral activity in this range.</p>'; }
+  else{
+    at.innerHTML = `<table><thead><tr>
+      <th>Asset</th><th class="num">Downloads</th><th class="num">Codes</th>
+      <th class="num">Scans</th><th class="num">Human</th><th class="num">Scan rate</th>
+    </tr></thead><tbody>` + assets.map(a=>`<tr>
+      <td class="asset-name">${a.label||a.asset_id}</td>
+      <td class="num">${fmt(a.downloads)}</td>
+      <td class="num ${a.codes_minted?'':'zero'}">${fmt(a.codes_minted)}</td>
+      <td class="num ${a.scans?'':'zero'}">${fmt(a.scans)}</td>
+      <td class="num ${a.human_scans?'':'zero'}">${fmt(a.human_scans)}</td>
+      <td class="num rate">${pct(a.scans, a.downloads)}</td>
+    </tr>`).join("") + `</tbody></table>`;
+  }
+
+  // by client
+  const clients = r.by_client || [];
+  const ct = area.querySelector("#clientTable");
+  if(!clients.length){ ct.innerHTML = '<p class="empty">No client activity.</p>'; }
+  else{
+    ct.innerHTML = `<table><thead><tr>
+      <th>Client</th><th class="num">Downloads</th><th class="num">Scans</th>
+    </tr></thead><tbody>` + clients.map(c=>`<tr>
+      <td class="asset-name">${c.client_name}</td>
+      <td class="num">${fmt(c.downloads)}</td>
+      <td class="num ${c.scans?'':'zero'}">${fmt(c.scans)}</td>
+    </tr>`).join("") + `</tbody></table>`;
+  }
+
+  // scan quality
+  const q = r.scan_quality || {};
+  area.querySelector("#quality").innerHTML = [
+    ["Human", q.human], ["Bot", q.bot], ["Reached destination", q.resolved], ["Fell back", q.fallback]
+  ].map(([l,n])=>`<div class="qcell"><div class="qn">${fmt(n)}</div><div class="ql">${l}</div></div>`).join("");
+
+  // by action
+  const acts = r.by_action || [];
+  const actEl = area.querySelector("#actionTable");
+  if(acts.length){
+    const nice = {book_schedule:"Book & schedule", open_flyer:"Open flyer"};
+    actEl.innerHTML = `<table><thead><tr>
+      <th>Scan action</th><th class="num">Scans</th><th class="num">Human</th>
+    </tr></thead><tbody>` + acts.map(a=>`<tr>
+      <td>${nice[a.action_type]||a.action_type}</td>
+      <td class="num">${fmt(a.n)}</td>
+      <td class="num ${a.human?'':'zero'}">${fmt(a.human)}</td>
+    </tr>`).join("") + `</tbody></table>`;
+  } else { actEl.innerHTML = ""; }
+}
+
+// defaults: last 90 days
+(function initDates(){
+  const to = new Date();
+  const from = new Date(); from.setDate(from.getDate()-90);
+  const iso = d => d.toISOString().slice(0,10);
+  document.getElementById("toDate").value = iso(to);
+  document.getElementById("fromDate").value = iso(from);
+})();
+
+loadSession();
+paintAuth();
+if(SESSION){
+  (async ()=>{ if(SESSION.am.is_super_admin) await populateClients(); loadReport(); })();
+} else {
+  openLogin();
+}
+</script>
+</body>
+</html>
