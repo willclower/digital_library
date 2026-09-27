@@ -87,7 +87,8 @@ function nl_render(el, d, opts){
   opts = opts || {};
   d = d || {};
   const b = d.brand || {}, m = d.masthead || {}, c = d.cover || {}, co = d.callout || {}, s = d.section || {};
-  const tips = (d.tips || []).filter(t=>t && (t.h||t.p));
+  // authoring shows every slot (so an empty tip's circle can still be clicked); print drops empties
+  const tips = (d.tips || []).filter(t=>t && (opts.edit || t.h || t.p || t.img));
   const style = [
     b.primary   ? `--brand-primary:${b.primary}`     : "",
     b.secondary ? `--brand-secondary:${b.secondary}` : "",
