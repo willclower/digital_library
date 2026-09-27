@@ -97,11 +97,11 @@ function nl_render(el, d, opts){
   // Angled shapes are inline SVG with resolved hex fills (html2canvas does not paint
   // CSS clip-path, and a serialized SVG loses CSS vars) — so the PDF matches the screen.
   const hex = v => /^#[0-9a-f]{6}$/i.test(String(v||"").trim()) ? String(v).trim() : null;
-  const P = hex(b.primary) || "#1b3564", S = hex(b.secondary) || "#0a5a96";
+  const P = hex(b.primary) || "#123a52", S = hex(b.secondary) || "#2f6f8f";   // = nl.css defaults
   const svg = (w,h,pts,fill) => `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="position:absolute;left:0;top:0;display:block"><polygon points="${pts}" fill="${fill}"/></svg>`;
   const pgtab = n => `<div class="nl-pgtab">${svg(34,20,"0,0 34,0 26.5,20 0,20",P)}<span>${n}</span></div>`;
   // logo contrast: cover panel is --brand-primary; footer band is light unless the logo is light
-  const darkPanel = nl_hexLum(b.primary || "#1b3564") < .35;
+  const darkPanel = nl_hexLum(b.primary || "#123a52") < .35;
   const coverChip = !!b.logo && b.logoTone === "dark" && darkPanel;
   const darkBand  = !!b.logo && b.logoTone === "light";
 
