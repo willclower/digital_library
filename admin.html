@@ -83,6 +83,11 @@
   .nl-form .dhint{font-size:11.5px;color:#6f7f74;margin:0 0 10px;line-height:1.35;}
   .nl-form .drop{border:1.5px dashed #cfc9bd;border-radius:7px;padding:12px;text-align:center;font-size:12.5px;color:#8a8478;cursor:pointer;background:#faf8f3;}
   .nl-form .drop.have{color:var(--ink);border-style:solid;border-color:#b9d3c4;background:#f1f7f3;}
+  .nl-form .nl-draftbox{border:1.5px solid #cdd7d0;background:#f2f7f3;border-radius:9px;padding:14px;margin:0 0 18px;}
+  .nl-form .nl-draftbox h3{font-family:var(--font-voice);font-size:16px;margin:0 0 3px;color:#2c4433;}
+  .nl-form .nl-draftbox textarea{width:100%;border:1.5px solid #bcd0c2;border-radius:6px;padding:8px 9px;font:inherit;font-size:13px;resize:vertical;}
+  .nl-form .nl-draftbtn{font:inherit;font-size:13px;font-weight:600;border:0;border-radius:7px;padding:8px 16px;background:#17402F;color:#fff;cursor:pointer;}
+  .nl-form .nl-draftbtn:disabled{opacity:.5;cursor:default;}
   #nlPreviewWrap{position:sticky;top:24px;}
   #nl_fit{overflow:hidden;} #nl_stage{transform-origin:top left;width:612px;}
   #nl_print{position:absolute;left:-99999px;top:0;}
@@ -464,6 +469,16 @@
          Rendered by the SHARED assets/nl-render.js; brand is applied per client at download. ===== -->
     <div id="nlBuild" class="nl-form nl-build-only" style="display:none">
       <p class="dhint">Two-page newsletter. Click any photo spot in the preview to pick from the image library. Brand colors and logo here are for preview only — each client's brand is applied at download.</p>
+
+      <div class="nl-draftbox">
+        <h3>Start with a brief</h3>
+        <p class="dhint">A topic line, or paste a calendar entry (title, observance, hook, tips). Claude drafts every text field on both pages — then edit anything below. Replaces current copy.</p>
+        <textarea id="nl_in_brief" rows="5" placeholder="e.g. January — Small Habits, Big Year. Hook: Big resolutions rarely survive a busy work schedule… Tiles: habit stacking; start with the 2-minute version; …"></textarea>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+          <button type="button" class="nl-draftbtn" id="nl_in_draftBtn">Draft copy</button>
+          <span class="dhint" id="nl_in_draftMsg" style="margin:0;"></span>
+        </div>
+      </div>
 
       <div class="seg-label" style="margin-top:0;border-top:0;padding-top:0;">Masthead</div>
       <div class="row3">
@@ -2403,6 +2418,37 @@ async function nl_captureManifest(){
 // live-wire every newsletter input
 document.querySelectorAll("#nlBuild input[type=text], #nlBuild textarea").forEach(el=>el.addEventListener("input", nl_draw));
 document.querySelectorAll("#nlBuild select").forEach(el=>el.addEventListener("change", nl_draw));
+// ---- AI draft (drl/draft-newsletter, Anthropic; Studio content — no member PHI) ----
+const NL_DRAFT_ENDPOINT = DRL_API + "/draft-newsletter";
+// Per-field character caps for the magazine2 layout; sent to the model as hard limits.
+const NL_CAPS = { headline:30, subhead:75, hook:270, intro:380, co_title:28, co_body:430,
+                  sec_title:36, sec_intro:260, tip_h:22, tip_p:125, runfoot:28 };
+function nl_setFld(id, v){ const el=document.getElementById(id); if(el) el.value = (v==null ? "" : String(v)); }
+async function nl_draftCopy(){
+  const brief = (nl_v("nl_in_brief")||"").trim();
+  const msg = document.getElementById("nl_in_draftMsg"), btn = document.getElementById("nl_in_draftBtn");
+  if(!brief){ msg.textContent = "Add a brief first."; return; }
+  btn.disabled = true; msg.textContent = "Drafting… (about 20–40 seconds)";
+  try{
+    const res = await fetch(NL_DRAFT_ENDPOINT, { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ brief, tip_count: nl_tipCount(), caps: NL_CAPS }) });
+    const d = await res.json();
+    if(!d || !d.ok) throw new Error("no draft returned");
+    nl_setFld("nl_in_headline", d.headline);  nl_setFld("nl_in_subhead", d.subhead);
+    nl_setFld("nl_in_hook", d.hook);          nl_setFld("nl_in_intro", d.intro);
+    nl_setFld("nl_in_coTitle", d.callout_title); nl_setFld("nl_in_coBody", d.callout_body);
+    if(d.callout_icon) nl_setFld("nl_in_coIcon", d.callout_icon);
+    nl_setFld("nl_in_secTitle", d.section_title); nl_setFld("nl_in_secIntro", d.section_intro);
+    (d.tips||[]).forEach((t,i)=>{ nl_setFld(`nl_in_t${i}_h`, t.h); nl_setFld(`nl_in_t${i}_p`, t.p); });
+    if(d.runfoot){ const vol = nl_v("nl_in_volume").trim();
+      nl_setFld("nl_in_runfoot", vol ? `Volume ${vol} : ${d.runfoot}` : d.runfoot); }
+    nl_draw();
+    msg.textContent = "Drafted — review and edit below.";
+  }catch(e){ msg.textContent = "Draft failed: " + e.message; }
+  finally{ btn.disabled = false; }
+}
+document.getElementById("nl_in_draftBtn").addEventListener("click", nl_draftCopy);
+
 // photo spots in the preview open the shared image-library picker
 document.getElementById("nl_stage").addEventListener("click", e=>{
   const z = e.target.closest && e.target.closest(".nl-zone"); if(!z) return;
