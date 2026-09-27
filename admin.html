@@ -2378,6 +2378,22 @@ async function nl_renderPrint(){
   try{ return await nl_buildPDF(pr); } finally { pr.innerHTML = ""; }
 }
 
+// Downscale a local (non-library) image to a JPEG data URL on WHITE (a transparent PNG
+// would otherwise flatten to black in JPEG).
+function nl_shrinkJpeg(dataUrl, maxW){
+  return new Promise(resolve=>{
+    const im = new Image();
+    im.onload = ()=>{ try{
+      const k = Math.min(1, maxW / im.naturalWidth), w = Math.round(im.naturalWidth*k), h = Math.round(im.naturalHeight*k);
+      const c = document.createElement("canvas"); c.width=w; c.height=h;
+      const cx = c.getContext("2d"); cx.fillStyle="#fff"; cx.fillRect(0,0,w,h); cx.drawImage(im,0,0,w,h);
+      resolve(c.toDataURL("image/jpeg", 0.85));
+    }catch(e){ resolve(null); } };
+    im.onerror = ()=>resolve(null);
+    im.src = dataUrl;
+  });
+}
+
 // Brand-neutral manifest: library refs for images (bytes re-fetched at download); a local
 // logo/colors are authoring fallbacks only. Unreferenced images are shrunk + inlined.
 async function nl_captureManifest(){
@@ -2385,8 +2401,7 @@ async function nl_captureManifest(){
   const img = async (zone, maxW) => {
     const it = nl_imgs[zone]; if(!it || !it.data) return { ref:null, data:null };
     if(it.ref) return { ref:it.ref, data:null };
-    const sm = await fl_shrinkForDraft(it.data, maxW, 0.85);
-    return { ref:null, data: sm ? "data:"+sm.mime+";base64,"+sm.base64 : null };
+    return { ref:null, data: await nl_shrinkJpeg(it.data, maxW) };
   };
   const hero = await img("hero",1000), side = await img("side",800), feat = await img("feature",800);
   d.cover.hero = null; d.cover.hero_ref = hero.ref; d.cover.hero_data = hero.data;
