@@ -88,6 +88,8 @@
   .nl-form .nl-draftbox textarea{width:100%;border:1.5px solid #bcd0c2;border-radius:6px;padding:8px 9px;font:inherit;font-size:13px;resize:vertical;}
   .nl-form .nl-draftbtn{font:inherit;font-size:13px;font-weight:600;border:0;border-radius:7px;padding:8px 16px;background:#17402F;color:#fff;cursor:pointer;}
   .nl-form .nl-draftbtn:disabled{opacity:.5;cursor:default;}
+  .nl-form .nl-msg{font-size:11.5px;margin-top:8px;min-height:14px;color:#6f7f74;}
+  .nl-form .nl-msg.err{color:#b23b2e;} .nl-form .nl-msg.ok{color:#2c7a4b;}
   #nlPreviewWrap{position:sticky;top:24px;}
   #nl_fit{overflow:hidden;} #nl_stage{transform-origin:top left;width:612px;}
   #nl_print{position:absolute;left:-99999px;top:0;}
@@ -539,6 +541,19 @@
       </div>
       <div class="fld"><label>Powered-by line</label><input type="text" id="nl_in_powered" value="Wellness powered by Mediterranean Wellness"></div>
       <div class="fld"><label>Asset code <span class="sub">auto-assigned on publish</span></label><input type="text" id="nl_in_footCode" value="" readonly></div>
+
+      <div class="seg-label">Quality check</div>
+      <p class="dhint">Send the copy for an automated content review. You'll get back any flagged items with suggested edits — apply, tweak, or reject each one before finalizing.</p>
+      <button type="button" class="nl-draftbtn" id="nl_qcBtn" style="background:#b5811f;">Send to QC</button>
+      <div class="nl-msg" id="nl_qcMsg"></div>
+      <div id="nl_qcResult" style="display:none;margin-top:12px;">
+        <div id="nl_qcSummary" class="qc-summary"></div>
+        <div id="nl_qcFindings"></div>
+      </div>
+
+      <div class="seg-label">Publish</div>
+      <button type="button" class="nl-draftbtn" id="nl_finalizeBtn" style="opacity:.5" disabled>Finalize &amp; add to library</button>
+      <div class="nl-msg" id="nl_finalizeMsg"></div>
     </div><!-- /#nlBuild -->
 
     <div class="row3 screen-only">
@@ -907,7 +922,7 @@ function setAssetType(t){
     const screenPrev=document.querySelector(".previewwrap.screen-only");
     if(screenPrev) screenPrev.style.display = isScreen ? "" : "none";
     const saveBtn=document.getElementById("save");
-    if(saveBtn){ saveBtn.style.display=""; saveBtn.textContent = isScreen ? "Publish screen" : (isNl ? "Publish newsletter" : "Publish resource"); }
+    if(saveBtn){ saveBtn.style.display = isNl ? "none" : ""; saveBtn.textContent = isScreen ? "Publish screen" : "Publish resource"; }
     const clearBtn=document.getElementById("clearBtn"); if(clearBtn) clearBtn.style.display = isNl ? "none" : "";
     if(isNl && typeof nl_draw==="function") nl_draw();
   }
@@ -1123,20 +1138,21 @@ async function save(){
   // Newsletter build: reserve an NWS code (reuse on republish), bake it into the footer,
   // render both pages from the unscaled print stage, ride the same doc payload path.
   let nlAssetCode = null;
+  const nlFin=document.getElementById("nl_finalizeBtn"); if(isNl && nlFin) nlFin.disabled=true;
   if(isNl){
     fl_busyOn("Rendering newsletter…");
     const existing = (document.getElementById("nl_in_footCode").value||"").trim() || await fl_existingCodeForId(id);
     try{
       nlAssetCode = await fl_computeAssetCode("newsletter", (document.getElementById("issue_date").value||"").trim(), existing);
     }catch(err){
-      setMsg("Couldn't reserve an asset code: "+err.message,"err"); btn.disabled=false; fl_busyOff(); return;
+      nl_finMsg("Couldn't reserve an asset code: "+err.message,"err"); btn.disabled=false; fl_busyOff(); nl_updateFinalizeGate(); return;
     }
     document.getElementById("nl_in_footCode").value = nlAssetCode;
     try{
       const r = await nl_renderPrint();
       buildFile = r.pdfB64; buildThumb = r.thumbB64; buildMime = "application/pdf";
     }catch(err){
-      setMsg("Couldn't render the newsletter PDF: "+err.message,"err"); btn.disabled=false; fl_busyOff(); return;
+      nl_finMsg("Couldn't render the newsletter PDF: "+err.message,"err"); btn.disabled=false; fl_busyOff(); nl_updateFinalizeGate(); return;
     }
     nl_draw();
     fl_busySet("Publishing…"); setMsg("Publishing…","");
@@ -1191,6 +1207,7 @@ async function save(){
     const out=await res.json();
     if(out.ok){
       setMsg(`Saved “${out.saved}”${out.width?` (${out.width}×${out.height})`:""}. It's in the library now.`,"ok");
+      if(isNl) nl_finMsg(`Saved “${out.saved}” (${nlAssetCode}). It's in the library now.`,"ok");
       // Optional companion: publish a 16:9 wall screen built from the banner photo.
       const alsoBox = document.getElementById("fl_in_alsoScreen");
       console.log("[companion-screen] checkbox present:", !!alsoBox, "checked:", alsoBox && alsoBox.checked, "isBuild:", isBuild, "banner set:", !!fl_bannerData);
@@ -1203,10 +1220,12 @@ async function save(){
       if(isBuild){ fl_startNewFlyer(); window.scrollTo({ top: 0, behavior: "smooth" }); }
     }else{
       setMsg("Server responded but not OK — check the workflow.","err");
+      if(isNl) nl_finMsg("Server responded but not OK — check the workflow.","err");
     }
   }catch(e){
     setMsg("Could not reach the write API. Check the endpoint/CORS.","err");
-  }finally{ btn.disabled=false; if(finBtn)finBtn.disabled=false; fl_busyOff(); }
+    if(isNl) nl_finMsg("Could not reach the write API. Check the endpoint/CORS.","err");
+  }finally{ btn.disabled=false; if(finBtn)finBtn.disabled=false; fl_busyOff(); if(isNl) nl_updateFinalizeGate(); }
 }
 
 // Publish a native 16:9 wall screen derived from the flyer's banner.
@@ -2457,12 +2476,156 @@ async function nl_draftCopy(){
     (d.tips||[]).forEach((t,i)=>{ nl_setFld(`nl_in_t${i}_h`, t.h); nl_setFld(`nl_in_t${i}_p`, t.p); });
     if(d.runfoot){ const vol = nl_v("nl_in_volume").trim();
       nl_setFld("nl_in_runfoot", vol ? `Volume ${vol} : ${d.runfoot}` : d.runfoot); }
+    nl_qcInvalidate();
     nl_draw();
     msg.textContent = "Drafted — review and edit below.";
   }catch(e){ msg.textContent = "Draft failed: " + e.message; }
   finally{ btn.disabled = false; }
 }
 document.getElementById("nl_in_draftBtn").addEventListener("click", nl_draftCopy);
+
+// ===================== QC LOOP (newsletter) — mirrors the flyer QC loop =====================
+// Same endpoint (QC_ENDPOINT), same review schema, same accept / edit / reject dispositions,
+// same gate: Finalize enables only after QC has run AND every finding is dispositioned.
+// Any edit to a reviewed field after QC invalidates the review. nl_* namespaced; the flyer
+// loop (fl_qc*, flQcReview) is untouched.
+const NL_QC_MAP = {
+  "HEADLINE":        "nl_in_headline",
+  "SUBHEAD":         "nl_in_subhead",
+  "HOOK":            "nl_in_hook",
+  "INTRO":           "nl_in_intro",
+  "CALLOUT TITLE":   "nl_in_coTitle",
+  "CALLOUT BODY":    "nl_in_coBody",
+  "SECTION TITLE":   "nl_in_secTitle",
+  "SECTION INTRO":   "nl_in_secIntro"
+};
+for(let i=0;i<6;i++){
+  NL_QC_MAP[`TIP ${i+1} TITLE`] = `nl_in_t${i}_h`;
+  NL_QC_MAP[`TIP ${i+1} BODY`]  = `nl_in_t${i}_p`;
+}
+const NL_QC_LABELS = Object.keys(NL_QC_MAP).sort((a,b)=>b.length-a.length);   // longest first
+let nlQcReview = null;
+
+function nl_qcSerialize(){
+  const n = nl_tipCount(), lines = [];
+  for(const label of Object.keys(NL_QC_MAP)){
+    const m = /^TIP (\d+)/.exec(label);
+    if(m && (+m[1]) > n) continue;                       // tips beyond the chosen count
+    const v = (nl_v(NL_QC_MAP[label])||"").trim();
+    if(v) lines.push(`[${label}] ${v.replace(/\s*\n\s*/g," ")}`);
+  }
+  return lines.join("\n");
+}
+function nl_qcMatchField(f){
+  const hay = ((f.location||"") + " " + (f.claim||"")).toUpperCase();
+  for(const label of NL_QC_LABELS){ if(hay.includes(label)) return { label, id: NL_QC_MAP[label] }; }
+  return null;
+}
+function nl_qcSetMsg(t,cls){ const m=document.getElementById("nl_qcMsg"); m.textContent=t; m.className="nl-msg "+(cls||""); }
+function nl_finMsg(t,cls){ const m=document.getElementById("nl_finalizeMsg"); if(m){ m.textContent=t; m.className="nl-msg "+(cls||""); } }
+
+async function nl_sendToQC(){
+  const btn=document.getElementById("nl_qcBtn");
+  const content = nl_qcSerialize();
+  if(!content){ nl_qcSetMsg("Nothing to review — fill in the newsletter copy first.","err"); return; }
+  const title = (nl_v("nl_in_headline")||"").replace(/\s*\n\s*/g," ").trim() || "Newsletter";
+  const id = (document.getElementById("id").value.trim()) || ("nl-" + slugify(title));
+  btn.disabled=true; const label=btn.textContent; btn.textContent="Reviewing…"; nl_qcSetMsg("Running content review…","");
+  try{
+    const res = await fetch(QC_ENDPOINT,{ method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ content_id:id, content_title:title, content, content_source:"builder" }) });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const d = await res.json();
+    if(!d || d.ok!==true || !d.review) throw new Error("Unexpected QC response");
+    nlQcReview = d.review;
+    nl_qcSetMsg("Review complete.","ok");
+    nl_qcRender();
+  }catch(err){
+    nl_qcSetMsg("QC failed: "+err.message+". Check the qc-first-pass workflow / CORS.","err");
+  }finally{ btn.disabled=false; btn.textContent=label; }
+}
+
+function nl_qcRender(){
+  const wrap=document.getElementById("nl_qcResult"), sum=document.getElementById("nl_qcSummary"),
+        list=document.getElementById("nl_qcFindings");
+  if(!nlQcReview){ wrap.style.display="none"; nl_updateFinalizeGate(); return; }
+  wrap.style.display="";
+  const r=nlQcReview, score=Number(r.score)||1, nf=(r.findings||[]).length;
+  sum.className="qc-summary s"+score;
+  sum.innerHTML=`<span class="score">Score ${score}/5 — ${QC_SCORE_LABEL[score]||""}</span> · ${nf} finding${nf===1?"":"s"}` +
+    (r.in_scope===false ? ` · <b>Out of scope:</b> ${fl_esc(r.scope_note||"")}` : "");
+  list.innerHTML="";
+  (r.findings||[]).forEach((f,idx)=>{
+    const match=nl_qcMatchField(f);
+    f.__field = match ? match.id : null; f.__label = match ? match.label : null;
+    const hasSug = !!(f.suggested_edit && String(f.suggested_edit).trim());
+    const div=document.createElement("div");
+    div.className="qc-find"+(f.disposition?" done":"");
+    const fieldTxt = match ? `→ ${match.label.toLowerCase()}` : "unmapped — review manually";
+    let dispTxt="";
+    if(f.disposition==="accept_with_edits") dispTxt=`<span class="qc-disp accepted">✓ edited & placed</span>`;
+    else if(f.disposition==="accept")       dispTxt=`<span class="qc-disp accepted">✓ suggestion placed</span>`;
+    else if(f.disposition==="return")       dispTxt=`<span class="qc-disp rejected">✗ rejected</span>`;
+    let actions="";
+    if(match){
+      actions += hasSug
+        ? `<button class="apply" onclick="nl_qcAcceptSuggestion(${idx})">Accept suggestion</button>`
+        : `<button class="apply" disabled title="No AI suggestion to accept — use Edit suggestion">Accept suggestion</button>`;
+      actions += `<button class="edit" onclick="nl_qcToggleEdit(${idx})">Edit suggestion</button>`;
+    }
+    actions += `<button class="reject" onclick="nl_qcReject(${idx})">Reject</button>`;
+    const seed = hasSug ? f.suggested_edit : (match ? nl_v(f.__field) : "");
+    const editArea = match
+      ? `<div class="qc-editwrap" id="nlqcedit-${idx}" style="display:none;">`+
+          `<textarea class="qc-editta" id="nlqceta-${idx}">${fl_esc(seed)}</textarea>`+
+          `<button class="apply" onclick="nl_qcPlaceEdit(${idx})">Place edited text in newsletter</button>`+
+        `</div>` : "";
+    const ref = f.reference || {};
+    const refHtml = (ref.doc_id || ref.note)
+      ? `<div class="qc-ref">${ref.doc_id?`<b>${fl_esc(ref.doc_id)}</b>${ref.version?` (${fl_esc(ref.version)})`:""} — `:""}${fl_esc(ref.note||"")}</div>` : "";
+    div.innerHTML =
+      `<div class="qc-top"><span class="qc-tier ${f.tier}">${fl_esc(f.tier)}</span>`+
+      `<span class="qc-field ${match?"":"unmapped"}">${fieldTxt}</span></div>`+
+      `<p class="qc-claim">${fl_esc(f.claim||"")}</p>`+ refHtml +
+      (hasSug?`<div class="qc-edit"><b>Suggested:</b> ${fl_esc(f.suggested_edit)}</div>`:
+              (match?``:`<div class="qc-edit">No mapped field — apply this manually, then Reject to clear it.</div>`))+
+      `<div class="qc-actions">${actions} ${dispTxt}</div>` + editArea;
+    list.appendChild(div);
+  });
+  nl_updateFinalizeGate();
+}
+function nl_qcAcceptSuggestion(idx){
+  const f=nlQcReview.findings[idx]; if(!f||!f.__field) return;
+  if(f.suggested_edit != null) nl_setFld(f.__field, f.suggested_edit);
+  f.final_text = f.suggested_edit || null; nl_draw(); nl_qcDispose(idx,"accept");
+}
+function nl_qcToggleEdit(idx){ const w=document.getElementById("nlqcedit-"+idx); if(w) w.style.display = (w.style.display==="none") ? "" : "none"; }
+function nl_qcPlaceEdit(idx){
+  const f=nlQcReview.findings[idx]; if(!f||!f.__field) return;
+  const ta=document.getElementById("nlqceta-"+idx), txt = ta ? ta.value : "";
+  nl_setFld(f.__field, txt); f.final_text = txt; nl_draw(); nl_qcDispose(idx,"accept_with_edits");
+}
+function nl_qcReject(idx){ const f=nlQcReview.findings[idx]; if(f) f.final_text=null; nl_qcDispose(idx,"return"); }
+function nl_qcDispose(idx,disp){
+  const f=nlQcReview.findings[idx]; if(!f) return;
+  f.disposition=disp; f.disposition_at=new Date().toISOString(); nl_qcRender();
+}
+function nl_qcInvalidate(){
+  if(nlQcReview){ nlQcReview=null; document.getElementById("nl_qcResult").style.display="none";
+    nl_qcSetMsg("Copy changed — run QC again before finalizing.",""); }
+  nl_updateFinalizeGate();
+}
+function nl_updateFinalizeGate(){
+  const btn=document.getElementById("nl_finalizeBtn"); if(!btn) return;
+  const ready = !!nlQcReview && (nlQcReview.findings||[]).every(f=>!!f.disposition);
+  btn.disabled=!ready; btn.style.opacity = ready ? "1" : ".5";
+}
+document.getElementById("nl_qcBtn").onclick = nl_sendToQC;
+document.getElementById("nl_finalizeBtn").onclick = ()=>{ save(); };
+// Only reviewed copy fields invalidate (tip count changes which tips are reviewed, so it does too).
+Object.values(NL_QC_MAP).forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener("input", nl_qcInvalidate); });
+document.getElementById("nl_in_tipCount").addEventListener("change", nl_qcInvalidate);
+nl_updateFinalizeGate();
 
 // photo spots in the preview open the shared image-library picker
 document.getElementById("nl_stage").addEventListener("click", e=>{
