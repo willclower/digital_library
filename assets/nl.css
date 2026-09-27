@@ -1,0 +1,100 @@
+/* ============================================================================
+   nl.css — SHARED newsletter output styles (template "magazine2": 2 pages)
+   Loaded by admin.html (authoring preview) and render.html (download render).
+   Brand-neutral: brand tokens are set on .nl-doc at render time.
+   Each .nl-page is exactly 612 x 792 (US Letter @ 72pt) for 1:1 PDF capture.
+   ============================================================================ */
+.nl-scope{ --font-ui:"Instrument Sans",system-ui,sans-serif; }
+.nl-scope .nl-doc{
+  --brand-primary:#1b3564;   /* cover panel / headings */
+  --brand-secondary:#0a5a96; /* masthead band / icons / page tabs */
+  --brand-accent:#f0a830;    /* rule under title / callout border */
+  --ink:#1e2d35; --ink-soft:#3f4f58; --page:#ffffff;
+  font-family:var(--font-ui); color:var(--ink);
+  display:flex; flex-direction:column; gap:24px;
+}
+.nl-scope .nl-page{width:612px;height:792px;background:var(--page);position:relative;overflow:hidden;
+  box-shadow:0 10px 30px -12px rgba(0,0,0,.35);}
+.nl-scope .nl-doc.nl-print .nl-page{box-shadow:none;}
+
+/* ---------- Page 1: cover ---------- */
+.nl-scope .nl-cover{position:absolute;left:0;top:0;width:612px;height:490px;}
+.nl-scope .nl-hero{position:absolute;right:0;top:0;width:340px;height:490px;
+  background:#e8e2d8 center/cover no-repeat;}
+.nl-scope .nl-panel{position:absolute;left:0;top:0;width:410px;height:490px;background:var(--brand-primary);
+  clip-path:polygon(0 0,100% 0,82% 100%,0 100%);}
+.nl-scope .nl-logo{position:absolute;left:38px;top:28px;height:44px;max-width:150px;display:flex;align-items:center;z-index:3;}
+.nl-scope .nl-logo img{max-height:44px;max-width:150px;display:block;}
+.nl-scope .nl-mast{position:absolute;right:0;top:32px;height:52px;width:430px;background:var(--brand-secondary);z-index:2;
+  clip-path:polygon(24px 0,100% 0,100% 100%,0 100%);color:#fff;}
+.nl-scope .nl-mast__title{position:absolute;left:44px;top:12px;font-weight:600;font-size:18px;letter-spacing:.01em;}
+.nl-scope .nl-mast__vol{position:absolute;right:20px;top:10px;font-weight:600;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;}
+.nl-scope .nl-mast__date{position:absolute;right:88px;top:33px;font-weight:600;font-size:9px;letter-spacing:.12em;text-transform:uppercase;}
+.nl-scope .nl-cover__text{position:absolute;left:38px;top:128px;width:270px;color:#fff;z-index:3;}
+.nl-scope .nl-title{font-weight:600;font-size:44px;line-height:.98;margin:0;letter-spacing:-.01em;}
+.nl-scope .nl-rule{width:56px;height:4px;background:var(--brand-accent);margin:18px 0 22px;}
+.nl-scope .nl-sub{font-weight:600;font-size:13px;line-height:1.4;margin:0 0 14px;}
+.nl-scope .nl-hook{font-size:11.5px;line-height:1.55;margin:0;opacity:.95;}
+
+.nl-scope .nl-lower{position:absolute;left:38px;right:38px;top:508px;bottom:40px;
+  display:grid;grid-template-columns:1fr 1.05fr;gap:24px;}
+.nl-scope .nl-intro p{font-size:11px;line-height:1.55;margin:0 0 12px;color:var(--ink);}
+.nl-scope .nl-side{position:absolute;left:38px;bottom:0;width:210px;height:118px;
+  background:transparent center bottom/contain no-repeat;}
+.nl-scope .nl-callout{border:1.5px solid var(--brand-accent);border-radius:10px;padding:13px 16px;align-self:start;max-height:244px;overflow:hidden;box-sizing:border-box;}
+.nl-scope .nl-callout__head{display:flex;align-items:center;gap:12px;margin:0 0 8px;}
+.nl-scope .nl-icon{flex:0 0 40px;width:40px;height:40px;border-radius:50%;background:var(--brand-secondary);
+  display:flex;align-items:center;justify-content:center;}
+.nl-scope .nl-icon svg{width:22px;height:22px;display:block;}
+.nl-scope .nl-callout__title{font-weight:600;font-size:17px;line-height:1.05;color:var(--brand-primary);margin:0;}
+.nl-scope .nl-callout p{font-size:10.5px;line-height:1.5;margin:0 0 8px;color:var(--ink);}
+.nl-scope .nl-callout p:last-child{margin-bottom:0;}
+
+/* ---------- page tabs + running footer (both pages) ---------- */
+.nl-scope .nl-pgtab{position:absolute;left:0;bottom:30px;width:34px;height:20px;background:var(--brand-primary);
+  clip-path:polygon(0 0,100% 0,78% 100%,0 100%);color:#fff;font-size:9px;font-weight:600;
+  display:flex;align-items:center;padding-left:8px;box-sizing:border-box;z-index:4;}
+.nl-scope .nl-runfoot{position:absolute;right:38px;bottom:32px;font-size:7.5px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--brand-primary);border-bottom:1px solid var(--brand-primary);padding-bottom:1px;}
+
+/* ---------- Page 2: tips grid ---------- */
+.nl-scope .nl-p2{position:absolute;left:38px;right:38px;top:34px;}
+.nl-scope .nl-sec__title{font-weight:600;font-size:22px;color:var(--brand-primary);margin:0 0 10px;}
+.nl-scope .nl-sec__intro{font-size:11px;line-height:1.55;margin:0 0 22px;color:var(--ink);}
+.nl-scope .nl-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:214px;column-gap:0;row-gap:16px;}
+.nl-scope .nl-tip{padding:0 14px;text-align:center;border-right:1px solid #d9dde0;}
+.nl-scope .nl-tip.nl-last-col{border-right:0;}
+.nl-scope .nl-tip__img{width:108px;height:108px;border-radius:50%;margin:0 auto 10px;background:#e9edf0 center/cover no-repeat;}
+.nl-scope .nl-tip__h{font-weight:600;font-size:12px;color:var(--brand-secondary);margin:0 0 6px;}
+.nl-scope .nl-tip__p{font-size:10px;line-height:1.5;margin:0;color:var(--ink);}
+.nl-scope .nl-feature{background:#e9edf0 center/cover no-repeat;border-radius:4px;margin-left:10px;}
+.nl-scope .nl-feature.span2{grid-row:span 2;}
+
+/* authoring affordance (admin only; render.html never adds .nl-edit) */
+.nl-scope .nl-edit .nl-zone{cursor:pointer;outline:1px dashed transparent;}
+.nl-scope .nl-edit .nl-zone:hover{outline-color:#17402F;}
+
+/* ---------- Page 2: center address footer + QR (mirrors flyer .fl-addr / .fl-foot) ---------- */
+.nl-scope .nl-addr{position:absolute;left:0;right:0;bottom:22px;height:80px;background:#e7e6f0;box-sizing:border-box;
+  padding:14px 38px 0;display:grid;grid-template-columns:1.15fr 1.2fr auto;gap:18px;align-items:start;}
+.nl-scope .nl-addr::before{content:"";position:absolute;left:0;right:0;top:-12px;height:14px;background:#e7e6f0;
+  border-radius:50% 50% 0 0 / 100% 100% 0 0;}
+.nl-scope .nl-addr.has-qr{grid-template-columns:1.15fr 1.2fr auto auto;}
+.nl-scope .nl-addr__name{font-weight:600;font-size:11px;color:var(--brand-primary);margin:0 0 3px;}
+.nl-scope .nl-addr__line{font-size:9.5px;line-height:1.45;color:var(--ink-soft);}
+.nl-scope .nl-addr__logo{justify-self:end;align-self:center;}
+.nl-scope .nl-addr__logo img{max-height:36px;max-width:150px;object-fit:contain;display:block;}
+.nl-scope .nl-foot{position:absolute;left:0;right:0;bottom:0;height:22px;background:#dedcec;padding:0 38px;
+  display:flex;justify-content:space-between;align-items:center;font-size:8.5px;color:var(--ink-soft);}
+.nl-scope .nl-foot .code{color:#8f887c;}
+.nl-scope .nl-qr{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.nl-scope .nl-qrbox{width:52px;height:52px;padding:3px;background:#fff;box-sizing:border-box;border-radius:4px;}
+.nl-scope .nl-qrbox img{width:100%;height:100%;display:block;}
+.nl-scope .nl-qrbox.ph{border:1px dashed #9aa3a8;display:flex;align-items:center;justify-content:center;
+  font-size:8px;font-weight:600;color:#9aa3a8;}
+.nl-scope .nl-qrlabel{font-size:7.5px;font-weight:600;white-space:nowrap;color:var(--brand-primary);}
+.nl-scope .nl-qr-float{position:absolute;right:38px;bottom:30px;z-index:4;}
+/* page tab + running footer sit above the address band when it is shown */
+.nl-scope .nl-p2page.has-addr .nl-pgtab{bottom:118px;}
+.nl-scope .nl-p2page.has-addr .nl-runfoot{bottom:120px;}
+.nl-scope .nl-p2page.qr-float .nl-runfoot{right:140px;}
