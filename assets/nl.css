@@ -73,9 +73,15 @@
 .nl-scope .nl-feature{background:#e9edf0 center/cover no-repeat;border-radius:4px;margin-left:10px;}
 .nl-scope .nl-feature.span2{grid-row:span 2;}
 
-/* authoring affordance (admin only; render.html never adds .nl-edit) */
-.nl-scope .nl-edit .nl-zone{cursor:pointer;outline:1px dashed transparent;}
-.nl-scope .nl-edit .nl-zone:hover{outline-color:#17402F;}
+/* authoring affordance (admin only; render.html never adds .nl-edit) — same hover as flyer .fl-zone */
+.nl-scope .nl-edit .nl-zone{cursor:pointer;}
+.nl-scope .nl-edit .nl-tip__img, .nl-scope .nl-edit .nl-feature{position:relative;}
+.nl-scope .nl-edit .nl-zone::after{content:"⤢ pick image";position:absolute;inset:0;display:flex;
+  align-items:center;justify-content:center;border-radius:inherit;background:rgba(23,64,47,0);color:transparent;
+  font-size:12px;font-weight:700;transition:background .12s,color .12s;pointer-events:none;z-index:3;}
+.nl-scope .nl-edit .nl-zone:hover::after{background:rgba(23,64,47,.5);color:#fff;}
+/* cover photo sits partly under the panel — keep its label in the visible right side */
+.nl-scope .nl-edit .nl-hero.nl-zone::after{left:90px;}
 
 /* ---------- Page 2: center address footer + QR (mirrors flyer .fl-addr / .fl-foot) ---------- */
 .nl-scope .nl-addr{position:absolute;left:0;right:0;bottom:22px;height:80px;background:#e7e6f0;box-sizing:border-box;
