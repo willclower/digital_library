@@ -13,6 +13,8 @@
   font-family:var(--font-ui); color:var(--ink);
   display:flex; flex-direction:column; gap:24px;
 }
+.nl-scope .nl-doc h1, .nl-scope .nl-doc h2, .nl-scope .nl-doc h3, .nl-scope .nl-doc h4, .nl-scope .nl-doc p{
+  font-family:var(--font-ui);letter-spacing:normal;text-transform:none;}
 .nl-scope .nl-page{width:612px;height:792px;background:var(--page);position:relative;overflow:hidden;
   box-shadow:0 10px 30px -12px rgba(0,0,0,.35);}
 .nl-scope .nl-doc.nl-print .nl-page{box-shadow:none;}
@@ -21,17 +23,16 @@
 .nl-scope .nl-cover{position:absolute;left:0;top:0;width:612px;height:490px;}
 .nl-scope .nl-hero{position:absolute;right:0;top:0;width:340px;height:490px;
   background:#e8e2d8 center/cover no-repeat;}
-.nl-scope .nl-panel{position:absolute;left:0;top:0;width:410px;height:490px;background:var(--brand-primary);
-  clip-path:polygon(0 0,100% 0,82% 100%,0 100%);}
+.nl-scope .nl-panel{position:absolute;left:0;top:0;width:410px;height:490px;}
 .nl-scope .nl-logo{position:absolute;left:38px;top:28px;height:44px;max-width:150px;display:flex;align-items:center;z-index:3;}
 .nl-scope .nl-logo img{max-height:44px;max-width:150px;display:block;}
-.nl-scope .nl-mast{position:absolute;right:0;top:32px;height:52px;width:430px;background:var(--brand-secondary);z-index:2;
-  clip-path:polygon(24px 0,100% 0,100% 100%,0 100%);color:#fff;}
+.nl-scope .nl-mast{position:absolute;right:0;top:32px;height:52px;width:430px;z-index:2;color:#fff;}
+.nl-scope .nl-mast > div{position:absolute;z-index:1;}
 .nl-scope .nl-mast__title{position:absolute;left:44px;top:12px;font-weight:600;font-size:18px;letter-spacing:.01em;}
 .nl-scope .nl-mast__vol{position:absolute;right:20px;top:10px;font-weight:600;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;}
 .nl-scope .nl-mast__date{position:absolute;right:88px;top:33px;font-weight:600;font-size:9px;letter-spacing:.12em;text-transform:uppercase;}
 .nl-scope .nl-cover__text{position:absolute;left:38px;top:128px;width:270px;color:#fff;z-index:3;}
-.nl-scope .nl-title{font-weight:600;font-size:44px;line-height:.98;margin:0;letter-spacing:-.01em;}
+.nl-scope .nl-doc .nl-title{font-weight:600;font-size:44px;line-height:.98;margin:0;letter-spacing:-.01em;color:#fff;}
 .nl-scope .nl-rule{width:56px;height:4px;background:var(--brand-accent);margin:18px 0 22px;}
 .nl-scope .nl-sub{font-weight:600;font-size:13px;line-height:1.4;margin:0 0 14px;}
 .nl-scope .nl-hook{font-size:11.5px;line-height:1.55;margin:0;opacity:.95;}
@@ -39,8 +40,10 @@
 .nl-scope .nl-lower{position:absolute;left:38px;right:38px;top:508px;bottom:40px;
   display:grid;grid-template-columns:1fr 1.05fr;gap:24px;}
 .nl-scope .nl-intro p{font-size:11px;line-height:1.55;margin:0 0 12px;color:var(--ink);}
-.nl-scope .nl-side{position:absolute;left:38px;bottom:0;width:210px;height:118px;
-  background:transparent center bottom/contain no-repeat;}
+.nl-scope .nl-side{position:absolute;left:38px;bottom:40px;width:196px;height:110px;border-radius:6px;
+  background:#e9edf0 center/cover no-repeat;}
+.nl-scope .nl-side.nl-empty{display:none;}
+.nl-scope .nl-edit .nl-side.nl-empty{display:block;}
 .nl-scope .nl-callout{border:1.5px solid var(--brand-accent);border-radius:10px;padding:13px 16px;align-self:start;max-height:244px;overflow:hidden;box-sizing:border-box;}
 .nl-scope .nl-callout__head{display:flex;align-items:center;gap:12px;margin:0 0 8px;}
 .nl-scope .nl-icon{flex:0 0 40px;width:40px;height:40px;border-radius:50%;background:var(--brand-secondary);
@@ -51,9 +54,8 @@
 .nl-scope .nl-callout p:last-child{margin-bottom:0;}
 
 /* ---------- page tabs + running footer (both pages) ---------- */
-.nl-scope .nl-pgtab{position:absolute;left:0;bottom:30px;width:34px;height:20px;background:var(--brand-primary);
-  clip-path:polygon(0 0,100% 0,78% 100%,0 100%);color:#fff;font-size:9px;font-weight:600;
-  display:flex;align-items:center;padding-left:8px;box-sizing:border-box;z-index:4;}
+.nl-scope .nl-pgtab{position:absolute;left:0;bottom:30px;width:34px;height:20px;color:#fff;font-size:9px;font-weight:600;z-index:4;}
+.nl-scope .nl-pgtab span{position:absolute;left:8px;top:0;line-height:20px;}
 .nl-scope .nl-runfoot{position:absolute;right:38px;bottom:32px;font-size:7.5px;font-weight:600;letter-spacing:.12em;
   text-transform:uppercase;color:var(--brand-primary);border-bottom:1px solid var(--brand-primary);padding-bottom:1px;}
 
@@ -98,3 +100,12 @@
 .nl-scope .nl-p2page.has-addr .nl-pgtab{bottom:118px;}
 .nl-scope .nl-p2page.has-addr .nl-runfoot{bottom:120px;}
 .nl-scope .nl-p2page.qr-float .nl-runfoot{right:140px;}
+
+/* ---------- logo contrast variants (set by nl_render from brand.logoTone) ---------- */
+.nl-scope .nl-logo.nl-chip{background:#fff;border-radius:6px;padding:6px 10px;left:30px;top:24px;}
+.nl-scope .nl-addr--dark, .nl-scope .nl-addr--dark::before{background:var(--brand-primary);}
+.nl-scope .nl-addr--dark .nl-addr__name{color:#fff;}
+.nl-scope .nl-addr--dark .nl-addr__line{color:rgba(255,255,255,.85);}
+.nl-scope .nl-addr--dark .nl-qrlabel{color:#fff;}
+.nl-scope .nl-p2page.has-addr .nl-addr--dark ~ .nl-foot{background:#e7e6f0;}
+.nl-scope .nl-logo.nl-chip img{max-width:120px;max-height:36px;}
