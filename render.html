@@ -9,14 +9,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="stylesheet" href="assets/flyer.css">   <!-- SHARED flyer output styles -->
+<link rel="stylesheet" href="assets/nl.css">      <!-- SHARED newsletter output styles -->
 <style>
   body{margin:0;background:#fff;}
   #fl_stage{position:absolute;left:0;top:0;}
+  #nl_stage{position:absolute;left:0;top:0;width:612px;}
   .fl-hidden-inputs{position:absolute;left:-99999px;top:-99999px;visibility:hidden;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="assets/flyer-render.js"></script>   <!-- SHARED render engine + globals -->
+<script src="assets/nl-render.js"></script>      <!-- SHARED newsletter render engine -->
 </head>
 <body>
 <div class="fl-hidden-inputs flyer-scope">
@@ -83,6 +86,8 @@
     </div>
   </div>
 </div>
+
+<div id="nl_stage" class="nl-scope"></div>
 
 <script>
 // ============================================================================
@@ -213,11 +218,64 @@ async function renderFlyerFromManifest(manifest, brand){
   return await fl_buildFlyerPDF();
 }
 
+// ---------------------------------------------------------------------------
+// NEWSLETTER (template "magazine2"). Engine = SHARED assets/nl-render.js.
+// Manifest images are library refs (*_ref) or small inlined data URLs (*_data);
+// both resolve through fl_toDataUrl. Refs are cached across clients in one batch.
+// Brand rules mirror the flyer driver:
+//   unbranded ("none") -> no logo, no address band, QR floats; template default colors
+//   branded            -> client/parent colors + logo; brand.footer over manifest.footer
+// Manifest colors are AUTHORING-preview only and are never applied here (brand-neutral).
+// ---------------------------------------------------------------------------
+const NL_IMG_CACHE = {};
+async function nl_img(ref, data){
+  const key = ref || data; if(!key) return null;
+  if(!NL_IMG_CACHE[key]) NL_IMG_CACHE[key] = fl_toDataUrl(key);   // cache the promise
+  try{ return await NL_IMG_CACHE[key]; }
+  catch(e){ delete NL_IMG_CACHE[key]; throw e; }
+}
+
+async function renderNewsletterFromManifest(manifest, brand){
+  const m = JSON.parse(JSON.stringify(manifest || {}));
+  const b = brand || {};
+  const unbranded = (b.mode === "none");
+  const cover = m.cover || {};
+  cover.hero = await nl_img(cover.hero_ref, cover.hero_data);
+  m.cover = cover;
+  m.side    = await nl_img(m.side_ref, m.side_data);
+  m.feature = await nl_img(m.feature_ref, m.feature_data);
+  m.tips = Array.isArray(m.tips) ? m.tips : [];
+  for(const t of m.tips){ t.img = await nl_img(t.img_ref, t.img_data); }
+
+  const bf = b.footer || null;
+  m.brand = await nl_prepareBrand({
+    mode:      b.mode || "none",
+    primary:   unbranded ? undefined : b.primary,
+    secondary: unbranded ? undefined : b.secondary,
+    accent:    unbranded ? undefined : b.accent,
+    logo:      unbranded ? null : (b.logo || null),
+    // brand footer wins field-by-field; hours2 is not in the brand row, so it is blanked
+    // for branded renders (same as flyers) instead of leaking the authoring placeholder.
+    footer:    bf ? Object.assign({ hours2:"" }, bf) : null,
+    qrData:    b.qrData || null,
+    footCode:  b.footCode || ""
+  });
+
+  const stage = fl_$("nl_stage");
+  nl_render(stage, m, { print:true });
+  if(document.fonts && document.fonts.ready) await document.fonts.ready;
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  try{ return await nl_buildPDF(stage); }       // nl_buildPDF decodes every <img> first
+  finally{ stage.innerHTML = ""; }               // iframe is reused across clients
+}
+
 window.addEventListener("message", async (ev)=>{
   const d = ev.data || {};
   if(d.type !== "render") return;
   try{
-    const out = await renderFlyerFromManifest(d.manifest, d.brand);
+    const isNl = d.manifest && d.manifest.template === "magazine2";
+    const out = isNl ? await renderNewsletterFromManifest(d.manifest, d.brand)
+                     : await renderFlyerFromManifest(d.manifest, d.brand);
     (ev.source||window.parent).postMessage({ type:"render-result", reqId:d.reqId, ok:true,
       pdfB64: out.pdfB64, thumbB64: out.thumbB64 }, "*");
   }catch(e){
@@ -228,6 +286,7 @@ window.addEventListener("message", async (ev)=>{
 
 window.addEventListener("load", ()=>{ try{ (window.parent||window).postMessage({type:"render-ready"},"*"); }catch(e){} });
 window.renderFlyerFromManifest = renderFlyerFromManifest;
+window.renderNewsletterFromManifest = renderNewsletterFromManifest;
 </script>
 </body>
 </html>
