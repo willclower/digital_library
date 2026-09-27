@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="stylesheet" href="assets/flyer.css">
+<link rel="stylesheet" href="assets/nl.css">   <!-- SHARED newsletter output styles -->
 <style>
   :root{
     --ink:#0E2A44; --paper:#EFEBE2; --panel:#FFFDF9; --border:#E0D9CB; --border-st:#C9C2B3;
@@ -65,6 +66,26 @@
   #fl_tplRail{position:sticky;top:24px;}
   #fl_tplRail .rail-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);margin-bottom:10px;}
   #fl_tplRail .rail-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+
+  /* ===== Newsletter composer (scoped under #nlBuild; deliberately NOT .flyer-scope) ===== */
+  .nl-form .fld{margin-bottom:13px;}
+  .nl-form .fld label{display:block;font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#6b6459;margin-bottom:4px;}
+  .nl-form .fld label .sub{font-weight:400;text-transform:none;letter-spacing:0;color:#a39a8b;}
+  .nl-form .fld input[type=text], .nl-form .fld textarea, .nl-form .fld select{width:100%;border:1.5px solid #d5d0c6;border-radius:6px;padding:7px 9px;font:inherit;font-size:13px;color:var(--ink);background:#fff;}
+  .nl-form .fld textarea{resize:vertical;min-height:44px;line-height:1.4;}
+  .nl-form .row2{display:flex;gap:9px;} .nl-form .row2 .fld{flex:1;}
+  .nl-form .row3{display:flex;gap:9px;} .nl-form .row3 .fld{flex:1;}
+  .nl-form .colorwrap{display:flex;align-items:center;gap:7px;}
+  .nl-form .colorwrap input[type=color]{width:34px;height:34px;padding:0;border:1px solid #d5d0c6;border-radius:6px;background:#fff;cursor:pointer;}
+  .nl-form .tile-block{border:1px solid #ece8df;border-radius:7px;padding:10px;margin-bottom:9px;background:#faf8f3;}
+  .nl-form .tile-block .tnum{font-size:10.5px;font-weight:700;color:#a39a8b;letter-spacing:.06em;margin-bottom:6px;}
+  .nl-form .seg-label{font-family:var(--font-voice);font-size:15px;margin:20px 0 8px;color:#3a352c;border-top:1px solid #ece8df;padding-top:14px;}
+  .nl-form .dhint{font-size:11.5px;color:#6f7f74;margin:0 0 10px;line-height:1.35;}
+  .nl-form .drop{border:1.5px dashed #cfc9bd;border-radius:7px;padding:12px;text-align:center;font-size:12.5px;color:#8a8478;cursor:pointer;background:#faf8f3;}
+  .nl-form .drop.have{color:var(--ink);border-style:solid;border-color:#b9d3c4;background:#f1f7f3;}
+  #nlPreviewWrap{position:sticky;top:24px;}
+  #nl_fit{overflow:hidden;} #nl_stage{transform-origin:top left;width:612px;}
+  #nl_print{position:absolute;left:-99999px;top:0;}
 
   /* ===== Flyer composer (scoped under #flyerBuild) ===== */
 /* ---------- editor ---------- */
@@ -301,6 +322,7 @@
       <div class="pills" id="assetTypePills">
         <span class="pill" data-t="screen"     data-on="1" onclick="setAssetType('screen')">Screen</span>
         <span class="pill" data-t="flyer"      data-on="0" onclick="setAssetType('flyer')">Flyer</span>
+        <span class="pill" data-t="newsletter" data-on="0" onclick="setAssetType('newsletter')">Newsletter</span>
       </div>
     </div>
 
@@ -438,6 +460,72 @@
     </div><!-- /#fl_composer -->
     </div><!-- /#flyerBuild -->
 
+    <!-- ===== Newsletter BUILD composer (newsletter only). Template "magazine2" (2 pages).
+         Rendered by the SHARED assets/nl-render.js; brand is applied per client at download. ===== -->
+    <div id="nlBuild" class="nl-form nl-build-only" style="display:none">
+      <p class="dhint">Two-page newsletter. Click any photo spot in the preview to pick from the image library. Brand colors and logo here are for preview only — each client's brand is applied at download.</p>
+
+      <div class="seg-label" style="margin-top:0;border-top:0;padding-top:0;">Masthead</div>
+      <div class="row3">
+        <div class="fld" style="flex:2"><label>Masthead title</label><input type="text" id="nl_in_mastTitle" value="Wellness Newsletter"></div>
+        <div class="fld"><label>Volume</label><input type="text" id="nl_in_volume" placeholder="11.1"></div>
+      </div>
+      <div class="fld"><label>Issue label <span class="sub">printed under the masthead</span></label><input type="text" id="nl_in_issue" placeholder="January 2027"></div>
+
+      <div class="seg-label">Preview brand</div>
+      <div class="row3">
+        <div class="fld"><label>Panel</label><div class="colorwrap"><input type="color" id="nl_in_c_primary" value="#1b3564"><input type="text" id="nl_in_c_primary_hex" value="#1b3564"></div></div>
+        <div class="fld"><label>Band</label><div class="colorwrap"><input type="color" id="nl_in_c_secondary" value="#0a5a96"><input type="text" id="nl_in_c_secondary_hex" value="#0a5a96"></div></div>
+        <div class="fld"><label>Accent</label><div class="colorwrap"><input type="color" id="nl_in_c_accent" value="#f0a830"><input type="text" id="nl_in_c_accent_hex" value="#f0a830"></div></div>
+      </div>
+      <div class="fld"><label>Logo <span class="sub">preview only</span></label>
+        <div class="drop" id="nl_in_logoDrop">Click to add a logo (PNG)</div>
+        <input type="file" id="nl_in_logoFile" accept="image/png,image/svg+xml,image/jpeg" hidden></div>
+
+      <div class="seg-label">Tags</div>
+      <div id="tagSlotNl"></div>
+
+      <div class="seg-label">Page 1 · Cover</div>
+      <div class="fld"><label>Title <span class="sub">Enter = line break</span></label><textarea id="nl_in_headline" rows="2" placeholder="Small Habits,&#10;Big Year"></textarea></div>
+      <div class="fld"><label>Subhead</label><input type="text" id="nl_in_subhead" placeholder="One bold line under the title"></div>
+      <div class="fld"><label>Hook</label><textarea id="nl_in_hook" rows="4" placeholder="The opening paragraph on the cover panel"></textarea></div>
+
+      <div class="seg-label">Page 1 · Intro + callout</div>
+      <div class="fld"><label>Intro <span class="sub">blank line = new paragraph</span></label><textarea id="nl_in_intro" rows="5"></textarea></div>
+      <div class="row2">
+        <div class="fld" style="flex:2"><label>Callout title <span class="sub">Enter = line break</span></label><textarea id="nl_in_coTitle" rows="2"></textarea></div>
+        <div class="fld"><label>Icon</label><select id="nl_in_coIcon">
+          <option value="shield">Shield</option><option value="heart">Heart</option><option value="leaf">Leaf</option>
+          <option value="moon">Moon</option><option value="bolt">Bolt</option><option value="clock">Clock</option>
+          <option value="pot">Cooking pot</option><option value="steps">Steps</option></select></div>
+      </div>
+      <div class="fld"><label>Callout body <span class="sub">blank line = new paragraph</span></label><textarea id="nl_in_coBody" rows="5"></textarea></div>
+
+      <div class="seg-label">Page 2 · Tips</div>
+      <div class="fld"><label>Section title</label><input type="text" id="nl_in_secTitle"></div>
+      <div class="fld"><label>Section intro</label><textarea id="nl_in_secIntro" rows="3"></textarea></div>
+      <div class="fld"><label>Number of tips <span class="sub">5 = one feature photo · 4 = tall feature photo · 6 = no photo</span></label>
+        <select id="nl_in_tipCount"><option value="4">4</option><option value="5" selected>5</option><option value="6">6</option></select></div>
+      <div id="nl_in_tips"></div>
+      <div class="fld"><label>Running footer <span class="sub">bottom-right of page 2</span></label><input type="text" id="nl_in_runfoot" placeholder="Volume 11.1 : Habits"></div>
+
+      <div class="seg-label">Center info (footer)</div>
+      <p class="dhint">Shown on client-brand downloads; the client's own center info replaces these. Hidden on unbranded downloads.</p>
+      <div class="fld"><label>Onsite center name</label><input type="text" id="nl_in_ftName" value="Onsite Center Name"></div>
+      <div class="fld"><label>Address line 1</label><input type="text" id="nl_in_ftAddr1" value="555 Street Address"></div>
+      <div class="row2">
+        <div class="fld"><label>Address line 2</label><input type="text" id="nl_in_ftAddr2" value="City, State Zip"></div>
+        <div class="fld"><label>Phone</label><input type="text" id="nl_in_ftPhone" value="XXX.XXX.XXXX"></div>
+      </div>
+      <div class="fld"><label>Hours label</label><input type="text" id="nl_in_ftHoursLabel" value="Center Hours"></div>
+      <div class="row2">
+        <div class="fld"><label>Hours line 1</label><input type="text" id="nl_in_ftHours1" value="Monday – Friday: 8 a.m. – 5 p.m."></div>
+        <div class="fld"><label>Hours line 2</label><input type="text" id="nl_in_ftHours2" value="Saturday: 8 a.m. – 5 p.m."></div>
+      </div>
+      <div class="fld"><label>Powered-by line</label><input type="text" id="nl_in_powered" value="Wellness powered by Mediterranean Wellness"></div>
+      <div class="fld"><label>Asset code <span class="sub">auto-assigned on publish</span></label><input type="text" id="nl_in_footCode" value="" readonly></div>
+    </div><!-- /#nlBuild -->
+
     <div class="row3 screen-only">
       <div class="field">
         <label>Treatment</label>
@@ -548,6 +636,13 @@
 </div>
   </div>
 
+  <!-- Newsletter build preview (scaled to fit; PDF renders from the unscaled #nl_print stage) -->
+  <div class="previewwrap nl-build-only" id="nlPreviewWrap" style="display:none">
+    <div class="plabel">Live preview · 2 pages</div>
+    <div id="nl_fit"><div id="nl_stage" class="nl-scope"></div></div>
+  </div>
+  <div id="nl_print" class="nl-scope" aria-hidden="true"></div>
+
   <!-- ===== Template switcher rail (flyer build only, 3rd column) ===== -->
   <div id="fl_tplRail" class="flyer-build-only flyer-scope" style="display:none">
     <div class="rail-label">Template</div>
@@ -634,6 +729,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="assets/flyer-render.js"></script>
+<script src="assets/nl-render.js"></script>   <!-- SHARED newsletter render engine -->
 <script>
 if (window.pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -756,6 +852,8 @@ function setAssetType(t){
   document.querySelectorAll("#assetTypePills .pill").forEach(p=>p.dataset.on = (p.dataset.t===t)?"1":"0");
   const isScreen = t==="screen";
   const isFlyer  = t==="flyer";
+  const isNl     = t==="newsletter";
+  document.querySelectorAll(".nl-build-only").forEach(el=>el.style.display = isNl?"":"none");
   document.querySelectorAll(".screen-only").forEach(el=>el.style.display = isScreen?"":"none");
   document.querySelectorAll(".doc-only").forEach(el=>el.style.display = isScreen?"none":"");
   document.querySelectorAll(".flyer-only").forEach(el=>el.style.display = isFlyer?"":"none");
@@ -786,12 +884,17 @@ function setAssetType(t){
     const draftBtnEl = document.getElementById("draftBtn");
     const draftRow = draftBtnEl ? draftBtnEl.closest(".actions") : null;
     if(draftRow) draftRow.style.display = "";
-    relocateTagBlock(false);
+    relocateTagBlock(false, isNl ? "tagSlotNl" : null);
+    if(isNl){                                   // newsletter is build-only: no upload / draft-on-upload row
+      if(uploadRow) uploadRow.style.display = "none";
+      if(draftRow)  draftRow.style.display  = "none";
+    }
     const screenPrev=document.querySelector(".previewwrap.screen-only");
     if(screenPrev) screenPrev.style.display = isScreen ? "" : "none";
     const saveBtn=document.getElementById("save");
-    if(saveBtn){ saveBtn.style.display=""; saveBtn.textContent = isScreen ? "Publish screen" : "Publish resource"; }
-    const clearBtn=document.getElementById("clearBtn"); if(clearBtn) clearBtn.style.display="";
+    if(saveBtn){ saveBtn.style.display=""; saveBtn.textContent = isScreen ? "Publish screen" : (isNl ? "Publish newsletter" : "Publish resource"); }
+    const clearBtn=document.getElementById("clearBtn"); if(clearBtn) clearBtn.style.display = isNl ? "none" : "";
+    if(isNl && typeof nl_draw==="function") nl_draw();
   }
 }
 
@@ -958,6 +1061,13 @@ function fl_busyOff(){ const b=document.getElementById("fl_busy"); if(b) b.class
 
 async function save(){
   const isBuild = (assetType==="flyer" && flyerMode==="build");
+  const isNl    = (assetType==="newsletter");        // newsletter is always built (template magazine2)
+  if(isNl){                                           // title/id default from the newsletter title
+    const tEl=document.getElementById("title"), iEl=document.getElementById("id");
+    const nlTitle=(document.getElementById("nl_in_headline").value||"").replace(/\s*\n\s*/g," ").trim();
+    if(!tEl.value.trim() && nlTitle) tEl.value = nlTitle;
+    if(!iEl.value.trim() && tEl.value.trim()) iEl.value = "nl-" + slugify(tEl.value.trim());
+  }
   const id=document.getElementById("id").value.trim();
   // In build mode the flyer's headline lives in the composer; use it if the ID-column title is blank.
   let title=document.getElementById("title").value.trim();
@@ -995,6 +1105,28 @@ async function save(){
     fl_busySet("Publishing…");
   }
 
+  // Newsletter build: reserve an NWS code (reuse on republish), bake it into the footer,
+  // render both pages from the unscaled print stage, ride the same doc payload path.
+  let nlAssetCode = null;
+  if(isNl){
+    fl_busyOn("Rendering newsletter…");
+    const existing = (document.getElementById("nl_in_footCode").value||"").trim() || await fl_existingCodeForId(id);
+    try{
+      nlAssetCode = await fl_computeAssetCode("newsletter", (document.getElementById("issue_date").value||"").trim(), existing);
+    }catch(err){
+      setMsg("Couldn't reserve an asset code: "+err.message,"err"); btn.disabled=false; fl_busyOff(); return;
+    }
+    document.getElementById("nl_in_footCode").value = nlAssetCode;
+    try{
+      const r = await nl_renderPrint();
+      buildFile = r.pdfB64; buildThumb = r.thumbB64; buildMime = "application/pdf";
+    }catch(err){
+      setMsg("Couldn't render the newsletter PDF: "+err.message,"err"); btn.disabled=false; fl_busyOff(); return;
+    }
+    nl_draw();
+    fl_busySet("Publishing…"); setMsg("Publishing…","");
+  }
+
   // Plain screen publish (not a build-flyer): reserve an SCR code, reusing the
   // existing one on republish so a re-save never renumbers the screen.
   let screenAssetCode = null;
@@ -1009,7 +1141,7 @@ async function save(){
 
   const payload = {
     id, title, asset_type: assetType,
-    asset_code: flyerAssetCode || screenAssetCode,   // flyer(build) or screen; null for uploads/newsletter
+    asset_code: flyerAssetCode || nlAssetCode || screenAssetCode,   // flyer(build), newsletter(build) or screen; null for uploads
     subtitle:document.getElementById("subtitle").value.trim(),
     eyebrow:document.getElementById("eyebrow").value.trim(),
     cta:document.getElementById("cta").value.trim(),
@@ -1023,11 +1155,11 @@ async function save(){
     tone:[...sel.tone], aspect:[...sel.aspect],
     // screens send the background image; docs send the PDF bytes (uploaded OR built). Both ride image_base64.
     image: imageDataUrl || null,
-    file_base64: isBuild ? buildFile  : (assetB64 || null),
-    thumb_base64: isBuild ? buildThumb : (docThumbB64 || null),
-    mime: isBuild ? buildMime : (assetMime || null),
+    file_base64: (isBuild||isNl) ? buildFile  : (assetB64 || null),
+    thumb_base64: (isBuild||isNl) ? buildThumb : (docThumbB64 || null),
+    mime: (isBuild||isNl) ? buildMime : (assetMime || null),
     // Flyer re-render source (white-label download). Only for built flyers; null otherwise.
-    source_manifest: isBuild ? await fl_captureManifest() : null
+    source_manifest: isBuild ? await fl_captureManifest() : (isNl ? await nl_captureManifest() : null)
   };
 
   // If a doc was uploaded but its thumbnail is still rendering, wait briefly.
@@ -1346,8 +1478,14 @@ async function fl_fetchImageDataUrl(id){
 async function fl_openPicker(zone){
   fl_pickZone = zone;
   fl_pickAspect = (zone==="subject") ? "square" : "16:9";
+  let pickTitle = zone==="subject" ? "Choose a subject image (square)" : "Choose a banner image (16:9)";
+  if(String(zone).startsWith("nl:")){                     // newsletter photo spots
+    const z = zone.slice(3);
+    fl_pickAspect = /^tip\d$/.test(z) ? "square" : (z==="side" ? "16:9" : "portrait");
+    pickTitle = "Choose a newsletter photo (" + fl_pickAspect + ")";
+  }
   fl_pickActiveFacet = { key:null, val:null };
-  fl_$("fl_pickTitle").textContent = zone==="subject" ? "Choose a subject image (square)" : "Choose a banner image (16:9)";
+  fl_$("fl_pickTitle").textContent = pickTitle;
   fl_$("fl_pick").style.display="block"; fl_$("fl_pick").setAttribute("aria-hidden","false");
   await fl_loadPicker();
 }
@@ -1367,13 +1505,15 @@ async function fl_loadPicker(){
   }catch(e){ msg.textContent="Couldn't reach the image library."; return; }
   fl_renderFacets(rows);
   if(rows.length===0){
-    msg.textContent = fl_pickAspect==="square"
+    msg.textContent = (fl_pickAspect==="portrait")
+      ? "No portrait images in the library yet — upload portrait photos first, or pick another spot."
+      : fl_pickAspect==="square"
       ? "No square images in the library yet — upload 1:1 subject images first, or use the local-file fallback."
       : "No images match. Try clearing a filter.";
     return;
   }
   msg.textContent="";
-  const sq = fl_pickZone==="subject";
+  const sq = (fl_pickAspect==="square");
   rows.forEach(r=>{
     const d=document.createElement("div");
     d.className="fl-pick__thumb"+(sq?" sq":"");
@@ -1383,7 +1523,8 @@ async function fl_loadPicker(){
       msg.textContent="Loading image…";
       try{
         const dataUrl = await fl_fetchImageDataUrl(r.id);
-        if(fl_pickZone==="subject") fl_setSubject(dataUrl, r.id); else fl_setBanner(dataUrl, r.id);
+        if(String(fl_pickZone).startsWith("nl:")) nl_setImage(fl_pickZone.slice(3), dataUrl, r.id);
+        else if(fl_pickZone==="subject") fl_setSubject(dataUrl, r.id); else fl_setBanner(dataUrl, r.id);
         fl_closePicker();
       }catch(e){ msg.textContent="Couldn't load that image."; }
     };
@@ -1556,12 +1697,12 @@ fl_$("fl_in_draftBtn").onclick = fl_draftCopy;
 // (right after the logo/Tags seg-label) when build mode is active; return it to its
 // screen/upload home otherwise. One DOM node, no duplication — buildPills stays valid.
 // _tagHome/_tagAfter declared at top of composer script (hoisted)
-function relocateTagBlock(intoBuild){
+function relocateTagBlock(intoBuild, altSlotId){
   const block = document.getElementById("tagBlock");
-  const slot  = document.getElementById("tagSlotBuild");
+  const slot  = document.getElementById(altSlotId || "tagSlotBuild");
   if(!block || !slot) return;
   if(_tagHome === null){ _tagHome = block.parentNode; _tagAfter = block.nextElementSibling; }
-  if(intoBuild){
+  if(intoBuild || altSlotId){
     if(block.parentNode !== slot) slot.appendChild(block);
   } else {
     if(block.parentNode !== _tagHome){
@@ -2140,6 +2281,133 @@ async function libDelete(id, btn){
     if(btn){ btn.disabled=false; btn.textContent="Remove"; }
   }
 }
+
+// ===================== NEWSLETTER BUILD (template "magazine2") =====================
+// Composer -> data object -> SHARED nl_render (assets/nl-render.js). The same object, with
+// library ids in place of image bytes, is the brand-neutral source_manifest; render.html
+// rebuilds it per client at download. All nl_* namespaced; no flyer globals touched.
+const NL_ZONES = ["hero","side","feature","tip0","tip1","tip2","tip3","tip4","tip5"];
+let nl_imgs = {};                 // zone -> { data: dataURL, ref: library id | null }
+let nl_logo = { data:null, tone:null };   // preview-only logo (+ measured tone)
+
+function nl_v(id){ const el=document.getElementById(id); return el ? el.value : ""; }
+
+(function nl_buildTipEditors(){
+  const box=document.getElementById("nl_in_tips"); if(!box) return;
+  box.innerHTML = [0,1,2,3,4,5].map(i=>`
+    <div class="tile-block" id="nl_tipblk${i}"><div class="tnum">TIP ${i+1} · click its circle in the preview to set the photo</div>
+      <div class="fld"><label>Heading</label><input type="text" id="nl_in_t${i}_h"></div>
+      <div class="fld" style="margin-bottom:0"><label>Body</label><textarea id="nl_in_t${i}_p" rows="2"></textarea></div></div>`).join("");
+})();
+
+function nl_tipCount(){ return Math.max(4, Math.min(6, +nl_v("nl_in_tipCount") || 5)); }
+
+// Assemble the render data. mode "preview" -> image data URLs; "manifest" -> library refs.
+function nl_collect(){
+  const n = nl_tipCount();
+  const tips = [];
+  for(let i=0;i<n;i++) tips.push({ h:nl_v(`nl_in_t${i}_h`), p:nl_v(`nl_in_t${i}_p`),
+                                   img:(nl_imgs["tip"+i]||{}).data || null });
+  return {
+    v:1, template:"magazine2",
+    masthead:{ title:nl_v("nl_in_mastTitle"), volume:nl_v("nl_in_volume"), issue:nl_v("nl_in_issue") },
+    cover:{ headline:nl_v("nl_in_headline"), subhead:nl_v("nl_in_subhead"), hook:nl_v("nl_in_hook"),
+            hero:(nl_imgs.hero||{}).data || null },
+    intro:nl_v("nl_in_intro"),
+    side:(nl_imgs.side||{}).data || null,
+    callout:{ icon:nl_v("nl_in_coIcon"), title:nl_v("nl_in_coTitle"), body:nl_v("nl_in_coBody") },
+    section:{ title:nl_v("nl_in_secTitle"), intro:nl_v("nl_in_secIntro") },
+    tips,
+    feature:(n<6 ? (nl_imgs.feature||{}).data || null : null),
+    runfoot:nl_v("nl_in_runfoot"),
+    powered:nl_v("nl_in_powered"),
+    footer:{ name:nl_v("nl_in_ftName"), addr1:nl_v("nl_in_ftAddr1"), addr2:nl_v("nl_in_ftAddr2"),
+             phone:nl_v("nl_in_ftPhone"), hours_label:nl_v("nl_in_ftHoursLabel"),
+             hours1:nl_v("nl_in_ftHours1"), hours2:nl_v("nl_in_ftHours2") }
+  };
+}
+function nl_previewBrand(){
+  return { mode:"white-label", primary:nl_v("nl_in_c_primary_hex"), secondary:nl_v("nl_in_c_secondary_hex"),
+           accent:nl_v("nl_in_c_accent_hex"), logo:nl_logo.data, logoTone:nl_logo.tone,
+           footCode:nl_v("nl_in_footCode"), qrData:null };
+}
+
+function nl_fitPreview(){
+  const fit=document.getElementById("nl_fit"), st=document.getElementById("nl_stage"); if(!fit||!st) return;
+  const w = fit.clientWidth || 612, k = Math.min(1, w/612);
+  st.style.transform = `scale(${k})`;
+  fit.style.height = Math.ceil(st.scrollHeight * k) + "px";
+}
+function nl_draw(){
+  const st=document.getElementById("nl_stage"); if(!st || assetType!=="newsletter") return;
+  const d = nl_collect(); d.brand = nl_previewBrand();
+  nl_render(st, d, { edit:true });
+  // show only the tip editors in use
+  for(let i=0;i<6;i++){ const b=document.getElementById("nl_tipblk"+i); if(b) b.style.display = i<nl_tipCount() ? "" : "none"; }
+  requestAnimationFrame(nl_fitPreview);
+}
+window.addEventListener("resize", ()=>{ if(assetType==="newsletter") nl_fitPreview(); });
+
+function nl_setImage(zone, dataUrl, libId){
+  if(!NL_ZONES.includes(zone)) return;
+  nl_imgs[zone] = { data:dataUrl, ref:libId || null };
+  nl_draw();
+}
+
+// Unscaled, edit-chrome-free render for the PDF (QR slot is empty at authoring time).
+async function nl_renderPrint(){
+  const pr=document.getElementById("nl_print");
+  const d = nl_collect(); d.brand = nl_previewBrand();
+  nl_render(pr, d, { print:true });
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  try{ return await nl_buildPDF(pr); } finally { pr.innerHTML = ""; }
+}
+
+// Brand-neutral manifest: library refs for images (bytes re-fetched at download); a local
+// logo/colors are authoring fallbacks only. Unreferenced images are shrunk + inlined.
+async function nl_captureManifest(){
+  const d = nl_collect();
+  const img = async (zone, maxW) => {
+    const it = nl_imgs[zone]; if(!it || !it.data) return { ref:null, data:null };
+    if(it.ref) return { ref:it.ref, data:null };
+    const sm = await fl_shrinkForDraft(it.data, maxW, 0.85);
+    return { ref:null, data: sm ? "data:"+sm.mime+";base64,"+sm.base64 : null };
+  };
+  const hero = await img("hero",1000), side = await img("side",800), feat = await img("feature",800);
+  d.cover.hero = null; d.cover.hero_ref = hero.ref; d.cover.hero_data = hero.data;
+  d.side = null; d.side_ref = side.ref; d.side_data = side.data;
+  d.feature = null; d.feature_ref = d.tips.length<6 ? feat.ref : null; d.feature_data = d.tips.length<6 ? feat.data : null;
+  for(let i=0;i<d.tips.length;i++){
+    const t = await img("tip"+i, 500);
+    d.tips[i].img = null; d.tips[i].img_ref = t.ref; d.tips[i].img_data = t.data;
+  }
+  d.colors = { primary:nl_v("nl_in_c_primary_hex"), secondary:nl_v("nl_in_c_secondary_hex"), accent:nl_v("nl_in_c_accent_hex") };
+  return d;
+}
+
+// colors: picker <-> hex, repaint
+[["nl_in_c_primary","nl_in_c_primary_hex"],["nl_in_c_secondary","nl_in_c_secondary_hex"],["nl_in_c_accent","nl_in_c_accent_hex"]].forEach(([c,h])=>{
+  const ce=document.getElementById(c), he=document.getElementById(h); if(!ce||!he) return;
+  ce.addEventListener("input",()=>{ he.value=ce.value; nl_draw(); });
+  he.addEventListener("input",()=>{ if(/^#[0-9a-fA-F]{6}$/.test(he.value)){ ce.value=he.value; nl_draw(); } });
+});
+// logo (preview only) -> measure tone once
+(function(){
+  const drop=document.getElementById("nl_in_logoDrop"), f=document.getElementById("nl_in_logoFile"); if(!drop||!f) return;
+  drop.onclick=()=>f.click();
+  f.onchange=()=>{ const file=f.files[0]; if(!file) return; const r=new FileReader();
+    r.onload=async()=>{ nl_logo.data=r.result; nl_logo.tone=await nl_logoTone(r.result);
+      drop.textContent="✓ "+file.name; drop.classList.add("have"); nl_draw(); };
+    r.readAsDataURL(file); };
+})();
+// live-wire every newsletter input
+document.querySelectorAll("#nlBuild input[type=text], #nlBuild textarea").forEach(el=>el.addEventListener("input", nl_draw));
+document.querySelectorAll("#nlBuild select").forEach(el=>el.addEventListener("change", nl_draw));
+// photo spots in the preview open the shared image-library picker
+document.getElementById("nl_stage").addEventListener("click", e=>{
+  const z = e.target.closest && e.target.closest(".nl-zone"); if(!z) return;
+  fl_openPicker("nl:" + z.dataset.zone);
+});
 
 // init
 buildPills(FALLBACK_VOCAB);
