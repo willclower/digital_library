@@ -6,9 +6,10 @@
    ============================================================================ */
 .nl-scope{ --font-ui:"Instrument Sans",system-ui,sans-serif; }
 .nl-scope .nl-doc{
-  --brand-primary:#1b3564;   /* cover panel / headings */
-  --brand-secondary:#0a5a96; /* masthead band / icons / page tabs */
-  --brand-accent:#f0a830;    /* rule under title / callout border */
+  /* neutral template defaults (match flyer.css); client/parent brand overrides at render */
+  --brand-primary:#123a52;   /* cover panel / headings / page tabs */
+  --brand-secondary:#2f6f8f; /* masthead band / icons / tip headings */
+  --brand-accent:#e08a00;    /* rule under title / callout border */
   --ink:#1e2d35; --ink-soft:#3f4f58; --page:#ffffff;
   font-family:var(--font-ui); color:var(--ink);
   display:flex; flex-direction:column; gap:24px;
