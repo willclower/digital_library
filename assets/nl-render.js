@@ -29,6 +29,42 @@ function nl_icon(key){
   return `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 }
 
+/* ---- logo contrast (logo-agnostic) ----
+   Measures the logo's own tone (avg luminance of its visible pixels) so ANY logo reads:
+     light logo -> footer band switches to the dark brand color, white text
+     dark logo on a dark cover panel -> logo sits on a white chip
+   Call nl_prepareBrand(brand) once before nl_render (admin + render.html). Never throws. */
+function nl_hexLum(hex){
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex||"").trim()); if(!m) return 1;
+  const n = parseInt(m[1],16), c = [n>>16&255, n>>8&255, n&255].map(v=>{ v/=255; return v<=.03928? v/12.92 : Math.pow((v+.055)/1.055,2.4); });
+  return .2126*c[0] + .7152*c[1] + .0722*c[2];
+}
+function nl_logoTone(src){
+  return new Promise(resolve=>{
+    if(!src) return resolve(null);
+    const im = new Image(); im.crossOrigin = "anonymous";
+    im.onload = ()=>{ try{
+      const w = 64, h = Math.max(1, Math.round(64*im.naturalHeight/Math.max(1,im.naturalWidth)));
+      const cv = document.createElement("canvas"); cv.width=w; cv.height=h;
+      const cx = cv.getContext("2d"); cx.drawImage(im,0,0,w,h);
+      const px = cx.getImageData(0,0,w,h).data; let sum=0, cnt=0;
+      for(let i=0;i<px.length;i+=4){ if(px[i+3] < 128) continue;              // transparent
+        const l = (.2126*px[i] + .7152*px[i+1] + .0722*px[i+2]) / 255;
+        if(l > .97) continue;                                                // skip white box bg
+        sum += l; cnt++; }
+      // a logo that is ALL white (e.g. reversed logo) has cnt 0 after the skip -> light
+      resolve(cnt === 0 ? "light" : (sum/cnt > .6 ? "light" : "dark"));
+    }catch(e){ resolve(null); } };
+    im.onerror = ()=>resolve(null);
+    im.src = src;
+  });
+}
+async function nl_prepareBrand(brand){
+  const b = Object.assign({}, brand || {});
+  if(b.logo && !b.logoTone) b.logoTone = await nl_logoTone(b.logo);
+  return b;
+}
+
 function nl_esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function nl_br(s){ return nl_esc(s).replace(/\n/g,"<br>"); }
 function nl_paras(v){ return (Array.isArray(v)?v:String(v||"").split(/\n\s*\n/)).filter(x=>String(x).trim()); }
@@ -58,15 +94,25 @@ function nl_render(el, d, opts){
     b.accent    ? `--brand-accent:${b.accent}`       : ""
   ].filter(Boolean).join(";");
   const z = opts.edit ? " nl-zone" : "";
+  // Angled shapes are inline SVG with resolved hex fills (html2canvas does not paint
+  // CSS clip-path, and a serialized SVG loses CSS vars) — so the PDF matches the screen.
+  const hex = v => /^#[0-9a-f]{6}$/i.test(String(v||"").trim()) ? String(v).trim() : null;
+  const P = hex(b.primary) || "#1b3564", S = hex(b.secondary) || "#0a5a96";
+  const svg = (w,h,pts,fill) => `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="position:absolute;left:0;top:0;display:block"><polygon points="${pts}" fill="${fill}"/></svg>`;
+  const pgtab = n => `<div class="nl-pgtab">${svg(34,20,"0,0 34,0 26.5,20 0,20",P)}<span>${n}</span></div>`;
+  // logo contrast: cover panel is --brand-primary; footer band is light unless the logo is light
+  const darkPanel = nl_hexLum(b.primary || "#1b3564") < .35;
+  const coverChip = !!b.logo && b.logoTone === "dark" && darkPanel;
+  const darkBand  = !!b.logo && b.logoTone === "light";
 
   const p1 = `
   <section class="nl-page nl-p1">
     <div class="nl-cover">
       <div class="nl-hero${z}" data-zone="hero"${nl_bg(c.hero)}></div>
-      <div class="nl-panel"></div>
+      <div class="nl-panel">${svg(410,490,"0,0 410,0 336,490 0,490",P)}</div>
     </div>
-    <div class="nl-logo">${b.logo ? `<img src="${b.logo}" alt="">` : ""}</div>
-    <div class="nl-mast">
+    <div class="nl-logo${coverChip?" nl-chip":""}">${b.logo ? `<img src="${b.logo}" alt="">` : ""}</div>
+    <div class="nl-mast">${svg(430,52,"24,0 430,0 430,52 0,52",S)}
       <div class="nl-mast__title">${nl_esc(m.title || "Wellness Newsletter")}</div>
       <div class="nl-mast__vol">${nl_esc(m.volume ? "Volume " + m.volume : "")}</div>
       <div class="nl-mast__date">${nl_esc(m.issue || "")}</div>
@@ -85,8 +131,8 @@ function nl_render(el, d, opts){
         ${nl_paras(co.body).map(p=>`<p>${nl_esc(p)}</p>`).join("")}
       </div>
     </div>
-    <div class="nl-side${z}" data-zone="side"${nl_bg(d.side)}></div>
-    <div class="nl-pgtab">1</div>
+    <div class="nl-side${z}${d.side?"":" nl-empty"}" data-zone="side"${nl_bg(d.side)}></div>
+    ${pgtab(1)}
   </section>`;
 
   const cells = nl_gridCells(tips, !!d.feature || opts.edit).map((cell,i)=>{
@@ -110,7 +156,7 @@ function nl_render(el, d, opts){
               : (opts.edit ? `<div class="nl-qrbox ph">QR</div>` : "");
   const qrHTML = qrBox ? `<div class="nl-qr">${qrBox}<span class="nl-qrlabel">Scan for support</span></div>` : "";
   const addrHTML = unbranded ? "" : `
-    <div class="nl-addr${qrHTML?" has-qr":""}">
+    <div class="nl-addr${qrHTML?" has-qr":""}${darkBand?" nl-addr--dark":""}">
       <div><div class="nl-addr__name">${nl_esc(fv("name"))}</div>
         <div class="nl-addr__line">${nl_esc(fv("addr1"))}</div>
         <div class="nl-addr__line">${nl_esc(fv("addr2"))}</div>
@@ -132,7 +178,7 @@ function nl_render(el, d, opts){
       <p class="nl-sec__intro">${nl_esc(s.intro)}</p>
       <div class="nl-grid">${cells}</div>
     </div>
-    <div class="nl-pgtab">2</div>
+    ${pgtab(2)}
     <div class="nl-runfoot">${nl_esc(d.runfoot || "")}</div>
     ${addrHTML}${floatQR}
   </section>`;
