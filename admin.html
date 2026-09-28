@@ -1213,7 +1213,7 @@ async function save(){
     const out=await res.json();
     if(out.ok){
       setMsg(`Saved “${out.saved}”${out.width?` (${out.width}×${out.height})`:""}. It's in the library now.`,"ok");
-      if(isNl) nl_finMsg(`Saved “${out.saved}” (${nlAssetCode}). It's in the library now.`,"ok");
+      if(isNl) await nl_recordBuilderPass(out.saved, nlAssetCode);
       // Optional companion: publish a 16:9 wall screen built from the banner photo.
       const alsoBox = document.getElementById("fl_in_alsoScreen");
       console.log("[companion-screen] checkbox present:", !!alsoBox, "checked:", alsoBox && alsoBox.checked, "isBuild:", isBuild, "banner set:", !!fl_bannerData);
@@ -2591,6 +2591,7 @@ for(let i=0;i<6;i++){
 }
 const NL_QC_LABELS = Object.keys(NL_QC_MAP).sort((a,b)=>b.length-a.length);   // longest first
 let nlQcReview = null;
+let nlQcReviewId = null;   // qc_review.review_id from the first pass (for the builder sign-off)
 
 function nl_qcSerialize(){
   const n = nl_tipCount(), lines = [];
@@ -2619,11 +2620,12 @@ async function nl_sendToQC(){
   btn.disabled=true; const label=btn.textContent; btn.textContent="Reviewing…"; nl_qcSetMsg("Running content review…","");
   try{
     const res = await fetch(QC_ENDPOINT,{ method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ content_id:id, content_title:title, content, content_source:"builder" }) });
+      body: JSON.stringify({ content_id:id, content_title:title, content, content_source:content,
+                             origin:"builder", asset_type:"newsletter" }) });
     if(!res.ok) throw new Error("HTTP "+res.status);
     const d = await res.json();
     if(!d || d.ok!==true || !d.review) throw new Error("Unexpected QC response");
-    nlQcReview = d.review;
+    nlQcReview = d.review; nlQcReviewId = d.review_id || null;
     nl_qcSetMsg("Review complete.","ok");
     nl_qcRender();
   }catch(err){
@@ -2697,9 +2699,39 @@ function nl_qcDispose(idx,disp){
   f.disposition=disp; f.disposition_at=new Date().toISOString(); nl_qcRender();
 }
 function nl_qcInvalidate(){
-  if(nlQcReview){ nlQcReview=null; document.getElementById("nl_qcResult").style.display="none";
+  if(nlQcReview){ nlQcReview=null; nlQcReviewId=null; document.getElementById("nl_qcResult").style.display="none";
     nl_qcSetMsg("Copy changed — run QC again before finalizing.",""); }
   nl_updateFinalizeGate();
+}
+// Option B gate: the builder QC pass IS the editorial review. On Finalize, record it as the
+// editorial sign-off (with each finding's decision + the final copy) so content-qc only needs
+// Rita's approval. The newsletter is saved hidden and publishes when she approves.
+const NL_BUILDER_REVIEWER = "Will Clower";      // matches content-qc's editorial identity
+async function nl_recordBuilderPass(savedId, code){
+  if(!nlQcReviewId || !nlQcReview){
+    nl_finMsg(`Saved “${savedId}” (${code}) — hidden until approved, but the QC link was missing. Open it in content-qc for the full two-step review.`,"err");
+    return;
+  }
+  const MAP = { accept:"accept", accept_with_edits:"edit", return:"reject" };
+  const fds = (nlQcReview.findings||[]).map((f,i)=>{
+    const decision = MAP[f.disposition] || "reject";
+    let final_text = decision==="reject" ? null : (f.final_text || (f.__field ? nl_v(f.__field) : "") || null);
+    return { finding_id:f.id || ("f"+(i+1)), decision: (decision!=="reject" && !final_text) ? "reject" : decision,
+             final_text, original_suggestion: f.suggested_edit ?? null, note:null };
+  });
+  try{
+    const r = await fetch(QC_ENDPOINT.replace(/qc-first-pass$/,"qc-signoff"), { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ review_id:nlQcReviewId, reviewer_role:"editorial", reviewer_user_id:NL_BUILDER_REVIEWER,
+        decision:"approve", note:"First pass completed in the newsletter builder.",
+        finding_dispositions:fds, corrected_content: nl_qcSerialize() }) });
+    const d = await r.json();
+    if(!d || !d.ok) throw new Error((d && d.error) || ("HTTP "+r.status));
+    nl_finMsg(d.status==="approved"
+      ? `Saved “${savedId}” (${code}) and published — already RD-approved.`
+      : `Saved “${savedId}” (${code}). Waiting for Rita's sign-off in content-qc — it appears in the DRL once she approves.`, "ok");
+  }catch(e){
+    nl_finMsg(`Saved “${savedId}” (${code}) — hidden until approved, but recording your builder pass failed (${e.message}). Open it in content-qc for the full two-step review.`,"err");
+  }
 }
 function nl_updateFinalizeGate(){
   const btn=document.getElementById("nl_finalizeBtn"); if(!btn) return;
