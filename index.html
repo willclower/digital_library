@@ -1252,6 +1252,28 @@ async function loadPickerClients(){
 }
 
 const MODE_LABEL = { none:"Unbranded", "white-label":"Client Brand", parent:"Parent Brand" };
+
+// Build the QR action <option> list for one client from its has_* flags.
+// "Open flyer" is always offered (server falls back to the DRL home). Every other
+// action appears only when a link/number is resolvable at the client or parent.
+function qrOptionsFor(c){
+  const o = [["none","No QR"], ["open_flyer","QR: Open flyer"]];
+  if(c.has_scheduler_self || c.has_scheduler_parent) o.push(["book_schedule","QR: Book & schedule"]);
+  if(c.has_clinic)    o.push(["clinic","QR: Clinic"]);
+  if(c.has_benefits)  o.push(["benefits","QR: Benefits"]);
+  if(c.has_eap_url)   o.push(["eap_url","QR: EAP page"]);
+  if(c.has_locator)   o.push(["locator","QR: Location finder"]);
+  if(c.has_eap_phone) o.push(["eap_phone","QR: EAP phone (call)"]);
+  if(c.has_nurse)     o.push(["nurse","QR: Nurse line (call)"]);
+  o.push(["custom","QR: Custom link…"]);
+  return o.map(([v,l])=>`<option value="${v}">${l.replace(/&/g,"&amp;")}</option>`).join("");
+}
+// Show the custom-URL box only when "Custom link…" is chosen.
+function onQrChange(sel){
+  const box = sel.closest("li").querySelector("[data-qrcustom]");
+  if(box) box.style.display = (sel.value === "custom") ? "" : "none";
+}
+
 function renderPickerList(){
   const list = document.getElementById("dlList");
   document.getElementById("dlAll").checked = false;
@@ -1275,15 +1297,13 @@ function renderPickerList(){
         ${wlOpt}
         <option value="parent"${startMode==="parent"?" selected":""}>Parent Brand</option>
       </select>
-      <select class="dlqr" data-qr>
-        <option value="none">No QR</option>
-        <option value="open_flyer">QR: Open flyer</option>
-        <option value="book_schedule">QR: Book &amp; schedule</option>
+      <select class="dlqr" data-qr onchange="onQrChange(this)">
+        ${qrOptionsFor(c)}
       </select>
+      <input type="url" class="dlqrcustom" data-qrcustom placeholder="https://…" style="display:none">
     </li>`;
   }).join("");
-  // initialize each row's QR availability (independent of brand mode)
-  document.querySelectorAll("#dlList li[data-id]").forEach(li=>{ syncQrOptions(li); });
+  // QR options are pre-filtered per client by availability (see qrOptionsFor); no per-row sync needed.
   updateSel();
 }
 
@@ -1330,9 +1350,13 @@ function collectPicks(){
     let mode = chosenMode;
     if(mode==="white-label" && client && !client.has_brand) mode="none";  // safety net for THIS render only
     let qr = li.querySelector("[data-qr]").value || "none";
-    // guard: never emit book_schedule if it isn't available for the rendered mode
-    if(qr==="book_schedule" && !schedulerAvailable(client)) qr="none";
-    picks.push({ client, mode, chosenMode, qr });
+    let qr_custom = "";
+    if(qr === "custom"){
+      const box = li.querySelector("[data-qrcustom]");
+      qr_custom = ((box && box.value) || "").trim();
+      if(!/^https?:\/\//i.test(qr_custom)) qr = "none";   // missing/invalid URL -> skip QR
+    }
+    picks.push({ client, mode, chosenMode, qr, qr_custom });
   });
   return picks;
 }
@@ -1340,13 +1364,14 @@ function collectPicks(){
 // --- QR: mint a unique code server-side, draw it to a PNG data-URL ----------
 // Returns { qrData, scan_url, short_code } or null on any failure (QR is
 // best-effort: a QR problem must never block the asset download).
-async function mintAndDrawQr(client, mode, action, screen){
+async function mintAndDrawQr(client, mode, action, screen, customUrl){
   try{
     const r = await fetchJson("/qr-mint", {
       screen_id:    screen.id,
       screen_title: screen.title || "",
       client_id:    client.id,
-      action:       action,            // 'open_flyer' | 'book_schedule'
+      action:       action,            // open_flyer|book_schedule|clinic|benefits|eap_url|locator|eap_phone|nurse|custom
+      custom_url:   (action === "custom") ? (customUrl || "") : null,
       brand_mode:   mode,
       site_tag:     null               // reserved for per-site campaigns
     });
@@ -1398,7 +1423,7 @@ async function runDownload(){
       await ensureRenderFrame();
     }
     for(let i=0;i<picks.length;i++){
-      const { client, mode, qr } = picks[i];
+      const { client, mode, qr, qr_custom } = picks[i];
       msg.textContent = `Building ${i+1} of ${picks.length}: ${client.name}…`;
       const brand = await buildBrand(client, mode);
       const cc = (client.code || client.id);
@@ -1406,8 +1431,7 @@ async function runDownload(){
       // action maps from the picker choice; "none" -> no QR.
       let qrOut = null;
       if(qr && qr !== "none"){
-        const action = (qr === "book_schedule") ? "book_schedule" : "open_flyer";
-        qrOut = await mintAndDrawQr(client, mode, action, dlScreen);
+        qrOut = await mintAndDrawQr(client, mode, qr, dlScreen, qr_custom);
       }
       if(isDoc){
         // never mutate the cached brand object — clone, then attach the per-pick QR
