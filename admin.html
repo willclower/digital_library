@@ -1501,6 +1501,7 @@ const FL_PICK_FACETS = ["topic","scene","season","mood","people"];
 let fl_pickZone = null;   // 'banner' | 'subject' — which zone we're filling
 let fl_pickAspect = null; // aspect filter for the current zone
 let fl_pickActiveFacet = { key:null, val:null };
+let fl_pickAllShapes = false;   // picker "show all shapes" override (resets each open)
 
 // Fetch bytes for one image id and return a data URL (so the chosen image survives PDF export
 // and the companion-screen send without a live network dependency at Finalize time).
@@ -1521,6 +1522,7 @@ async function fl_openPicker(zone){
     pickTitle = "Choose a newsletter photo (" + fl_pickAspect + ")";
   }
   fl_pickActiveFacet = { key:null, val:null };
+  fl_pickAllShapes = false;
   fl_$("fl_pickTitle").textContent = pickTitle;
   fl_$("fl_pick").style.display="block"; fl_$("fl_pick").setAttribute("aria-hidden","false");
   await fl_loadPicker();
@@ -1531,7 +1533,7 @@ async function fl_loadPicker(){
   const grid=fl_$("fl_pickGrid"), msg=fl_$("fl_pickMsg");
   grid.innerHTML=""; msg.textContent="Loading…";
   const params = new URLSearchParams();
-  if(fl_pickAspect) params.set("aspect", fl_pickAspect);
+  if(fl_pickAspect && !fl_pickAllShapes) params.set("aspect", fl_pickAspect);
   if(fl_pickActiveFacet.key && fl_pickActiveFacet.val) params.set(fl_pickActiveFacet.key, fl_pickActiveFacet.val);
   let rows=[];
   try{
@@ -1577,6 +1579,15 @@ function fl_renderFacets(rows){
   all.textContent="All";
   all.onclick=()=>{ fl_pickActiveFacet={key:null,val:null}; fl_loadPicker(); };
   box.appendChild(all);
+  // Shape override: by default a spot only lists images of its own shape (they fit without
+  // heavy cropping). "All shapes" lists everything; the spot crops to fit.
+  if(fl_pickAspect){
+    const sh=document.createElement("button");
+    sh.type="button"; sh.className="fl-pick__facet"+(fl_pickAllShapes?" on":"");
+    sh.textContent = fl_pickAllShapes ? "All shapes ✓" : `Only ${fl_pickAspect} · show all shapes`;
+    sh.onclick=()=>{ fl_pickAllShapes=!fl_pickAllShapes; fl_pickActiveFacet={key:null,val:null}; fl_loadPicker(); };
+    box.appendChild(sh);
+  }
   const seen={};
   FL_PICK_FACETS.forEach(key=>{
     rows.forEach(r=>{
