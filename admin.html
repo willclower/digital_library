@@ -299,10 +299,12 @@
          vocabulary — new value becomes a pickable tag everywhere (uploader, picker, this filter). -->
     <div id="libAddTag" style="display:none;align-items:center;gap:10px;margin:0 0 14px;padding:12px 14px;background:#f4f2ea;border-radius:10px;flex-wrap:wrap;">
       <span style="font-size:12px;color:#6f7f74;">New tag in</span>
-      <select id="libAddCat" style="font-size:13px;padding:5px 8px;border:1px solid #d8d3c8;border-radius:6px;">
-        <option value="subject">subject</option>
-        <option value="setting">setting</option>
+      <select id="libAddCat" onchange="libAddCatChange()" style="font-size:13px;padding:5px 8px;border:1px solid #d8d3c8;border-radius:6px;">
+        <option value="topic">topic</option>
+        <option value="scene">setting (in image)</option>
+        <option value="mood">mood</option>
       </select>
+      <select id="libAddParent" style="font-size:13px;padding:5px 8px;border:1px solid #d8d3c8;border-radius:6px;"></select>
       <input id="libAddVal" type="text" placeholder="e.g. pilates, tai chi, running"
              style="font-size:13px;padding:5px 10px;border:1px solid #d8d3c8;border-radius:6px;min-width:220px;"
              onkeydown="if(event.key==='Enter')libAddTagSave()">
@@ -1495,7 +1497,7 @@ fl_$("fl_in_logoFile").onchange=()=>fl_fileToData(fl_$("fl_in_logoFile"),d=>{fl_
 const FL_IMG_ENDPOINT = DRL_API + "/image-library";   // GET, facet-filterable
 const FL_IMG_BYTES    = DRL_API + "/image?id=";        // bytes endpoint (resolveImage marker target)
 // Facet tabs shown in the picker (the aspect is fixed by the zone, so it's not a tab).
-const FL_PICK_FACETS = ["subject","month","setting","tone"];
+const FL_PICK_FACETS = ["topic","scene","season","mood","people"];
 let fl_pickZone = null;   // 'banner' | 'subject' — which zone we're filling
 let fl_pickAspect = null; // aspect filter for the current zone
 let fl_pickActiveFacet = { key:null, val:null };
@@ -1578,7 +1580,8 @@ function fl_renderFacets(rows){
   const seen={};
   FL_PICK_FACETS.forEach(key=>{
     rows.forEach(r=>{
-      const vals = Array.isArray(r[key]) ? r[key] : (r[key]?[r[key]]:[]);
+      let vals = Array.isArray(r[key]) ? r[key] : (r[key]?[r[key]]:[]);
+      if(key==="topic") vals = vals.filter(v=>v.split("/").length===2);   // subcategory tabs only
       vals.forEach(v=>{
         const tag=key+":"+v;
         if(seen[tag]) return; seen[tag]=1;
@@ -1586,7 +1589,7 @@ function fl_renderFacets(rows){
         b.type="button";
         const on = fl_pickActiveFacet.key===key && fl_pickActiveFacet.val===v;
         b.className="fl-pick__facet"+(on?" on":"");
-        b.textContent=v;
+        b.textContent=tagLabel(key,v);
         b.onclick=()=>{ fl_pickActiveFacet = on ? {key:null,val:null} : {key,val:v}; fl_loadPicker(); };
         box.appendChild(b);
       });
@@ -2027,7 +2030,31 @@ fl_qcWireInvalidation();
 // selection (facet pills reusing VOCAB) + optional keywords. Save posts asset_type
 // 'image-library' to DRL_API+"/screen"; the write workflow derives aspect from pixels.
 // Auto-tagging (drl-tag-image) wires into repoAddFile in the next step.
-const REPO_FACETS = ["subject","month","setting","tone"]; // aspect is auto (pixels)
+// Image tag framework (2026-09-28): tags describe what the image SHOWS.
+//   topic  = path values 'category/subcategory/topic' (write workflow stores ancestors)
+//   scene  = where the image takes place (UI label "Setting"; separate from screen `setting`)
+//   season = seasons + holidays, only on clear visual cues · mood · people
+// Aspect stays automatic (pixels). tone and month are no longer written for images.
+const REPO_FACETS = ["topic","scene","season","mood","people"];
+const TAG_FACET_LABEL = { topic:"Topic", scene:"Setting", season:"Season", mood:"Mood", people:"People", aspect:"Aspect",
+                          subject:"Subject", month:"Month", setting:"Setting", tone:"Tone" };
+const TAG_WORD = { "omega-3s":"omega-3s", "glp-1-support":"GLP-1 support", "a1c-checks":"A1C checks", "eap":"EAP",
+  "july-4th":"July 4th", "new-year":"New Year", "valentines-day":"Valentine's Day", "memorial-day":"Memorial Day",
+  "labor-day":"Labor Day", "halloween":"Halloween", "thanksgiving":"Thanksgiving", "herbs-spices":"herbs & spices", "asthma-copd":"asthma & COPD", "foot-eye-care":"foot & eye care",
+  "arthritis-joints":"arthritis & joints", "balance-mobility":"balance & mobility", "slips-trips-falls":"slips, trips & falls",
+  "hearing-eye-protection":"hearing & eye protection", "strains-sprains":"strains & sprains", "tools-vehicles":"tools & vehicles",
+  "family-friends":"family & friends", "community-volunteering":"community & volunteering", "tobacco-vaping":"tobacco & vaping",
+  "womens-health":"women's health", "mens-health":"men's health", "work-life-balance":"work–life balance",
+  "blood-pressure-follow-up":"blood pressure follow-up", "wellbeing":"Wellbeing", "clinical":"Clinical", "workplace":"Workplace" };
+const PEOPLE_WORD = { none:"no people", one:"1 person", two:"2 people", group:"group (3+)" };
+function tagLabel(facet, v){
+  if(facet==="people") return PEOPLE_WORD[v] || v;
+  const seg = String(v).split("/").pop();
+  return TAG_WORD[seg] || seg.replace(/-/g," ");
+}
+function tagEsc(v){ return String(v).replace(/'/g,"\\'"); }
+// Deepest topics only (drop any value that is a prefix of another) — for compact display.
+function topicLeaves(vals){ const a=vals||[]; return a.filter(v=>!a.some(o=>o!==v && o.startsWith(v+"/"))); }
 let repoItems = [];   // { file, dataUrl, w, h, aspect, sel:{facet:Set}, id }
 
 function repoAspectFromDims(w,h){
@@ -2101,13 +2128,47 @@ async function repoAddFiles(files){
   for(const it of added){ repoAutoTag(it); repoDedupeCheck(it); }
 }
 function repoPillRow(idx, facet){
+  if(facet==="topic") return repoTopicBlock(idx);
   const vals = (currentVocab()[facet]||[]);
   const it = repoItems[idx];
   return `<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0;">`
-    + `<span style="flex:0 0 62px;font-size:11px;color:#6f7f74;text-transform:uppercase;letter-spacing:.06em;padding-top:5px;">${facet}</span>`
+    + `<span style="flex:0 0 62px;font-size:11px;color:#6f7f74;text-transform:uppercase;letter-spacing:.06em;padding-top:5px;">${TAG_FACET_LABEL[facet]||facet}</span>`
     + `<div style="flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px;">`
-    + vals.map(v=>`<span class="pill" data-on="${it.sel[facet].has(v)?1:0}" onclick="repoTog(${idx},'${facet}','${v}',this)">${v}</span>`).join("")
+    + vals.map(v=>`<span class="pill" data-on="${it.sel[facet].has(v)?1:0}" onclick="repoTog(${idx},'${facet}','${tagEsc(v)}',this)">${tagLabel(facet,v)}</span>`).join("")
     + `</div></div>`;
+}
+// Topic: one row of subcategory pills per category; a selected subcategory opens its topics.
+function repoTopicBlock(idx){
+  const it = repoItems[idx], sel = it.sel.topic, all = (currentVocab().topic||[]);
+  const cats = all.filter(v=>!v.includes("/"));
+  const subOn = sub => sel.has(sub) || [...sel].some(v=>v.startsWith(sub+"/"));
+  let html = `<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0;">`
+    + `<span style="flex:0 0 62px;font-size:11px;color:#6f7f74;text-transform:uppercase;letter-spacing:.06em;padding-top:5px;">Topic</span><div style="flex:1;min-width:0;">`;
+  for(const c of cats){
+    const subs = all.filter(v=>v.startsWith(c+"/") && v.split("/").length===2);
+    html += `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 6px;">`
+      + `<span style="font-size:11px;font-weight:600;color:#3a352c;margin-right:2px;">${tagLabel("topic",c)}</span>`
+      + subs.map(v=>`<span class="pill" data-on="${subOn(v)?1:0}" onclick="repoTopicTog(${idx},'${tagEsc(v)}')">${tagLabel("topic",v)}</span>`).join("")
+      + `</div>`;
+    for(const sub of subs.filter(subOn)){
+      const leaves = all.filter(v=>v.startsWith(sub+"/"));
+      html += `<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:0 0 8px 14px;padding:6px 8px;background:#f6f4ee;border-radius:7px;">`
+        + `<span style="font-size:10.5px;color:#8a8478;margin-right:2px;">${tagLabel("topic",sub)} ›</span>`
+        + leaves.map(v=>`<span class="pill" style="font-size:11.5px;" data-on="${sel.has(v)?1:0}" onclick="repoTopicTog(${idx},'${tagEsc(v)}')">${tagLabel("topic",v)}</span>`).join("")
+        + `</div>`;
+    }
+  }
+  return html + `</div></div>`;
+}
+function repoTopicTog(idx, v){
+  const sel = repoItems[idx].sel.topic;
+  if(v.split("/").length===2){                      // subcategory: on -> clear it and its topics
+    const on = sel.has(v) || [...sel].some(x=>x.startsWith(v+"/"));
+    if(on){ [...sel].forEach(x=>{ if(x===v || x.startsWith(v+"/")) sel.delete(x); }); } else sel.add(v);
+  } else {                                           // topic leaf
+    if(sel.has(v)) sel.delete(v); else sel.add(v);
+  }
+  repoRenderQueue();
 }
 function repoRenderQueue(){
   const host=document.getElementById("repoQueue");
@@ -2141,6 +2202,7 @@ function repoRenderQueue(){
 function repoDupeKeep(idx, keep){ if(repoItems[idx]){ repoItems[idx].dupeOverride = keep; repoRenderQueue(); } }
 function repoTog(idx,facet,val,el){
   const s=repoItems[idx].sel[facet];
+  if(facet==="people"){ const was=s.has(val); s.clear(); if(!was) s.add(val); repoRenderQueue(); return; }
   if(s.has(val)){ s.delete(val); el.dataset.on="0"; } else { s.add(val); el.dataset.on="1"; }
 }
 function repoRemove(idx){ repoItems.splice(idx,1); repoRenderQueue();
@@ -2155,9 +2217,9 @@ async function repoSaveOne(it){
     image: it.dataUrl,
     mime,
     keywords: it.keywords||"",
-    subject:[...it.sel.subject], month:[...it.sel.month],
-    setting:[...it.sel.setting], tone:[...it.sel.tone]
-    // aspect intentionally omitted — write workflow derives it from pixels
+    topic:[...it.sel.topic], scene:[...it.sel.scene], season:[...it.sel.season],
+    mood:[...it.sel.mood], people:[...it.sel.people]
+    // aspect intentionally omitted — write workflow derives it from pixels; tone/month retired for images
   };
   const res=await fetch(DRL_API+"/screen",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
   const out=await res.json();
@@ -2195,7 +2257,7 @@ function repoActive(){ return new URLSearchParams(location.search).get("repo")==
 // ===================== LIBRARY BROWSER (view / filter / manage) =====================
 // Reads the same list the picker uses (DRL_API+"/image-library", facet-filterable) and
 // renders a thumbnail grid. Full images (internal tool, few users) — no stored thumbs.
-const LIB_FACETS = ["subject","month","setting","tone","aspect"];
+const LIB_FACETS = ["topic","scene","season","mood","people","aspect"];
 const LIB_DELETE_ENDPOINT = DRL_API + "/library-delete";   // POST {id} -> hard delete, scoped to image-library
 const VOCAB_ADD_ENDPOINT  = DRL_API + "/vocab-add";        // POST {category,value} -> grow the controlled vocab (subject/setting)
 let libItems = [];                                   // last loaded rows
@@ -2205,12 +2267,13 @@ function libRenderFilters(){
   const host=document.getElementById("libFilters"); if(!host) return;
   const V=currentVocab();
   host.innerHTML = LIB_FACETS.map(f=>{
-    const vals = (V[f]||[]);
+    let vals = (V[f]||[]);
+    if(f==="topic") vals = vals.filter(v=>v.split("/").length===2);   // filter by subcategory
     if(!vals.length) return "";
     return `<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0;">`
-      + `<span style="flex:0 0 62px;font-size:11px;color:#6f7f74;text-transform:uppercase;letter-spacing:.06em;padding-top:5px;">${f}</span>`
+      + `<span style="flex:0 0 62px;font-size:11px;color:#6f7f74;text-transform:uppercase;letter-spacing:.06em;padding-top:5px;">${TAG_FACET_LABEL[f]||f}</span>`
       + `<div style="flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px;">`
-      + vals.map(v=>`<span class="pill" data-on="${libFilter[f]===v?1:0}" onclick="libTogFilter('${f}','${v}',this)">${v}</span>`).join("")
+      + vals.map(v=>`<span class="pill" data-on="${libFilter[f]===v?1:0}" onclick="libTogFilter('${f}','${tagEsc(v)}',this)">${tagLabel(f,v)}</span>`).join("")
       + `</div></div>`;
   }).join("");
 }
@@ -2241,7 +2304,7 @@ async function libLoad(){
   }
 }
 function libTile(r){
-  const tags = LIB_FACETS.flatMap(f=>(r[f]||[])).filter(Boolean);
+  const tags = LIB_FACETS.flatMap(f=>(f==="topic" ? topicLeaves(r[f]) : (r[f]||[])).map(v=>tagLabel(f,v))).filter(Boolean);
   const tagHtml = tags.length
     ? tags.map(t=>`<span style="display:inline-block;font-size:10px;background:#eef1ec;color:#4a5a4f;border-radius:4px;padding:1px 6px;margin:2px 2px 0 0;">${t}</span>`).join("")
     : `<span style="font-size:10px;color:#a59;">no tags</span>`;
@@ -2258,7 +2321,15 @@ function libTile(r){
     </div>
   </div>`;
 }
-function libInit(){ libRenderFilters(); libLoad(); }
+function libAddCatChange(){
+  const cat=document.getElementById("libAddCat").value, par=document.getElementById("libAddParent");
+  par.style.display = cat==="topic" ? "" : "none";
+  if(cat==="topic" && !par.options.length){
+    par.innerHTML = (currentVocab().topic||[]).filter(v=>v.split("/").length===2)
+      .map(v=>`<option value="${v}">under ${tagLabel("topic",v.split("/")[0])} › ${tagLabel("topic",v)}</option>`).join("");
+  }
+}
+function libInit(){ libRenderFilters(); libLoad(); libAddCatChange(); }
 
 function libToggleAddTag(){
   const box=document.getElementById("libAddTag");
@@ -2277,15 +2348,15 @@ async function libAddTagSave(){
   try{
     const res=await fetch(VOCAB_ADD_ENDPOINT,{
       method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ category:cat, value:val })
+      body:JSON.stringify({ category:cat, value:val, parent: cat==="topic" ? document.getElementById("libAddParent").value : undefined })
     });
     if(!res.ok) throw new Error("HTTP "+res.status);
     const out=await res.json();
-    if(!out || out.ok!==true) throw new Error("Unexpected response");
+    if(!out || out.ok!==true) throw new Error((out && out.error) || "Unexpected response");
     await loadVocab();        // refresh the shared vocab -> uploader pills update too
     libRenderFilters();       // repaint the filter row with the new pill
     msg.className="draftmsg ok";
-    msg.textContent = out.already_existed ? `“${out.value}” already existed.` : `Added “${out.value}”.`;
+    msg.textContent = out.already_existed ? `“${tagLabel(cat,out.value)}” already existed.` : `Added “${tagLabel(cat,out.value)}”.`;
     document.getElementById("libAddVal").value="";
   }catch(e){
     msg.className="draftmsg err"; msg.textContent="Couldn't add tag: "+e.message;
