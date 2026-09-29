@@ -1263,8 +1263,7 @@ function qrOptionsFor(c){
   if(c.has_benefits)  o.push(["benefits","QR: Benefits"]);
   if(c.has_eap_url)   o.push(["eap_url","QR: EAP page"]);
   if(c.has_locator)   o.push(["locator","QR: Location finder"]);
-  if(c.has_eap_phone) o.push(["eap_phone","QR: EAP phone (call)"]);
-  if(c.has_nurse)     o.push(["nurse","QR: Nurse line (call)"]);
+  // tel: (tap-to-call) options removed 2026-09-29 until requested; backend still accepts eap_phone|nurse.
   o.push(["custom","QR: Custom link…"]);
   return o.map(([v,l])=>`<option value="${v}">${l.replace(/&/g,"&amp;")}</option>`).join("");
 }
