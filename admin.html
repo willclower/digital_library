@@ -269,7 +269,7 @@
   h1:not([class]){font-family:var(--sb-font);font-weight:800;font-size:clamp(26px,3vw,34px);line-height:1.1;letter-spacing:-.02em;color:var(--sb-ink);}
   h1:not([class]) em{font-style:normal;color:var(--sb-accent-text);}
   .sub{color:var(--sb-muted);line-height:1.5;}
-  .wrap{margin:0 auto;padding-left:clamp(16px,3vw,34px);padding-right:clamp(16px,3vw,34px);}
+  .wrap{margin:0;padding-left:clamp(16px,3vw,34px);padding-right:clamp(16px,3vw,34px);} /* left-justified: template rail goes on the right */
   input[type=text],textarea,select{border:1.5px solid var(--sb-border);border-radius:var(--sb-r-input);}
   input:focus,textarea:focus,select:focus{border-color:var(--sb-primary);box-shadow:0 0 0 3px var(--sb-ring);}
   .pill{font:inherit;font-size:12px;border:1.5px solid var(--sb-border);border-radius:var(--sb-r-pill);}
@@ -326,6 +326,22 @@
   #repoMode .clear{font:inherit;font-size:12px;font-weight:600;color:var(--sb-accent-text);background:none;border:0;padding:0;cursor:pointer;
     text-decoration:underline;text-underline-offset:2px;}
   #repoMode .fgroup{margin-bottom:18px;}
+  #repoMode .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+  #repoMode .rsearch{position:relative;display:block;margin-bottom:12px;}
+  #repoMode .rsearch svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--sb-subtle);pointer-events:none;}
+  #repoMode .rsearch input{width:100%;height:38px;padding:0 10px 0 32px;font-size:13px;background:var(--sb-bg-lt);}
+  #repoMode details.facet{border-top:1px solid var(--sb-border-lt);}
+  #repoMode details.facet:last-child{border-bottom:1px solid var(--sb-border-lt);}
+  #repoMode details.facet summary{list-style:none;display:flex;align-items:center;gap:8px;padding:10px 0;cursor:pointer;
+    font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--sb-subtle);}
+  #repoMode details.facet summary::-webkit-details-marker{display:none;}
+  #repoMode details.facet summary::after{content:"";margin-left:auto;width:7px;height:7px;border-right:1.8px solid currentColor;
+    border-bottom:1.8px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .15s;}
+  #repoMode details.facet[open] summary::after{transform:rotate(-135deg) translateY(-2px);}
+  #repoMode details.facet summary:hover{color:var(--sb-primary);}
+  #repoMode details.facet .on{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:#fff;background:var(--sb-primary);
+    border-radius:var(--sb-r-pill);padding:1px 8px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #repoMode details.facet .pills{padding:0 0 12px;}
   #repoMode .fgroup .flabel{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--sb-subtle);margin-bottom:9px;}
   #repoMode .content{min-width:0;}
   #repoMode .panel{background:var(--sb-panel);border:1px solid var(--sb-border);border-radius:var(--sb-r-card);box-shadow:var(--sb-shadow);
@@ -415,6 +431,11 @@
         <span class="refine">Refine</span>
         <button class="clear" onclick="libClearFilters()">Clear all</button>
       </div>
+      <label class="rsearch">
+        <span class="sr">Search images</span>
+        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input id="libQ" type="search" placeholder="Try &ldquo;berries&rdquo; or &ldquo;office&rdquo;" oninput="libRenderGrid()">
+      </label>
       <div id="libFilters"></div>
     </aside>
 
@@ -2478,6 +2499,7 @@ const VOCAB_ADD_ENDPOINT  = DRL_API + "/vocab-add";        // POST {category,val
 let libItems = [];                                   // last loaded rows
 let libFilter = Object.fromEntries(LIB_FACETS.map(f=>[f,null]));  // one value per facet or null
 
+const libOpen = new Set();                         // facets the user has expanded
 function libRenderFilters(){
   const host=document.getElementById("libFilters"); if(!host) return;
   const V=currentVocab();
@@ -2485,17 +2507,26 @@ function libRenderFilters(){
     let vals = (V[f]||[]);
     if(f==="topic") vals = vals.filter(v=>v.split("/").length===2);   // filter by subcategory
     if(!vals.length) return "";
-    return `<div class="fgroup"><div class="flabel">${TAG_FACET_LABEL[f]||f}</div><div class="pills">`
-      + vals.map(v=>`<button type="button" class="pill" data-on="${libFilter[f]===v?1:0}" onclick="libTogFilter('${f}','${tagEsc(v)}',this)">${tagLabel(f,v)}</button>`).join("")
-      + `</div></div>`;
+    const act = libFilter[f];
+    const open = act || libOpen.has(f);
+    return `<details class="facet" data-f="${f}"${open?" open":""} ontoggle="libFacetToggle(this)">`
+      + `<summary>${TAG_FACET_LABEL[f]||f}${act?`<span class="on">${tagLabel(f,act)}</span>`:""}</summary>`
+      + `<div class="pills">`
+      + vals.map(v=>`<button type="button" class="pill" data-on="${act===v?1:0}" onclick="libTogFilter('${f}','${tagEsc(v)}',this)">${tagLabel(f,v)}</button>`).join("")
+      + `</div></details>`;
   }).join("");
 }
+function libFacetToggle(el){ const f=el.dataset.f; if(el.open) libOpen.add(f); else libOpen.delete(f); }
 function libTogFilter(facet,val,el){
   libFilter[facet] = (libFilter[facet]===val) ? null : val;  // single-select per facet
   libRenderFilters();  // repaint pills (clears siblings in same facet)
   libLoad();
 }
-function libClearFilters(){ for(const f of LIB_FACETS) libFilter[f]=null; libRenderFilters(); libLoad(); }
+function libClearFilters(){
+  for(const f of LIB_FACETS) libFilter[f]=null;
+  const q=document.getElementById("libQ"); if(q) q.value="";
+  libRenderFilters(); libLoad();
+}
 
 async function libLoad(){
   const grid=document.getElementById("libGrid"), msg=document.getElementById("libMsg"),
@@ -2509,13 +2540,26 @@ async function libLoad(){
     if(!res.ok) throw new Error("HTTP "+res.status);
     const rows=await res.json();
     libItems = Array.isArray(rows) ? rows : [];
-    const nf = LIB_FACETS.filter(f=>libFilter[f]).length;
-    cnt.innerHTML = `<b>${libItems.length}</b> image${libItems.length===1?"":"s"}` + (nf ? ` match ${nf===1?"this filter":"these filters"}` : "");
     msg.textContent="";
-    grid.innerHTML = libItems.map(libTile).join("") || `<div class="empty">No images match. Remove a filter, or clear them all.</div>`;
+    libRenderGrid();
   }catch(e){
     msg.className="draftmsg err"; msg.textContent="Couldn't load the library: "+e.message;
   }
+}
+function libHay(r){
+  return [r.title, r.id, ...LIB_FACETS.flatMap(f=>(r[f]||[]).map(v=>tagLabel(f,v)+" "+v))].join(" ").toLowerCase();
+}
+function libRenderGrid(){
+  const grid=document.getElementById("libGrid"), cnt=document.getElementById("libCount");
+  if(!grid) return;
+  const q=((document.getElementById("libQ")||{}).value||"").trim().toLowerCase();
+  const terms=q.split(/\s+/).filter(Boolean);
+  const out = terms.length ? libItems.filter(r=>{ const h=libHay(r); return terms.every(t=>h.includes(t)); }) : libItems;
+  const narrowed = terms.length || LIB_FACETS.some(f=>libFilter[f]);
+  cnt.innerHTML = narrowed && out.length!==libItems.length
+    ? `Showing <b>${out.length}</b> of ${libItems.length} images`
+    : `<b>${out.length}</b> image${out.length===1?"":"s"}` + (narrowed ? " match" : "");
+  grid.innerHTML = out.map(libTile).join("") || `<div class="empty">No images match. Try another word, or clear the filters.</div>`;
 }
 function libTile(r){
   const tags = LIB_FACETS.flatMap(f=>(f==="topic" ? topicLeaves(r[f]) : (r[f]||[])).map(v=>tagLabel(f,v))).filter(Boolean);
