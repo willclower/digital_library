@@ -63,11 +63,24 @@
   .frame .vwl-screen{border-radius:0;height:100%;}
   .dims{font-size:11.5px;color:var(--muted);margin-top:10px;}
   .dims .warn{color:var(--danger);}
-  @media(max-width:900px){ .wrap{grid-template-columns:1fr;} .wrap.build3{grid-template-columns:1fr;} .previewwrap{position:static;} }
+  @media(max-width:900px){ .wrap{grid-template-columns:1fr;} .wrap.build3,.wrap.build3s{grid-template-columns:1fr;} #sc_tplRail{position:static;} .previewwrap{position:static;} }
   /* ===== Persistent template switcher rail (flyer build, right column) ===== */
   #fl_tplRail{position:sticky;top:24px;}
   #fl_tplRail .rail-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);margin-bottom:10px;}
   #fl_tplRail .rail-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  /* Screen BUILD: form | preview | template rail */
+  .wrap.build3s{grid-template-columns:minmax(0,0.95fr) minmax(0,1.1fr) minmax(300px,0.62fr);max-width:1780px;}
+  #sc_tplRail{position:sticky;top:24px;}
+  #sc_tplRail .rail-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sb-subtle);margin-bottom:10px;}
+  #sc_tplRail .sc-rail-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .sc-tpl-card{font:inherit;text-align:left;cursor:pointer;background:var(--sb-panel);border:1.5px solid var(--sb-border);border-radius:10px;
+    padding:8px;display:flex;flex-direction:column;gap:3px;}
+  .sc-tpl-card:hover{border-color:var(--sb-primary);}
+  .sc-tpl-card.sel{border-color:var(--sb-primary);box-shadow:0 0 0 2px var(--sb-ring);}
+  .sc-tpl-card .sc-mini{width:100%;border-radius:5px;margin-bottom:5px;pointer-events:none;}
+  .sc-tpl-name{font-size:12.5px;font-weight:700;color:var(--sb-ink);}
+  .sc-tpl-desc{font-size:11px;color:var(--sb-subtle);line-height:1.3;}
+  .sc-rail-note{font-size:11.5px;color:var(--sb-subtle);margin:10px 0 0;}
 
   /* ===== Newsletter composer (scoped under #nlBuild; deliberately NOT .flyer-scope) ===== */
   .nl-form .fld{margin-bottom:13px;}
@@ -537,14 +550,18 @@
       <textarea id="subtitle" oninput="draw()" placeholder="Blood pressure and cholesterol don't announce themselves…"></textarea>
     </div>
     <div class="row2 screen-only">
-      <div class="field">
-        <label>Eyebrow <span class="hint">small line above</span></label>
+      <div class="field" id="sc_eyebrowFld">
+        <label>Eyebrow <span class="hint">small line above (Classic only)</span></label>
         <input type="text" id="eyebrow" oninput="draw()" placeholder="American Heart Month">
       </div>
       <div class="field">
-        <label>CTA</label>
+        <label>CTA <span class="hint" id="sc_ctaHint"></span></label>
         <input type="text" id="cta" oninput="draw()" placeholder="Get your numbers checked — ask your clinic">
       </div>
+    </div>
+    <div class="field screen-only" id="sc_bulletsFld">
+      <label>Action bullets <span class="hint">one per line, up to 4</span></label>
+      <textarea id="sc_bullets" oninput="draw()" placeholder="Wear your helmet&#10;Wear safety glasses&#10;Wear steel-toe shoes"></textarea>
     </div>
 
     <!-- ===== Doc-only fields (flyer / newsletter) ===== -->
@@ -732,15 +749,15 @@
     </div><!-- /#nlBuild -->
 
     <div class="row3 screen-only">
-      <div class="field">
-        <label>Treatment</label>
+      <div class="field" id="sc_treatFld">
+        <label>Classic layout</label>
         <select id="treatment" onchange="draw()">
           <option value="left-scrim">left-scrim (subject right)</option>
           <option value="right-scrim">right-scrim (subject left)</option>
           <option value="bottom-band">bottom-band</option>
         </select>
       </div>
-      <div class="field">
+      <div class="field" id="sc_accentFld">
         <label>Accent <span class="hint" id="accentHint"></span></label>
         <input type="text" id="accent" value="#d9b98f" oninput="draw()" placeholder="#d9b98f">
       </div>
@@ -790,7 +807,7 @@
     </div>
 
     <div class="actions">
-      <button class="btn-primary" id="save" onclick="save()">Publish screen</button>
+      <button class="btn btn-primary" id="save" onclick="save()">Publish screen</button>
       <button class="btn" id="clearBtn" onclick="resetForm()">Clear</button>
       <span class="msg" id="msg"></span>
     </div>
@@ -798,9 +815,24 @@
 
   <!-- ================= PREVIEW ================= -->
   <div class="previewwrap screen-only">
-    <div class="plabel">Live preview</div>
+    <div class="plabel">Live preview <span id="sc_tplBadge" style="text-transform:none;letter-spacing:0;font-weight:600;color:var(--sb-primary);margin-left:6px;"></span></div>
     <div class="frame"><div id="preview" class="vwl-screen"></div></div>
     <div class="dims" id="dims">No image yet — showing a neutral background.</div>
+  </div>
+  <!-- ===== Screen template rail (screen only, 3rd column) ===== -->
+  <div id="sc_tplRail" class="screen-only">
+    <div class="rail-label">Template</div>
+    <div class="sc-rail-cards">
+      <button type="button" class="sc-tpl-card" data-tpl="tpl-panel" onclick="sc_setTemplate('tpl-panel')">
+        <div class="vwl-screen sc-mini"></div><div class="sc-tpl-name">Panel</div><div class="sc-tpl-desc">Photo left, brand panel right</div></button>
+      <button type="button" class="sc-tpl-card" data-tpl="tpl-card" onclick="sc_setTemplate('tpl-card')">
+        <div class="vwl-screen sc-mini"></div><div class="sc-tpl-name">Card</div><div class="sc-tpl-desc">Full photo, brand card over it</div></button>
+      <button type="button" class="sc-tpl-card" data-tpl="tpl-circles" onclick="sc_setTemplate('tpl-circles')">
+        <div class="vwl-screen sc-mini"></div><div class="sc-tpl-name">Circles</div><div class="sc-tpl-desc">Headline circle + call-to-action circle</div></button>
+      <button type="button" class="sc-tpl-card" data-tpl="classic" onclick="sc_setTemplate('classic')">
+        <div class="vwl-screen sc-mini"></div><div class="sc-tpl-name">Classic</div><div class="sc-tpl-desc">Dark shade with eyebrow and subtitle</div></button>
+    </div>
+    <p class="sc-rail-note">Template colors follow each client's brand at download.</p>
   </div>
   <!-- Flyer build preview -->
   <div class="previewwrap flyer-build-only flyer-scope" id="flyerPreviewWrap" style="display:none">
@@ -1031,14 +1063,36 @@ function onTitle(){
 document.getElementById("id").addEventListener("input",e=>{ e.target.dataset.touched="1"; const q=document.getElementById("qr_url"); if(!q.dataset.touched) q.value="https://go.mymedwellness.com/s/"+e.target.value; });
 document.getElementById("qr_url").addEventListener("input",e=>{ e.target.dataset.touched="1"; });
 
+// ===== Screen templates (rendered by overlay.js; stored in `treatment`) =====
+// tpl-panel | tpl-card | tpl-circles, or "classic" = the #treatment select (scrim side).
+let sc_tpl = "tpl-panel";
+const SC_TPL_NAMES = { "tpl-panel":"Panel", "tpl-card":"Card", "tpl-circles":"Circles", classic:"Classic" };
+function sc_treatment(){ return sc_tpl==="classic" ? document.getElementById("treatment").value : sc_tpl; }
+function sc_bullets(){
+  return (document.getElementById("sc_bullets").value||"").split("\n").map(x=>x.trim()).filter(Boolean).slice(0,4);
+}
+function sc_setTemplate(t){
+  sc_tpl = t;
+  document.querySelectorAll("#sc_tplRail .sc-tpl-card").forEach(c=>c.classList.toggle("sel", c.dataset.tpl===t));
+  const b=document.getElementById("sc_tplBadge"); if(b) b.textContent = "Template: " + (SC_TPL_NAMES[t]||t);
+  const classic = t==="classic", circles = t==="tpl-circles";
+  const show=(id,on)=>{ const el=document.getElementById(id); if(el) el.style.display = on ? "" : "none"; };
+  show("sc_treatFld", classic); show("sc_accentFld", classic);
+  show("sc_eyebrowFld", classic);
+  show("sc_bulletsFld", !circles);
+  const h=document.getElementById("sc_ctaHint");
+  if(h) h.textContent = circles ? "shown in the small circle (subtitle if blank)" : (classic ? "" : "not shown on this template");
+  draw();
+}
 function currentScreen(){
   const bg = imageDataUrl ? imageDataUrl : "gradient:night";
   return {
+    overlay_bullets: sc_bullets(),
     title:document.getElementById("title").value,
     subtitle:document.getElementById("subtitle").value,
     eyebrow:document.getElementById("eyebrow").value,
     cta:document.getElementById("cta").value,
-    treatment:document.getElementById("treatment").value,
+    treatment:sc_treatment(),
     accent:document.getElementById("accent").value,
     format:document.getElementById("format").value,
     qr_url:document.getElementById("qr_url").value.trim(),
@@ -1048,7 +1102,14 @@ function currentScreen(){
 function draw(){
   document.getElementById("accentHint").innerHTML =
     `<span class="swatch" style="background:${document.getElementById("accent").value||"#000"}"></span>`;
-  renderScreen(document.getElementById("preview"), currentScreen(), { scale:0.5, chrome:true });
+  const sc = currentScreen();
+  renderScreen(document.getElementById("preview"), sc, { scale:0.5, chrome:true });
+  // live mini previews in the template rail (same content, each template)
+  document.querySelectorAll("#sc_tplRail .sc-tpl-card").forEach(c=>{
+    const t=c.dataset.tpl, m=c.querySelector(".sc-mini");
+    const tr = t==="classic" ? document.getElementById("treatment").value : t;
+    if(m) renderScreen(m, Object.assign({}, sc, { treatment:tr, title: sc.title || "Your headline" }), { scale:0.16, chrome:true, qr:false });
+  });
 }
 
 // ===== Asset type switch =====
@@ -1077,10 +1138,11 @@ function setAssetType(t){
   // Flyer defaults to upload mode; setFlyerMode handles preview + build-region visibility.
   // For screen/newsletter, force build regions hidden and show the right preview.
   if(isFlyer){
+    { const w=document.querySelector(".wrap"); if(w) w.classList.remove("build3s"); }
     setFlyerMode(flyerMode || "upload");
   } else {
     document.querySelectorAll(".flyer-build-only").forEach(el=>el.style.display="none");
-    const wrapEl=document.querySelector(".wrap"); if(wrapEl) wrapEl.classList.remove("build3");
+    const wrapEl=document.querySelector(".wrap"); if(wrapEl){ wrapEl.classList.remove("build3"); wrapEl.classList.toggle("build3s", isScreen); }
     // Restore the upload dropzone + draft row: BUILD mode hides them (shared DOM
     // nodes), and screen/newsletter always need them shown. Without this, returning
     // from a flyer Build session leaves the screen upload field hidden.
@@ -1356,7 +1418,8 @@ async function save(){
     subtitle:document.getElementById("subtitle").value.trim(),
     eyebrow:document.getElementById("eyebrow").value.trim(),
     cta:document.getElementById("cta").value.trim(),
-    treatment:document.getElementById("treatment").value,
+    treatment: assetType==="screen" ? sc_treatment() : document.getElementById("treatment").value,
+    overlay_bullets: assetType==="screen" ? sc_bullets() : undefined,
     accent:document.getElementById("accent").value.trim(),
     format:document.getElementById("format").value,
     qr_url:document.getElementById("qr_url").value.trim(),
@@ -1494,10 +1557,11 @@ function resetForm(){
   ["title","subtitle","eyebrow","cta","qr_url","id","description","issue_date"].forEach(k=>{const el=document.getElementById(k);if(el){el.value="";el.dataset.touched="";}});
   document.getElementById("accent").value="#d9b98f";
   document.getElementById("treatment").value="left-scrim";
+  document.getElementById("sc_bullets").value="";
   document.getElementById("format").value="still";
   clearAsset();
   for(const g in sel){ sel[g].clear(); } sel.aspect.add("16:9");
-  buildPills(currentVocab()); draw(); setMsg("","");
+  buildPills(currentVocab()); sc_setTemplate("tpl-panel"); setMsg("","");
   setDraftMsg("","");
 }
 
@@ -3025,7 +3089,7 @@ buildPills(FALLBACK_VOCAB);
     libInit();                       // now renders filters from the live vocab
   } else {
     setAssetType("screen");
-    draw();
+    sc_setTemplate(sc_tpl);
   }
 })();
 </script>
