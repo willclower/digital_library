@@ -1116,7 +1116,7 @@ function ensureRenderFrame(){
   // Off-flow but REAL layout (html2canvas/render.html need it painted, not display:none).
   RENDER_FRAME.style.cssText =
     "position:absolute;left:-99999px;top:0;width:840px;height:1200px;border:0;visibility:hidden;";
-  RENDER_FRAME.src = "render.html";
+  RENDER_FRAME.src = "render.html?t=" + Date.now();
   renderReady = new Promise((resolve)=>{
     const onMsg = (ev)=>{ if(ev.data && ev.data.type==="render-ready"){ window.removeEventListener("message",onMsg); resolve(true); } };
     window.addEventListener("message", onMsg);
