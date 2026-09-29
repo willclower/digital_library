@@ -53,6 +53,63 @@ function bgLayer(screen) {
   return `<div class="vwl-bg vwl-ken" style="background-image:url('${b}');background-position:50% ${fy}%;"></div>`;
 }
 
+// ---------------------------------------------------------------------------
+// Screen TEMPLATES (2026-09-30). Selected by `treatment` = tpl-panel | tpl-card |
+// tpl-circles; anything else renders the Classic scrim layout below, unchanged.
+// Templates size everything off the screen's own width (container units), so the
+// same markup is exact at thumbnail, builder-preview, screen.html and 1280x720 PNG.
+// Colors are white-label: brand_primary (panel / card / big circle) and
+// brand_secondary (bar / rule / small circle), set per client at download.
+// Unbranded = the same neutral defaults flyers use.
+// ---------------------------------------------------------------------------
+const SCREEN_TEMPLATES = ["tpl-panel", "tpl-card", "tpl-circles"];
+const TEMPLATE_DEFAULTS = { primary: "#123a52", secondary: "#e08a00" };
+function isScreenTemplate(t) { return SCREEN_TEMPLATES.indexOf(t) !== -1; }
+function tplHex(v, d) { return (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v.trim())) ? v.trim() : d; }
+
+function renderTemplate(el, screen, ctx) {
+  const t = screen.treatment;
+  const P = tplHex(screen.brand_primary, TEMPLATE_DEFAULTS.primary);
+  const S = tplHex(screen.brand_secondary, TEMPLATE_DEFAULTS.secondary);
+  const list = ctx.bullets.length
+    ? `<ul class="vwl-t-list">${ctx.bullets.slice(0, 4).map(b => `<li><span class="vwl-t-dot">&bull;</span><span>${b}</span></li>`).join("")}</ul>`
+    : (ctx.showChrome && screen.subtitle ? `<div class="vwl-t-sub">${screen.subtitle}</div>` : "");
+  const qr = ctx.showQr
+    ? `<div class="vwl-t-qr">${ctx.qrImg ? `<img src="${ctx.qrImg}" alt="Scan for support">` : qrPlaceholder("#111")}</div>` : "";
+  const code = ctx.showCode ? `<span class="vwl-t-code">${ctx.assetCode}</span>` : "";
+  const title = `<div class="vwl-t-title">${screen.title || ""}</div>`;
+  let body = "";
+  if (t === "tpl-panel") {
+    body = `
+      <div class="vwl-t-photo">${bgLayer(screen)}</div>
+      <div class="vwl-t-panel" style="background:${P};">
+        ${title}
+        <div class="vwl-t-bar" style="background:${S};"></div>
+        ${ctx.showChrome ? list : ""}
+      </div>`;
+  } else if (t === "tpl-card") {
+    body = `
+      ${bgLayer(screen)}
+      <div class="vwl-t-card">
+        <div class="vwl-t-cardbg" style="background:${P};"></div>
+        <div class="vwl-t-rule" style="background:${S};"></div>
+        <div class="vwl-t-inner">${title}${ctx.showChrome ? list : ""}</div>
+      </div>`;
+  } else { // tpl-circles
+    const small = screen.cta || screen.subtitle || "";
+    body = `
+      ${bgLayer(screen)}
+      <div class="vwl-t-c1" style="background:${P};"></div>
+      <div class="vwl-t-c2" style="background:${S};"></div>
+      <div class="vwl-t-c1txt">${screen.title || ""}</div>
+      ${ctx.showChrome && small ? `<div class="vwl-t-c2txt">${small}</div>` : ""}`;
+  }
+  el.classList.remove("vwl-right", "vwl-has-bullets");
+  el.classList.add("vwl-tpl");
+  el.setAttribute("data-tpl", t);
+  el.innerHTML = body + qr + code;
+}
+
 // Render a full 16:9 screen into `el`. scale = font multiplier for thumbnails.
 function renderScreen(el, screen, opts = {}) {
   const scale = opts.scale || 1;
@@ -73,6 +130,11 @@ function renderScreen(el, screen, opts = {}) {
   // Screen-side counterpart to the flyer footer code; suppressed in thumbnails.
   const assetCode = screen.asset_code || screen.assetCode || "";
   const showCode = showChrome && !!assetCode;
+  if (isScreenTemplate(screen.treatment)) {
+    renderTemplate(el, screen, { bullets, showChrome, showQr, qrImg, showCode, assetCode });
+    return;
+  }
+  el.classList.remove("vwl-tpl"); el.removeAttribute("data-tpl");
   el.classList.toggle("vwl-right", screen.treatment === "right-scrim");
   el.classList.toggle("vwl-has-bullets", showBullets);
   el.innerHTML = `
@@ -90,4 +152,4 @@ function renderScreen(el, screen, opts = {}) {
   `;
 }
 
-if (typeof module !== "undefined") module.exports = { renderScreen, GRADIENTS, SCRIMS };
+if (typeof module !== "undefined") module.exports = { renderScreen, GRADIENTS, SCRIMS, SCREEN_TEMPLATES, TEMPLATE_DEFAULTS };
