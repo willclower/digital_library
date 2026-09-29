@@ -197,8 +197,8 @@
   .card .doc-thumb{display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--sb-bg-lt),var(--sb-border-lt));}
   .card .doc-img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;}
   .card .doc-icon{font-weight:700;font-size:22px;letter-spacing:2px;color:var(--sb-muted);border:2px solid var(--sb-border-st);border-radius:8px;padding:12px 18px;}
-  .fmt-badge{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-    background:var(--sb-primary);color:#fff;padding:4px 9px;border-radius:var(--sb-r-pill);box-shadow:0 2px 6px rgba(0,0,0,.22);}
+  .fmt-badge{position:absolute;top:10px;left:10px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    background:var(--sb-primary);color:#fff;padding:4px 9px;border-radius:var(--sb-r-pill);box-shadow:0 2px 6px rgba(0,0,0,.22);z-index:5;border:1px solid rgba(255,255,255,.5);}
   .card .meta{padding:14px 16px 16px;display:flex;flex-direction:column;flex:1;}
   .card .mrow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
   .card .mt{font-family:var(--sb-font);font-weight:700;font-size:15.5px;margin:0 0 5px;line-height:1.25;color:var(--sb-ink);}
@@ -1315,7 +1315,11 @@ async function renderScreenPng(screen, brand){
   stage.style.cssText = "position:absolute;left:-99999px;top:0;width:1280px;height:720px;";
   document.body.appendChild(stage);
   const sc = Object.assign({}, screen);
-  if(brand && brand.primary) sc.accent = brand.primary;   // white-label v1 = eyebrow accent only
+  if(brand && brand.primary) sc.accent = brand.primary;   // Classic: eyebrow accent
+  // Templates (tpl-*): panel/card/big circle = primary, bar/rule/small circle = secondary.
+  // Unbranded ("none") leaves these unset → overlay.js neutral defaults.
+  if(brand && brand.primary)   sc.brand_primary   = brand.primary;
+  if(brand && brand.secondary) sc.brand_secondary = brand.secondary;
   sc.asset_code = screen.asset_code || screen.assetCode || "";
   renderScreen(stage, sc, { scale:1, chrome:true, qr: !!(screen.qrUrl||screen.qr_url) });
   if(document.fonts && document.fonts.ready) await document.fonts.ready;
