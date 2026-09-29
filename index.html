@@ -1156,11 +1156,13 @@ async function buildBrand(client, mode){
     brand.logo = null;                         // colors + footer fall back to manifest
   } else if(mode === "white-label"){
     const c = await fetchJson("/client-get", { id: client.id });
+    if(c && c.error==="unauthorized") throw Object.assign(new Error("Session expired"),{unauthorized:true});
     if(!c || !c.ok) throw new Error("client brand unavailable");
     Object.assign(brand, brandFromRow(c.client));
     brand.logo = c.client.has_logo ? await fetchLogo("client", client.id) : null;
   } else if(mode === "parent"){
     const p = await fetchJson("/parent-brand", {});   // parent resolved server-side from session
+    if(p && p.error==="unauthorized") throw Object.assign(new Error("Session expired"),{unauthorized:true});
     if(!p || !p.ok) throw new Error("parent brand unavailable");
     Object.assign(brand, brandFromRow(p.parent));
     brand.logo = p.parent.has_logo ? await fetchLogo("parent", p.parent.id) : null;
@@ -1374,6 +1376,7 @@ async function mintAndDrawQr(client, mode, action, screen, customUrl){
       brand_mode:   mode,
       site_tag:     null               // reserved for per-site campaigns
     });
+    if(r && r.error==="unauthorized") return { unauthorized:true };
     if(!r || !r.ok || !r.scan_url) return null;
     if(typeof QRCode === "undefined") { console.warn("QR lib not loaded"); return null; }
     // qrcodejs (davidshimjs) renders into a container element (canvas), from
@@ -1415,6 +1418,7 @@ async function runDownload(){
   const ym = new Date().toISOString().slice(0,7).replace("-","");   // YYYYMM
   const assetSlug = (dlScreen.asset_code || dlScreen.id || "asset");
   const files = [];
+  const noQr = [];   // clients that asked for a QR but did not get one
 
   try{
     if(isDoc){
@@ -1431,6 +1435,8 @@ async function runDownload(){
       let qrOut = null;
       if(qr && qr !== "none"){
         qrOut = await mintAndDrawQr(client, mode, qr, dlScreen, qr_custom);
+        if(qrOut && qrOut.unauthorized) throw Object.assign(new Error("Session expired"),{unauthorized:true});
+        if(!qrOut) noQr.push(client.name);
       }
       if(isDoc){
         // never mutate the cached brand object — clone, then attach the per-pick QR
@@ -1460,9 +1466,17 @@ async function runDownload(){
     // Log the batch (one row per client) — separate tiny POST, best-effort, non-blocking.
     logDownload(picks, files);
 
-    msg.className="msg ok"; msg.textContent=`Done — ${files.length} file${files.length>1?"s":""} in ${zipName}.`;
-    setTimeout(closePicker, 900);
+    const done = `Done — ${files.length} file${files.length>1?"s":""} in ${zipName}.`;
+    if(noQr.length){
+      // keep the picker open so the warning can be read
+      msg.className="msg err";
+      msg.textContent = `${done} No QR on: ${noQr.join(", ")} (couldn't create one).`;
+    }else{
+      msg.className="msg ok"; msg.textContent = done;
+      setTimeout(closePicker, 900);
+    }
   }catch(e){
+    if(e && e.unauthorized){ clearSession(); paintAuth(); closePicker(); openLogin(); return; }
     msg.className="msg err"; msg.textContent = (e&&e.message)?e.message:"Download failed.";
   }finally{
     go.disabled = false;
