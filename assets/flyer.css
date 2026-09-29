@@ -168,3 +168,7 @@
 /* unbranded: absolute, bottom-right, clear of the CTA/resource content */
 .flyer-scope .fl-qr-float{position:absolute;right:26px;bottom:26px;z-index:4;}
 .flyer-scope .fl-qr-float .fl-qrlabel{color:#4a5e66;}
+
+/* When the float QR is shown (unbranded + QR), reserve a right gutter so the
+   closing resource block clears the QR corner. No-QR unbranded keeps full width. */
+.flyer-scope .flyer.has-float-qr .fl-resource{ margin-right:120px; }
