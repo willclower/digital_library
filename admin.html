@@ -1110,6 +1110,11 @@ async function save(){
   if(isBuild && !title){ title = (document.getElementById("fl_in_headline").value||"").trim(); }
   if(!id){ setMsg("Need a resource ID.","err"); return; }
   if(!title){ setMsg("Need a title.","err"); return; }
+  // Newsletter: the QC review is tied to the resource ID it ran against. Saving under another
+  // ID would leave Rita's approval unable to publish it — so require a fresh QC run instead.
+  if(isNl && nlQcReview && nlQcContentId && id !== nlQcContentId){
+    setMsg(`Resource ID changed since QC (it was “${nlQcContentId}”). Run QC again before finalizing.`,"err"); return;
+  }
 
   const btn=document.getElementById("save"); btn.disabled=true; setMsg("Publishing…","");
   const finBtn=document.getElementById("fl_finalizeBtn"); if(finBtn) finBtn.disabled=true;
@@ -1212,7 +1217,8 @@ async function save(){
     });
     const out=await res.json();
     if(out.ok){
-      setMsg(`Saved “${out.saved}”${out.width?` (${out.width}×${out.height})`:""}. It's in the library now.`,"ok");
+      setMsg(isNl ? `Saved “${out.saved}”.`
+                  : `Saved “${out.saved}”${out.width?` (${out.width}×${out.height})`:""}. It's in the library now.`,"ok");
       if(isNl) await nl_recordBuilderPass(out.saved, nlAssetCode);
       // Optional companion: publish a 16:9 wall screen built from the banner photo.
       const alsoBox = document.getElementById("fl_in_alsoScreen");
@@ -1911,9 +1917,15 @@ function fl_qcRender(){
 
     // Editable textarea (hidden until "Accept edits"); pre-filled with the suggestion or,
     // if none, the current field value so the reviewer can rewrite it.
-    const seed = hasSug ? f.suggested_edit : (match ? (document.getElementById(f.__field)?.value||"") : "");
+    const curVal = match ? (document.getElementById(f.__field)?.value||"") : "";
+    const anchor = (f.anchor_text && String(f.anchor_text).trim()) || "";
+    if(match && !hasSug && !anchor) f.__whole = true;          // nothing to swap: edit the whole field
+    const seed = f.__whole ? (f.__seed != null ? f.__seed : curVal) : (hasSug ? f.suggested_edit : anchor);
+    const scopeTxt = !match ? "" : (f.__whole ? "Replaces the whole field."
+                     : (anchor ? `Replaces only: “${fl_esc(anchor)}”` : "Adds to the end of this field."));
     const editArea = match
-      ? `<div class="qc-editwrap" id="qcedit-${idx}" style="display:none;">`+
+      ? `<div class="qc-editwrap" id="qcedit-${idx}" style="display:${f.__open?"":"none"};">`+
+          (f.__note ? `<div class="qc-ref" style="color:#9a3b1f;">${fl_esc(f.__note)}</div>` : "")+
           `<textarea class="qc-editta" id="qceta-${idx}">${fl_esc(seed)}</textarea>`+
           `<button class="apply" onclick="fl_qcPlaceEdit(${idx})">Place edited text in flyer</button>`+
         `</div>`
@@ -1931,6 +1943,7 @@ function fl_qcRender(){
       refHtml+
       (hasSug?`<div class="qc-edit"><b>Suggested:</b> ${fl_esc(f.suggested_edit)}</div>`:
               (match?``:`<div class="qc-edit">No mapped field — apply this manually, then Reject to clear it.</div>`))+
+      (scopeTxt ? `<div class="qc-ref">${scopeTxt}</div>` : "")+
       `<div class="qc-actions">${actions} ${dispTxt}</div>`+
       editArea;
     list.appendChild(div);
@@ -1940,12 +1953,52 @@ function fl_qcRender(){
 
 // fl_esc now declared in the shared flyer-render.js (canonical null-safe copy).
 
+// ---- QC placement: replace ONLY the flagged sentence, never the whole field ----------
+// A finding carries anchor_text (the exact flagged span). Accepting a suggestion swaps that
+// span inside the field and leaves the rest intact. Matching is exact first, then tolerant of
+// curly quotes / dashes / whitespace (same rule as QC_Signoff's server-side assembly).
+// Returns the new field text, or null if the span can't be found exactly once (caller then
+// asks the reviewer to edit the full field — it never silently overwrites).
+function qc_spliceAnchor(fieldText, anchor, replacement){
+  const src = String(fieldText || ""), a = String(anchor || "").trim();
+  if(!a || replacement == null) return null;
+  let i = src.indexOf(a);
+  if(i >= 0 && src.indexOf(a, i + 1) < 0) return src.slice(0, i) + replacement + src.slice(i + a.length);
+  const canon = ch => /[\u2018\u2019\u201B\u2032\u0060\u00B4]/.test(ch) ? "'"
+                    : /[\u201C\u201D\u201F\u2033]/.test(ch) ? '"'
+                    : /[\u2013\u2014]/.test(ch) ? "-" : ch;
+  let norm = "", map = [];                       // norm[k] came from src[map[k]]
+  for(let k = 0; k < src.length; ){
+    if(/\s/.test(src[k])){ let j = k; while(j < src.length && /\s/.test(src[j])) j++; norm += " "; map.push(k); k = j; }
+    else { norm += canon(src[k]); map.push(k); k++; }
+  }
+  map.push(src.length);
+  const na = a.split("").map(canon).join("").replace(/\s+/g, " ");
+  const k = norm.indexOf(na);
+  if(k < 0 || norm.indexOf(na, k + 1) >= 0) return null;
+  return src.slice(0, map[k]) + replacement + src.slice(map[k + na.length]);
+}
+// Apply a finding's text to its field. Modes:
+//   whole  -> reviewer is editing the full field text: replace the field
+//   anchor -> swap only the flagged span (null if not found)
+//   none   -> no flagged span (an omission): add the text to the end of the field
+function qc_applyToField(f, current, text){
+  if(f.__whole) return text;
+  const anchor = (f.anchor_text && String(f.anchor_text).trim()) || "";
+  if(anchor) return qc_spliceAnchor(current, anchor, text);
+  const cur = String(current || "").replace(/\s+$/, "");
+  return cur ? (cur + " " + String(text || "").trim()) : String(text || "");
+}
+const QC_NOT_FOUND_NOTE = "Couldn't find the flagged sentence in this field. The box now holds the whole field — change the sentence yourself, then place it.";
+
 // Accept the AI suggestion verbatim: write suggested_edit into the mapped field.
 function fl_qcAcceptSuggestion(idx){
   const f=flQcReview.findings[idx]; if(!f||!f.__field) return;
-  const el=document.getElementById(f.__field);
-  if(el){ fl_setFld(f.__field, f.suggested_edit != null ? f.suggested_edit : el.value); fl_draw(); }
-  f.final_text = f.suggested_edit || null;
+  const el=document.getElementById(f.__field); if(!el || f.suggested_edit == null) return;
+  const next = qc_applyToField(f, el.value, f.suggested_edit);
+  if(next == null){ f.__whole = true; f.__open = true; f.__note = QC_NOT_FOUND_NOTE; f.__seed = el.value; fl_qcRender(); return; }
+  fl_setFld(f.__field, next); fl_draw();
+  f.final_text = f.suggested_edit;
   fl_qcDispose(idx,"accept");
 }
 // Reveal the edit textarea so the reviewer can adjust the suggestion before placing it.
@@ -1958,8 +2011,10 @@ function fl_qcPlaceEdit(idx){
   const f=flQcReview.findings[idx]; if(!f||!f.__field) return;
   const ta=document.getElementById("qceta-"+idx);
   const txt = ta ? ta.value : "";
-  const el=document.getElementById(f.__field);
-  if(el){ fl_setFld(f.__field, txt); fl_draw(); }
+  const el=document.getElementById(f.__field); if(!el) return;
+  const next = qc_applyToField(f, el.value, txt);
+  if(next == null){ f.__whole = true; f.__open = true; f.__note = QC_NOT_FOUND_NOTE; f.__seed = el.value; fl_qcRender(); return; }
+  fl_setFld(f.__field, next); fl_draw();
   f.final_text = txt;
   fl_qcDispose(idx,"accept_with_edits");
 }
@@ -2592,6 +2647,7 @@ for(let i=0;i<6;i++){
 const NL_QC_LABELS = Object.keys(NL_QC_MAP).sort((a,b)=>b.length-a.length);   // longest first
 let nlQcReview = null;
 let nlQcReviewId = null;   // qc_review.review_id from the first pass (for the builder sign-off)
+let nlQcContentId = null;  // the resource ID the review was run against; Finalize must save under it
 
 function nl_qcSerialize(){
   const n = nl_tipCount(), lines = [];
@@ -2616,7 +2672,9 @@ async function nl_sendToQC(){
   const content = nl_qcSerialize();
   if(!content){ nl_qcSetMsg("Nothing to review — fill in the newsletter copy first.","err"); return; }
   const title = (nl_v("nl_in_headline")||"").replace(/\s*\n\s*/g," ").trim() || "Newsletter";
-  const id = (document.getElementById("id").value.trim()) || ("nl-" + slugify(title));
+  const idEl = document.getElementById("id");
+  const id = (idEl.value.trim()) || ("nl-" + slugify(title));
+  if(!idEl.value.trim()){ idEl.value = id; idEl.dataset.touched = "1"; }   // pin: Finalize saves under the same ID
   btn.disabled=true; const label=btn.textContent; btn.textContent="Reviewing…"; nl_qcSetMsg("Running content review…","");
   try{
     const res = await fetch(QC_ENDPOINT,{ method:"POST", headers:{"Content-Type":"application/json"},
@@ -2625,7 +2683,7 @@ async function nl_sendToQC(){
     if(!res.ok) throw new Error("HTTP "+res.status);
     const d = await res.json();
     if(!d || d.ok!==true || !d.review) throw new Error("Unexpected QC response");
-    nlQcReview = d.review; nlQcReviewId = d.review_id || null;
+    nlQcReview = d.review; nlQcReviewId = d.review_id || null; nlQcContentId = id;
     nl_qcSetMsg("Review complete.","ok");
     nl_qcRender();
   }catch(err){
@@ -2662,9 +2720,15 @@ function nl_qcRender(){
       actions += `<button class="edit" onclick="nl_qcToggleEdit(${idx})">Edit suggestion</button>`;
     }
     actions += `<button class="reject" onclick="nl_qcReject(${idx})">Reject</button>`;
-    const seed = hasSug ? f.suggested_edit : (match ? nl_v(f.__field) : "");
+    const curVal = match ? nl_v(f.__field) : "";
+    const anchor = (f.anchor_text && String(f.anchor_text).trim()) || "";
+    if(match && !hasSug && !anchor) f.__whole = true;          // nothing to swap: edit the whole field
+    const seed = f.__whole ? (f.__seed != null ? f.__seed : curVal) : (hasSug ? f.suggested_edit : anchor);
+    const scopeTxt = !match ? "" : (f.__whole ? "Replaces the whole field."
+                     : (anchor ? `Replaces only: “${fl_esc(anchor)}”` : "Adds to the end of this field."));
     const editArea = match
-      ? `<div class="qc-editwrap" id="nlqcedit-${idx}" style="display:none;">`+
+      ? `<div class="qc-editwrap" id="nlqcedit-${idx}" style="display:${f.__open?"":"none"};">`+
+          (f.__note ? `<div class="qc-ref" style="color:#9a3b1f;">${fl_esc(f.__note)}</div>` : "")+
           `<textarea class="qc-editta" id="nlqceta-${idx}">${fl_esc(seed)}</textarea>`+
           `<button class="apply" onclick="nl_qcPlaceEdit(${idx})">Place edited text in newsletter</button>`+
         `</div>` : "";
@@ -2677,21 +2741,25 @@ function nl_qcRender(){
       `<p class="qc-claim">${fl_esc(f.claim||"")}</p>`+ refHtml +
       (hasSug?`<div class="qc-edit"><b>Suggested:</b> ${fl_esc(f.suggested_edit)}</div>`:
               (match?``:`<div class="qc-edit">No mapped field — apply this manually, then Reject to clear it.</div>`))+
+      (scopeTxt ? `<div class="qc-ref">${scopeTxt}</div>` : "")+
       `<div class="qc-actions">${actions} ${dispTxt}</div>` + editArea;
     list.appendChild(div);
   });
   nl_updateFinalizeGate();
 }
 function nl_qcAcceptSuggestion(idx){
-  const f=nlQcReview.findings[idx]; if(!f||!f.__field) return;
-  if(f.suggested_edit != null) nl_setFld(f.__field, f.suggested_edit);
-  f.final_text = f.suggested_edit || null; nl_draw(); nl_qcDispose(idx,"accept");
+  const f=nlQcReview.findings[idx]; if(!f||!f.__field||f.suggested_edit == null) return;
+  const cur = nl_v(f.__field), next = qc_applyToField(f, cur, f.suggested_edit);
+  if(next == null){ f.__whole = true; f.__open = true; f.__note = QC_NOT_FOUND_NOTE; f.__seed = cur; nl_qcRender(); return; }
+  nl_setFld(f.__field, next); f.final_text = f.suggested_edit; nl_draw(); nl_qcDispose(idx,"accept");
 }
 function nl_qcToggleEdit(idx){ const w=document.getElementById("nlqcedit-"+idx); if(w) w.style.display = (w.style.display==="none") ? "" : "none"; }
 function nl_qcPlaceEdit(idx){
   const f=nlQcReview.findings[idx]; if(!f||!f.__field) return;
   const ta=document.getElementById("nlqceta-"+idx), txt = ta ? ta.value : "";
-  nl_setFld(f.__field, txt); f.final_text = txt; nl_draw(); nl_qcDispose(idx,"accept_with_edits");
+  const cur = nl_v(f.__field), next = qc_applyToField(f, cur, txt);
+  if(next == null){ f.__whole = true; f.__open = true; f.__note = QC_NOT_FOUND_NOTE; f.__seed = cur; nl_qcRender(); return; }
+  nl_setFld(f.__field, next); f.final_text = txt; nl_draw(); nl_qcDispose(idx,"accept_with_edits");
 }
 function nl_qcReject(idx){ const f=nlQcReview.findings[idx]; if(f) f.final_text=null; nl_qcDispose(idx,"return"); }
 function nl_qcDispose(idx,disp){
