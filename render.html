@@ -195,10 +195,12 @@ async function renderFlyerFromManifest(manifest, brand){
   if(qrAddrImg) qrAddrImg.removeAttribute("src");
   if(qrFloatImg) qrFloatImg.removeAttribute("src");
   if(addrEl) addrEl.classList.remove("has-qr");
+  if(flyer) flyer.classList.remove("has-float-qr");
   if(qrData){
     if(unbranded){
       if(qrFloatImg) qrFloatImg.src = qrData;
       if(qrFloat) qrFloat.style.display = "";
+      if(flyer) flyer.classList.add("has-float-qr");
     }else{
       if(qrAddrImg) qrAddrImg.src = qrData;
       if(qrAddr) qrAddr.style.display = "";
