@@ -71,6 +71,12 @@
   /* Screen BUILD: form | preview | template rail */
   .wrap.build3s{grid-template-columns:minmax(0,0.95fr) minmax(0,1.1fr) minmax(300px,0.62fr);max-width:1780px;}
   #sc_tplRail{position:sticky;top:24px;}
+  .sc-zone{position:relative;cursor:pointer;}
+  .sc-zone::after{content:"Pick image";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:700;color:transparent;background:transparent;border-radius:inherit;transition:background .15s,color .15s;pointer-events:none;z-index:10;}
+  .sc-zone:hover::after,.sc-zone:focus-visible::after{background:rgba(0,0,0,.45);color:#fff;}
+  .sc-zone.empty::after{content:"Click to pick an image from the library";color:#fff;background:rgba(0,0,0,.25);}
+  .linkish{font:inherit;font-size:12px;font-weight:600;color:var(--sb-accent-text);background:none;border:0;padding:0;margin-top:6px;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
   #sc_tplRail .rail-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sb-subtle);margin-bottom:10px;}
   #sc_tplRail .sc-rail-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .sc-tpl-card{font:inherit;text-align:left;cursor:pointer;background:var(--sb-panel);border:1.5px solid var(--sb-border);border-radius:10px;
@@ -816,8 +822,11 @@
   <!-- ================= PREVIEW ================= -->
   <div class="previewwrap screen-only">
     <div class="plabel">Live preview <span id="sc_tplBadge" style="text-transform:none;letter-spacing:0;font-weight:600;color:var(--sb-primary);margin-left:6px;"></span></div>
-    <div class="frame"><div id="preview" class="vwl-screen"></div></div>
-    <div class="dims" id="dims">No image yet — showing a neutral background.</div>
+    <div class="frame sc-zone empty" id="sc_zone" onclick="fl_openPicker('screen')" role="button" tabindex="0"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();fl_openPicker('screen');}"
+         aria-label="Pick the screen image from the image library"><div id="preview" class="vwl-screen"></div></div>
+    <div class="dims" id="dims">No image yet. Click the preview to pick one from the image library.</div>
+    <button type="button" class="linkish" onclick="document.getElementById('assetFile').click()">Or upload an image from your computer</button>
   </div>
   <!-- ===== Screen template rail (screen only, 3rd column) ===== -->
   <div id="sc_tplRail" class="screen-only">
@@ -1147,7 +1156,7 @@ function setAssetType(t){
     // nodes), and screen/newsletter always need them shown. Without this, returning
     // from a flyer Build session leaves the screen upload field hidden.
     const uploadRow = document.getElementById("assetDrop").closest(".field");
-    if(uploadRow) uploadRow.style.display = "";
+    if(uploadRow) uploadRow.style.display = isScreen ? "none" : "";   // screens pick the image on the preview
     const draftBtnEl = document.getElementById("draftBtn");
     const draftRow = draftBtnEl ? draftBtnEl.closest(".actions") : null;
     if(draftRow) draftRow.style.display = "";
@@ -1170,7 +1179,29 @@ function clearAsset(){
   const d=document.getElementById("assetDrop");
   d.classList.remove("hasfile"); d.textContent="Click to choose a file, or drag one here";
   document.getElementById("draftBtn").disabled=true;
-  document.getElementById("dims").textContent="No image yet — showing a neutral background.";
+  document.getElementById("dims").textContent="No image yet. Click the preview to pick one from the image library.";
+  { const z=document.getElementById("sc_zone"); if(z) z.classList.add("empty"); }
+}
+
+// Screen image from the library picker (or a local upload): same state the upload set.
+function sc_setImage(dataUrl, name){
+  imageDataUrl = dataUrl;
+  assetB64 = dataUrl.split(",")[1];
+  assetMime = (/^data:([^;]+);/.exec(dataUrl)||[])[1] || "image/png";
+  assetName = name || "library-image";
+  document.getElementById("draftBtn").disabled = false;
+  const z=document.getElementById("sc_zone"); if(z) z.classList.remove("empty");
+  const img=new Image();
+  img.onload=()=>{
+    imageDims={w:img.naturalWidth,h:img.naturalHeight};
+    const under=img.naturalHeight<1080;
+    document.getElementById("dims").innerHTML =
+      `Image: ${img.naturalWidth}×${img.naturalHeight}` +
+      (under ? ` <span class="warn">— below 1080p; fine for demo, upscale for production TV.</span>` : ` — good for TV.`) +
+      ` Click the preview to change it.`;
+    draw();
+  };
+  img.src=dataUrl;
 }
 
 // ===== Upload (asset = the thing being catalogued) =====
@@ -1185,17 +1216,7 @@ function onAsset(ev){
     document.getElementById("assetDrop").textContent = f.name + " ✓  (click to replace)";
     document.getElementById("draftBtn").disabled=false;
     if(assetType==="screen"){
-      imageDataUrl=dataUrl;                          // feeds the live overlay preview
-      const img=new Image();
-      img.onload=()=>{
-        imageDims={w:img.naturalWidth,h:img.naturalHeight};
-        const under=img.naturalHeight<1080;
-        document.getElementById("dims").innerHTML =
-          `Image: ${img.naturalWidth}×${img.naturalHeight}` +
-          (under ? ` <span class="warn">— below 1080p; fine for demo, upscale for production TV.</span>` : ` — good for TV.`);
-        draw();
-      };
-      img.src=dataUrl;
+      sc_setImage(dataUrl, f.name);                  // feeds the live overlay preview
     } else {
       // Doc (flyer/newsletter): render page 1 to a small JPEG for the library thumbnail.
       docThumbB64 = null;
@@ -1758,7 +1779,7 @@ async function fl_fetchImageDataUrl(id){
 async function fl_openPicker(zone){
   fl_pickZone = zone;
   fl_pickAspect = (zone==="subject") ? "square" : "16:9";
-  let pickTitle = zone==="subject" ? "Choose a subject image (square)" : "Choose a banner image (16:9)";
+  let pickTitle = zone==="subject" ? "Choose a subject image (square)" : (zone==="screen" ? "Choose the screen image (16:9)" : "Choose a banner image (16:9)");
   if(String(zone).startsWith("nl:")){                     // newsletter photo spots
     const z = zone.slice(3);
     fl_pickAspect = /^tip\d$/.test(z) ? "square" : (z==="side" ? "16:9" : "portrait");
@@ -1804,7 +1825,8 @@ async function fl_loadPicker(){
       msg.textContent="Loading image…";
       try{
         const dataUrl = await fl_fetchImageDataUrl(r.id);
-        if(String(fl_pickZone).startsWith("nl:")) nl_setImage(fl_pickZone.slice(3), dataUrl, r.id);
+        if(fl_pickZone==="screen") sc_setImage(dataUrl, r.title || r.id);
+        else if(String(fl_pickZone).startsWith("nl:")) nl_setImage(fl_pickZone.slice(3), dataUrl, r.id);
         else if(fl_pickZone==="subject") fl_setSubject(dataUrl, r.id); else fl_setBanner(dataUrl, r.id);
         fl_closePicker();
       }catch(e){ msg.textContent="Couldn't load that image."; }
