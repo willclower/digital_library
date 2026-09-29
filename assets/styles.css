@@ -56,3 +56,40 @@ body{margin:0;font-family:var(--font-sans);}
   color:rgba(255,255,255,0.5);text-shadow:0 1px 6px rgba(0,0,0,0.6);
   font-variant-numeric:tabular-nums;}
 .vwl-right .vwl-code{left:auto;right:3.5%;}
+
+/* ---------- Screen TEMPLATES (treatment = tpl-panel | tpl-card | tpl-circles) ----------
+   Sized in container units (cqw = 1% of the screen's width) so every surface
+   (thumbnail, builder, screen.html, 1280x720 download) is the same picture.
+   Colors come inline from overlay.js (brand primary / secondary). Arial per client. */
+.vwl-screen.vwl-tpl{container-type:inline-size;color:#fff;}
+.vwl-tpl .vwl-t-title{font-family:var(--font-screen);font-weight:700;line-height:1.08;letter-spacing:-.01em;}
+.vwl-tpl .vwl-t-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:1.5cqw;}
+.vwl-tpl .vwl-t-list li{display:flex;gap:1cqw;font-family:var(--font-screen);font-weight:700;font-size:2.3cqw;line-height:1.2;}
+.vwl-tpl .vwl-t-dot{flex:0 0 auto;}
+.vwl-tpl .vwl-t-sub{font-family:var(--font-screen);font-size:2.2cqw;line-height:1.35;}
+.vwl-tpl .vwl-t-qr{position:absolute;width:10.4cqw;height:10.4cqw;padding:.6cqw;background:#fff;line-height:0;z-index:3;}
+.vwl-tpl .vwl-t-qr img,.vwl-tpl .vwl-t-qr svg{width:100%;height:100%;display:block;}
+.vwl-tpl .vwl-t-code{position:absolute;left:1.6cqw;bottom:1cqw;z-index:3;font-family:var(--font-screen);font-size:.8cqw;
+  letter-spacing:.06em;color:rgba(255,255,255,.6);text-shadow:0 1px 4px rgba(0,0,0,.6);}
+
+/* Panel — photo left two-thirds, solid brand panel right third */
+.vwl-tpl[data-tpl="tpl-panel"] .vwl-t-photo{position:absolute;left:0;top:0;bottom:0;width:67%;overflow:hidden;}
+.vwl-tpl .vwl-t-panel{position:absolute;right:0;top:0;bottom:0;width:33%;padding:7cqw 2.6cqw 0 2.6cqw;z-index:2;}
+.vwl-tpl .vwl-t-panel .vwl-t-title{font-size:5.3cqw;}
+.vwl-tpl .vwl-t-bar{width:23cqw;height:3.1cqw;border-radius:99cqw;margin:1.8cqw 0 5cqw;}
+.vwl-tpl[data-tpl="tpl-panel"] .vwl-t-qr{right:2.6cqw;bottom:1.6cqw;}
+
+/* Card — full-bleed photo, translucent brand card right-centre, secondary left rule */
+.vwl-tpl .vwl-t-card{position:absolute;left:46.5%;right:0;top:20.5%;height:60%;z-index:2;}
+.vwl-tpl .vwl-t-cardbg{position:absolute;inset:0;opacity:.92;}
+.vwl-tpl .vwl-t-rule{position:absolute;left:0;top:0;bottom:0;width:.9cqw;}
+.vwl-tpl .vwl-t-inner{position:relative;padding:3.4cqw 12cqw 0 4cqw;}
+.vwl-tpl .vwl-t-card .vwl-t-title{font-size:4.8cqw;margin-bottom:2.4cqw;}
+.vwl-tpl[data-tpl="tpl-card"] .vwl-t-qr{right:.8cqw;bottom:12.4cqw;}
+
+/* Circles — full-bleed photo, big primary circle top-right, small secondary circle overlapping */
+.vwl-tpl .vwl-t-c1{position:absolute;width:46cqw;height:46cqw;border-radius:50%;left:calc(84.5% - 23cqw);top:calc(37% - 23cqw);opacity:.93;z-index:1;}
+.vwl-tpl .vwl-t-c2{position:absolute;width:23.5cqw;height:23.5cqw;border-radius:50%;left:calc(65.5% - 11.75cqw);top:calc(67% - 11.75cqw);opacity:.9;z-index:2;}
+.vwl-tpl .vwl-t-c1txt{position:absolute;left:67.5%;top:19%;width:30cqw;z-index:3;font-family:var(--font-screen);font-weight:700;font-size:4.7cqw;line-height:1.08;}
+.vwl-tpl .vwl-t-c2txt{position:absolute;left:56%;top:61%;width:18.5cqw;z-index:3;font-family:var(--font-screen);font-weight:700;font-size:2.6cqw;line-height:1.2;}
+.vwl-tpl[data-tpl="tpl-circles"] .vwl-t-qr{right:5cqw;bottom:2.6cqw;width:11cqw;height:11cqw;}
