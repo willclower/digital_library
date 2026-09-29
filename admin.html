@@ -13,19 +13,21 @@
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="stylesheet" href="assets/flyer.css">
 <link rel="stylesheet" href="assets/nl.css">   <!-- SHARED newsletter output styles -->
+<!-- Studio chrome (brand tokens + header). Render styles above scope their own tokens. -->
+<link rel="stylesheet" href="../wellness_tools/studio-brand.css">
+<script src="../wellness_tools/studio-brand.js"></script>
 <style>
+  /* Legacy token names = ALIASES onto studio-brand.css (--sb-*). flyer.css / nl.css
+     re-declare their own --font-*/--ink inside .flyer-scope / .nl-scope, so previews are unaffected. */
   :root{
-    --ink:#0E2A44; --paper:#EFEBE2; --panel:#FFFDF9; --border:#E0D9CB; --border-st:#C9C2B3;
-    --muted:#5F6B77; --subtle:#8A9199; --library:#17402F; --library-hover:#1F5B41;
-    --chip-lib-bg:#E7EFEA; --cream:#F1EADC; --accent-text:#B5811F; --danger:#b23b3b;
-    --font-ui:"Instrument Sans",system-ui,sans-serif; --font-voice:"Newsreader",Georgia,serif;
+    --ink:var(--sb-ink); --paper:var(--sb-bg); --panel:var(--sb-panel); --border:var(--sb-border); --border-st:var(--sb-border-st);
+    --muted:var(--sb-muted); --subtle:var(--sb-subtle); --library:var(--sb-primary); --library-hover:var(--sb-primary-hover);
+    --chip-lib-bg:var(--sb-tint); --cream:#fff; --accent-text:var(--sb-accent-text); --danger:var(--sb-danger);
+    --font-ui:var(--sb-font); --font-voice:var(--sb-font);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;}
   body{font-family:var(--font-ui);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;}
-  .topbar{display:flex;align-items:center;gap:12px;padding:16px 34px;background:#fbfaf7;border-bottom:1px solid var(--border);}
-  .topbar .brand{font-weight:600;color:var(--library);font-size:15px;}
-  .topbar .back{margin-left:auto;font-size:12.5px;color:var(--muted);text-decoration:none;}
   .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px;padding:30px 34px 70px;align-items:start;max-width:1300px;}
   /* Flyer BUILD mode: add a third column (the persistent template switcher rail). */
   .wrap.build3{grid-template-columns:minmax(0,0.85fr) minmax(0,1.05fr) minmax(480px,0.85fr);max-width:1780px;}
@@ -255,70 +257,216 @@
     animation:fl_spin .8s linear infinite;}
 #fl_busy .fl-busy-txt{font-size:14px;color:#17402F;font-weight:600;}
 @keyframes fl_spin{to{transform:rotate(360deg);}}
+  /* ===================== STUDIO CHROME (brand + layout) =====================
+     Page chrome only. Render styles (flyer.css / nl.css / styles.css) scope their own
+     tokens under .flyer-scope / .nl-scope / .vwl-*, so nothing here reaches a deliverable.
+     Only builder *editor* chrome inside .flyer-scope is touched (h2, hints, draft box),
+     never .flyer / .cta-* / .fl-* render parts. */
+  body{font-family:var(--sb-font);background:var(--sb-bg);color:var(--sb-ink);}
+  .eyebrow{display:flex;align-items:center;gap:10px;font-size:10.5px;font-weight:700;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--sb-accent-text);margin-bottom:10px;}
+  .eyebrow>span{width:24px;height:3px;border-radius:2px;background:var(--sb-accent);}
+  h1:not([class]){font-family:var(--sb-font);font-weight:800;font-size:clamp(26px,3vw,34px);line-height:1.1;letter-spacing:-.02em;color:var(--sb-ink);}
+  h1:not([class]) em{font-style:normal;color:var(--sb-accent-text);}
+  .sub{color:var(--sb-muted);line-height:1.5;}
+  .wrap{margin:0 auto;padding-left:clamp(16px,3vw,34px);padding-right:clamp(16px,3vw,34px);}
+  input[type=text],textarea,select{border:1.5px solid var(--sb-border);border-radius:var(--sb-r-input);}
+  input:focus,textarea:focus,select:focus{border-color:var(--sb-primary);box-shadow:0 0 0 3px var(--sb-ring);}
+  .pill{font:inherit;font-size:12px;border:1.5px solid var(--sb-border);border-radius:var(--sb-r-pill);}
+  .pill:hover{border-color:var(--sb-primary);color:var(--sb-primary);}
+  .pill[data-on="1"]{border-color:var(--sb-primary);background:var(--sb-primary);color:#fff;}
+  .drop{border:1.5px dashed var(--sb-border-st);border-radius:var(--sb-r-card);background:var(--sb-bg-lt);color:var(--sb-muted);}
+  .drop:hover{border-color:var(--sb-primary);}
+  .drop.hasfile{border-color:var(--sb-primary);color:var(--sb-primary);}
+  .btn{font:inherit;font-size:13px;font-weight:600;border:1.5px solid var(--sb-border-st);border-radius:var(--sb-r-input);
+    background:var(--sb-panel);color:var(--sb-ink);cursor:pointer;}
+  .btn:hover{border-color:var(--sb-primary);color:var(--sb-primary);}
+  .btn-primary,.btn.primary{background:var(--sb-primary);color:#fff;border-color:var(--sb-primary);font-weight:600;}
+  .btn-primary:hover,.btn.primary:hover{background:var(--sb-primary-hover);border-color:var(--sb-primary-hover);color:#fff;}
+  .btn:disabled,.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-sm{font-size:12px;padding:6px 12px;}
+  .btn-danger{color:var(--sb-danger);border-color:color-mix(in srgb,var(--sb-danger) 35%,#fff);}
+  .btn-danger:hover{color:#fff;background:var(--sb-danger);border-color:var(--sb-danger);}
+  .msg.ok,.draftmsg.ok{color:var(--sb-ok);}
+  .msg.err,.draftmsg.err{color:var(--sb-danger);}
+  .draftmsg{font-size:12.5px;}
+  .plabel,#fl_tplRail .rail-label{font-weight:700;color:var(--sb-subtle);}
+  .frame{border-radius:var(--sb-r-card);}
+
+  /* builder editor chrome (inside .flyer-scope / .nl-form — editor parts only) */
+  .flyer-scope .editor{border-color:var(--sb-border);border-radius:var(--sb-r-card);box-shadow:var(--sb-shadow);}
+  .flyer-scope .editor h2,.flyer-scope .draftbox h3,.flyer-scope .seg-label,
+  .nl-form .seg-label,.nl-form .nl-draftbox h3{font-family:var(--sb-font);font-weight:700;color:var(--sb-ink);}
+  .flyer-scope .draftbox,.nl-form .nl-draftbox{background:var(--sb-tint);border-color:var(--sb-tint-strong);}
+  .flyer-scope .draftbtn,.nl-form .nl-draftbtn{background:var(--sb-primary);}
+  .flyer-scope .draftbtn:hover,.nl-form .nl-draftbtn:hover{filter:none;background:var(--sb-primary-hover);}
+  .flyer-scope .fld input:focus,.flyer-scope .fld textarea:focus,.flyer-scope .draftbox textarea:focus{border-color:var(--sb-primary);box-shadow:0 0 0 3px var(--sb-ring);}
+  .qc-actions button.apply,.qc-editwrap button.apply{background:var(--sb-primary);}
+  #fl_pick .fl-pick__facet.on{background:var(--sb-primary);border-color:var(--sb-primary);}
+  #fl_pick .fl-pick__thumb:hover{border-color:var(--sb-primary);}
+  #fl_pick .fl-pick__head{background:var(--sb-primary);color:#fff;border-bottom:0;}
+  #fl_pick .fl-pick__close{color:rgba(255,255,255,.85);}
+  #fl_busy{background:color-mix(in srgb,var(--sb-primary-deep) 32%,transparent);}
+  #fl_busy .fl-spin{border-top-color:var(--sb-primary);}
+  #fl_busy .fl-busy-txt{color:var(--sb-primary);}
+
+  /* ---- Studio layout (same positions as the DRL library) — scoped to #repoMode ---- */
+  #repoMode .hero{background:var(--sb-panel);border-bottom:1px solid var(--sb-border);}
+  #repoMode .hero-in{max-width:1320px;margin:0 auto;padding:30px clamp(16px,3vw,34px) 28px;display:flex;align-items:flex-end;
+    justify-content:space-between;gap:24px 40px;flex-wrap:wrap;}
+  #repoMode .hero .titleblock{min-width:0;flex:1 1 420px;}
+  #repoMode .hero h1{margin:0 0 8px;max-width:24ch;}
+  #repoMode .hero .sub{margin:0;font-size:13.5px;max-width:64ch;}
+  #repoMode .shell{max-width:1320px;margin:0 auto;padding:24px clamp(16px,3vw,34px) 70px;display:grid;
+    grid-template-columns:232px minmax(0,1fr);gap:24px;align-items:start;}
+  #repoMode .rail{background:var(--sb-panel);border:1px solid var(--sb-border);border-radius:var(--sb-r-card);box-shadow:var(--sb-shadow);
+    padding:18px;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;}
+  #repoMode .railhead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;}
+  #repoMode .railhead .refine{font-size:14px;font-weight:700;}
+  #repoMode .clear{font:inherit;font-size:12px;font-weight:600;color:var(--sb-accent-text);background:none;border:0;padding:0;cursor:pointer;
+    text-decoration:underline;text-underline-offset:2px;}
+  #repoMode .fgroup{margin-bottom:18px;}
+  #repoMode .fgroup .flabel{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--sb-subtle);margin-bottom:9px;}
+  #repoMode .content{min-width:0;}
+  #repoMode .panel{background:var(--sb-panel);border:1px solid var(--sb-border);border-radius:var(--sb-r-card);box-shadow:var(--sb-shadow);
+    padding:18px;margin-bottom:24px;}
+  #repoMode .panelhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+  #repoMode .panelhead h2{font-size:16px;font-weight:700;margin:0;}
+  #repoMode .panelhead .hint{font-size:12px;color:var(--sb-subtle);}
+  #repoMode .panel .drop{padding:22px;text-align:center;font-size:13px;cursor:pointer;}
+  #repoMode .panel .drop b{color:var(--sb-primary);}
+  #repoMode .panel .actions{margin-top:14px;}
+  #repoMode .qcard{border:1px solid var(--sb-border);border-radius:var(--sb-r-card);padding:14px;display:flex;gap:16px;margin-top:14px;background:var(--sb-panel);}
+  #repoMode .qcard.dupe{border-color:color-mix(in srgb,var(--sb-danger) 30%,#fff);background:color-mix(in srgb,var(--sb-danger) 5%,#fff);}
+  #repoMode .qcard .qimg{flex:0 0 200px;}
+  #repoMode .qcard .qimg img{width:200px;height:auto;border-radius:8px;display:block;}
+  #repoMode .qcard .qmeta{font-size:11px;color:var(--sb-subtle);margin-top:6px;}
+  #repoMode .qcard .qbody{flex:1;min-width:0;}
+  #repoMode .qcard .qbody>label{font-size:12px;font-weight:600;}
+  #repoMode .qcard .qbody>input[type=text]{width:100%;margin:4px 0 10px;}
+  #repoMode .qdupe{margin:0 0 10px;padding:9px 11px;border-radius:8px;background:color-mix(in srgb,var(--sb-danger) 9%,#fff);
+    border:1px solid color-mix(in srgb,var(--sb-danger) 25%,#fff);font-size:12px;color:var(--sb-danger);}
+  #repoMode .qdupe a{color:var(--sb-danger);}
+  #repoMode .qtags{font-size:12px;color:var(--sb-subtle);margin-bottom:4px;}
+  #repoMode .qtags .st{color:var(--sb-ok);}
+  #repoMode .frow{display:flex;align-items:flex-start;gap:8px;margin:6px 0;}
+  #repoMode .frow>.fl{flex:0 0 62px;font-size:10.5px;font-weight:700;color:var(--sb-subtle);text-transform:uppercase;letter-spacing:.08em;padding-top:6px;}
+  #repoMode .frow>.fv{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px;}
+  #repoMode .frow .cat{font-size:11.5px;font-weight:700;color:var(--sb-ink);margin-right:2px;}
+  #repoMode .frow .leafbox{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:0 0 8px 14px;padding:6px 8px;background:var(--sb-bg);border-radius:8px;}
+  #repoMode .frow .leafbox .crumb{font-size:10.5px;color:var(--sb-subtle);margin-right:2px;}
+  #repoMode .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+  #repoMode .toolbar .tools{display:flex;gap:8px;}
+  #repoMode .count{font-size:12.5px;color:var(--sb-muted);margin:0;}
+  #repoMode .count b{color:var(--sb-ink);}
+  #repoMode #libMsg:empty{display:none;}
+  #repoMode .addtag{align-items:center;gap:10px;margin:0 0 14px;padding:12px 14px;background:var(--sb-panel);border:1px solid var(--sb-border);
+    border-radius:var(--sb-r-card);flex-wrap:wrap;}
+  #repoMode .addtag .lbl{font-size:12px;color:var(--sb-subtle);}
+  #repoMode .addtag select,#repoMode .addtag input{width:auto;font-size:13px;padding:6px 10px;}
+  #repoMode .addtag input{min-width:220px;}
+  #repoMode .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));gap:16px;}
+  #repoMode .card{background:var(--sb-panel);border:1px solid var(--sb-border);border-radius:var(--sb-r-card);overflow:hidden;display:flex;
+    flex-direction:column;box-shadow:var(--sb-shadow);transition:transform .15s,box-shadow .15s;}
+  #repoMode .card:hover{transform:translateY(-3px);box-shadow:var(--sb-shadow-lg);}
+  #repoMode .card .thumb{aspect-ratio:16/10;background:var(--sb-bg);overflow:hidden;}
+  #repoMode .card .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  #repoMode .card .meta{padding:12px 14px 14px;display:flex;flex-direction:column;flex:1;}
+  #repoMode .card .mt{font-size:13px;font-weight:700;color:var(--sb-ink);word-break:break-word;margin:0 0 6px;}
+  #repoMode .card .tags{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 12px;}
+  #repoMode .card .tag{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:var(--sb-r-pill);background:var(--sb-tint);color:var(--sb-primary);}
+  #repoMode .card .notags{font-size:11px;color:var(--sb-danger);}
+  #repoMode .card .btn{margin-top:auto;align-self:flex-start;}
+  #repoMode .empty{grid-column:1/-1;background:var(--sb-panel);border:1.5px dashed var(--sb-border-st);border-radius:var(--sb-r-card);padding:30px;
+    text-align:center;color:var(--sb-muted);font-size:13.5px;}
+  @media(max-width:860px){
+    #repoMode .shell{grid-template-columns:1fr;} #repoMode .rail{position:static;max-height:none;}
+    #repoMode .qcard{flex-direction:column;} #repoMode .qcard .qimg img{width:100%;max-width:320px;}
+  }
+  @media(max-width:520px){ .sb-header .sb-product{display:none;} }
 </style>
 </head>
 <body>
 <div id="fl_busy"><div class="fl-busy-card"><div class="fl-spin"></div><div class="fl-busy-txt" id="fl_busyTxt">Working…</div></div></div>
-<div class="topbar">
-  <span class="brand">Digital Resource Library</span>
-  <a class="back" href="index.html">&larr; Back to library</a>
-</div>
-
-<!-- ================= IMAGE REPO UPLOADER (admin-only, ?repo=1) ================= -->
-<div id="repoMode" style="display:none;padding:30px 34px 70px;max-width:1100px;">
-  <div class="eyebrow"><span></span>Admin · Image Repo</div>
-  <h1>Upload images to the repo</h1>
-  <p class="sub">Drop the finished MidJourney images here, add optional keywords, review the tags, and save.
-     These populate the picker used when building screens and flyers. Not shown in the client library.</p>
-
-  <div class="field">
-    <label>Images <span class="hint">PNG/JPEG · one or many · aspect is detected automatically</span></label>
-    <div id="repoDrop" class="drop" style="cursor:pointer;">Drop images here or click to choose</div>
-    <input id="repoFiles" type="file" accept="image/png,image/jpeg" multiple style="display:none;">
+<header class="sb-header">
+  <img class="sb-logo" id="sbLogo" alt="">
+  <span class="sb-tenant" id="sbTenant"></span>
+  <span class="sb-product" id="sbProduct">Resource Builder</span>
+  <div class="sb-right">
+    <a href="index.html">&larr; Back to library</a>
   </div>
+</header>
 
-  <div id="repoQueue"></div>
-
-  <div class="actions" style="margin-top:18px;">
-    <button id="repoSaveAll" class="btn primary" onclick="repoSaveAll()" disabled>Save all to repo</button>
-    <span id="repoMsg" class="draftmsg" style="margin-left:12px;"></span>
-  </div>
-
-  <!-- ================= LIBRARY BROWSER (view / filter / manage) ================= -->
-  <div id="libBrowse" style="margin-top:48px;border-top:1px solid #e7e3da;padding-top:28px;">
-    <div class="eyebrow"><span></span>Admin · Library</div>
-    <h1 style="margin-top:6px;">Browse the image library</h1>
-    <p class="sub">Every image in the picker pool. Filter by tag to find one, or remove a duplicate.
-       <span id="libCount" style="color:#6f7f74;"></span></p>
-
-    <div id="libFilters" style="margin:14px 0 6px;"></div>
-    <div class="actions" style="margin:6px 0 12px;">
-      <button class="btn" style="font-size:12px;" onclick="libClearFilters()">Clear filters</button>
-      <button class="btn" style="font-size:12px;" onclick="libLoad()">Refresh</button>
-      <button class="btn" style="font-size:12px;" onclick="libToggleAddTag()">Add tag</button>
-      <span id="libMsg" class="draftmsg" style="margin-left:12px;"></span>
+<!-- ================= IMAGE REPO (admin-only, ?repo=1) — Studio layout ================= -->
+<div id="repoMode" style="display:none;">
+  <section class="hero">
+    <div class="hero-in">
+      <div class="titleblock">
+        <div class="eyebrow"><span></span>Image library</div>
+        <h1>The photos behind <em>every flyer and screen.</em></h1>
+        <p class="sub">Upload finished images, check their tags, and manage what the builders' picker offers. Not shown in the client library.</p>
+      </div>
     </div>
+  </section>
 
-    <!-- Add-tag inline form (hidden until "Add tag" clicked). Grows the controlled
-         vocabulary — new value becomes a pickable tag everywhere (uploader, picker, this filter). -->
-    <div id="libAddTag" style="display:none;align-items:center;gap:10px;margin:0 0 14px;padding:12px 14px;background:#f4f2ea;border-radius:10px;flex-wrap:wrap;">
-      <span style="font-size:12px;color:#6f7f74;">New tag in</span>
-      <select id="libAddCat" onchange="libAddCatChange()" style="font-size:13px;padding:5px 8px;border:1px solid #d8d3c8;border-radius:6px;">
-        <option value="topic">topic</option>
-        <option value="scene">setting (in image)</option>
-        <option value="mood">mood</option>
-      </select>
-      <select id="libAddParent" style="font-size:13px;padding:5px 8px;border:1px solid #d8d3c8;border-radius:6px;"></select>
-      <input id="libAddVal" type="text" placeholder="e.g. pilates, tai chi, running"
-             style="font-size:13px;padding:5px 10px;border:1px solid #d8d3c8;border-radius:6px;min-width:220px;"
-             onkeydown="if(event.key==='Enter')libAddTagSave()">
-      <button class="btn primary" style="font-size:12px;" onclick="libAddTagSave()">Save tag</button>
-      <button class="btn" style="font-size:12px;" onclick="libToggleAddTag()">Cancel</button>
-      <span id="libAddMsg" class="draftmsg" style="margin-left:4px;"></span>
+  <div class="shell">
+    <aside class="rail" aria-label="Filters">
+      <div class="railhead">
+        <span class="refine">Refine</span>
+        <button class="clear" onclick="libClearFilters()">Clear all</button>
+      </div>
+      <div id="libFilters"></div>
+    </aside>
+
+    <div class="content">
+      <!-- uploader -->
+      <section class="panel" id="repoUpload">
+        <div class="panelhead">
+          <h2>Add images</h2>
+          <span class="hint">PNG or JPEG, one or many. Aspect is detected automatically.</span>
+        </div>
+        <div id="repoDrop" class="drop">
+          <b>Drop images here</b> or click to choose
+        </div>
+        <input id="repoFiles" type="file" accept="image/png,image/jpeg" multiple style="display:none;">
+        <div id="repoQueue"></div>
+        <div class="actions">
+          <button id="repoSaveAll" class="btn btn-primary" onclick="repoSaveAll()" disabled>Save all to library</button>
+          <span id="repoMsg" class="draftmsg"></span>
+        </div>
+      </section>
+
+      <!-- library browser -->
+      <div id="libBrowse">
+        <div class="toolbar">
+          <p class="count" id="libCount">Loading images&hellip;</p>
+          <div class="tools">
+            <button class="btn btn-sm" onclick="libToggleAddTag()">Add tag</button>
+            <button class="btn btn-sm" onclick="libLoad()">Refresh</button>
+          </div>
+        </div>
+        <p id="libMsg" class="draftmsg"></p>
+
+        <!-- Add-tag inline form (hidden until "Add tag" clicked). Grows the controlled
+             vocabulary — new value becomes a pickable tag everywhere (uploader, picker, this filter). -->
+        <div id="libAddTag" class="addtag" style="display:none;">
+          <span class="lbl">New tag in</span>
+          <select id="libAddCat" onchange="libAddCatChange()">
+            <option value="topic">topic</option>
+            <option value="scene">setting (in image)</option>
+            <option value="mood">mood</option>
+          </select>
+          <select id="libAddParent"></select>
+          <input id="libAddVal" type="text" placeholder="e.g. pilates, tai chi, running"
+                 onkeydown="if(event.key==='Enter')libAddTagSave()">
+          <button class="btn btn-primary btn-sm" onclick="libAddTagSave()">Save tag</button>
+          <button class="btn btn-sm" onclick="libToggleAddTag()">Cancel</button>
+          <span id="libAddMsg" class="draftmsg"></span>
+        </div>
+
+        <div id="libGrid" class="grid"></div>
+      </div>
     </div>
-
-    <hr style="border:0;border-top:1px solid #e7e3da;margin:0 0 24px;">
-    <div id="libGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;"></div>
   </div>
 </div>
 
@@ -2201,9 +2349,7 @@ function repoPillRow(idx, facet){
   if(facet==="topic") return repoTopicBlock(idx);
   const vals = (currentVocab()[facet]||[]);
   const it = repoItems[idx];
-  return `<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0;">`
-    + `<span style="flex:0 0 62px;font-size:11px;color:#6f7f74;text-transform:uppercase;letter-spacing:.06em;padding-top:5px;">${TAG_FACET_LABEL[facet]||facet}</span>`
-    + `<div style="flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px;">`
+  return `<div class="frow"><span class="fl">${TAG_FACET_LABEL[facet]||facet}</span><div class="fv">`
     + vals.map(v=>`<span class="pill" data-on="${it.sel[facet].has(v)?1:0}" onclick="repoTog(${idx},'${facet}','${tagEsc(v)}',this)">${tagLabel(facet,v)}</span>`).join("")
     + `</div></div>`;
 }
@@ -2212,18 +2358,17 @@ function repoTopicBlock(idx){
   const it = repoItems[idx], sel = it.sel.topic, all = (currentVocab().topic||[]);
   const cats = all.filter(v=>!v.includes("/"));
   const subOn = sub => sel.has(sub) || [...sel].some(v=>v.startsWith(sub+"/"));
-  let html = `<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0;">`
-    + `<span style="flex:0 0 62px;font-size:11px;color:#6f7f74;text-transform:uppercase;letter-spacing:.06em;padding-top:5px;">Topic</span><div style="flex:1;min-width:0;">`;
+  let html = `<div class="frow"><span class="fl">Topic</span><div style="flex:1;min-width:0;">`;
   for(const c of cats){
     const subs = all.filter(v=>v.startsWith(c+"/") && v.split("/").length===2);
-    html += `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 6px;">`
-      + `<span style="font-size:11px;font-weight:600;color:#3a352c;margin-right:2px;">${tagLabel("topic",c)}</span>`
+    html += `<div class="fv" style="align-items:center;margin:0 0 6px;">`
+      + `<span class="cat">${tagLabel("topic",c)}</span>`
       + subs.map(v=>`<span class="pill" data-on="${subOn(v)?1:0}" onclick="repoTopicTog(${idx},'${tagEsc(v)}')">${tagLabel("topic",v)}</span>`).join("")
       + `</div>`;
     for(const sub of subs.filter(subOn)){
       const leaves = all.filter(v=>v.startsWith(sub+"/"));
-      html += `<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:0 0 8px 14px;padding:6px 8px;background:#f6f4ee;border-radius:7px;">`
-        + `<span style="font-size:10.5px;color:#8a8478;margin-right:2px;">${tagLabel("topic",sub)} ›</span>`
+      html += `<div class="leafbox">`
+        + `<span class="crumb">${tagLabel("topic",sub)} ›</span>`
         + leaves.map(v=>`<span class="pill" style="font-size:11.5px;" data-on="${sel.has(v)?1:0}" onclick="repoTopicTog(${idx},'${tagEsc(v)}')">${tagLabel("topic",v)}</span>`).join("")
         + `</div>`;
     }
@@ -2243,27 +2388,27 @@ function repoTopicTog(idx, v){
 function repoRenderQueue(){
   const host=document.getElementById("repoQueue");
   host.innerHTML = repoItems.map((it,idx)=>`
-    <div class="field" style="border:1px solid ${it.dupe?'#e6c4c0':'#e7e3da'};border-radius:10px;padding:14px;display:flex;gap:16px;${it.dupe&&!it.dupeOverride?'background:#fbf2f1;':''}">
-      <div style="flex:0 0 200px;">
-        <img src="${it.dataUrl}" style="width:200px;height:auto;border-radius:8px;display:block;">
-        <div style="font-size:11px;color:#6f7f74;margin-top:6px;">${it.w}×${it.h} · aspect <b>${it.aspect||"?"}</b></div>
-        <button class="btn" style="margin-top:6px;font-size:12px;" onclick="repoRemove(${idx})">Remove</button>
+    <div class="qcard${it.dupe&&!it.dupeOverride?' dupe':''}">
+      <div class="qimg">
+        <img src="${it.dataUrl}" alt="">
+        <div class="qmeta">${it.w}×${it.h}, aspect <b>${it.aspect||"?"}</b></div>
+        <button class="btn btn-sm" style="margin-top:8px;" onclick="repoRemove(${idx})">Remove</button>
       </div>
-      <div style="flex:1;min-width:0;">
-        ${it.dupe ? `<div style="margin:0 0 10px;padding:9px 11px;border-radius:8px;background:#f6e4e2;border:1px solid #e6c4c0;font-size:12px;color:#8a2a22;">
+      <div class="qbody">
+        ${it.dupe ? `<div class="qdupe">
             ⚠ Already in the library${it.dupe.where==='library'&&it.dupe.id?` — <b>${(it.dupe.title||it.dupe.id).replace(/</g,'&lt;')}</b>`:it.dupe.where==='queue'?' (dropped twice just now)':''}.
             ${it.dupeOverride
-              ? `Will upload anyway. <a href="#" onclick="repoDupeKeep(${idx},false);return false;" style="color:#8a2a22;">Skip instead</a>`
-              : `This won't be saved. <a href="#" onclick="repoDupeKeep(${idx},true);return false;" style="color:#8a2a22;">Upload anyway</a> or <a href="#" onclick="repoRemove(${idx});return false;" style="color:#8a2a22;">remove</a>.`}
+              ? `Will upload anyway. <a href="#" onclick="repoDupeKeep(${idx},false);return false;">Skip instead</a>`
+              : `This won't be saved. <a href="#" onclick="repoDupeKeep(${idx},true);return false;">Upload anyway</a> or <a href="#" onclick="repoRemove(${idx});return false;">remove</a>.`}
           </div>` : ''}
-        <label style="font-size:12px;">Keywords <span class="hint">optional — steer the tagger</span></label>
+        <label>Keywords <span class="hint">optional, steers the tagger</span></label>
         <input type="text" value="${it.keywords.replace(/"/g,'&quot;')}" oninput="repoItems[${idx}].keywords=this.value"
-               placeholder="e.g. raspberries, summer, produce" style="width:100%;margin:4px 0 10px;">
-        <div style="font-size:12px;color:#6f7f74;margin-bottom:4px;">Tags
-          ${it.tagging ? '<span style="color:#3f7d55;">· auto-tagging…</span>'
-            : it.tagged ? '<span style="color:#3f7d55;">· auto-tagged (review &amp; adjust)</span>'
-            : it.tagError ? '<span class="err">· couldn\'t auto-tag — pick manually</span>' : ''}
-          <button class="btn" style="font-size:11px;margin-left:8px;padding:2px 8px;" onclick="repoAutoTag(repoItems[${idx}])">Re-tag</button>
+               placeholder="e.g. raspberries, summer, produce">
+        <div class="qtags">Tags
+          ${it.tagging ? '<span class="st">· auto-tagging…</span>'
+            : it.tagged ? '<span class="st">· auto-tagged, review and adjust</span>'
+            : it.tagError ? '<span class="err" style="color:var(--sb-danger)">· couldn\'t auto-tag, pick tags by hand</span>' : ''}
+          <button class="btn btn-sm" style="margin-left:8px;padding:2px 9px;" onclick="repoAutoTag(repoItems[${idx}])">Re-tag</button>
         </div>
         ${REPO_FACETS.map(f=>repoPillRow(idx,f)).join("")}
       </div>
@@ -2340,10 +2485,8 @@ function libRenderFilters(){
     let vals = (V[f]||[]);
     if(f==="topic") vals = vals.filter(v=>v.split("/").length===2);   // filter by subcategory
     if(!vals.length) return "";
-    return `<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0;">`
-      + `<span style="flex:0 0 62px;font-size:11px;color:#6f7f74;text-transform:uppercase;letter-spacing:.06em;padding-top:5px;">${TAG_FACET_LABEL[f]||f}</span>`
-      + `<div style="flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px;">`
-      + vals.map(v=>`<span class="pill" data-on="${libFilter[f]===v?1:0}" onclick="libTogFilter('${f}','${tagEsc(v)}',this)">${tagLabel(f,v)}</span>`).join("")
+    return `<div class="fgroup"><div class="flabel">${TAG_FACET_LABEL[f]||f}</div><div class="pills">`
+      + vals.map(v=>`<button type="button" class="pill" data-on="${libFilter[f]===v?1:0}" onclick="libTogFilter('${f}','${tagEsc(v)}',this)">${tagLabel(f,v)}</button>`).join("")
       + `</div></div>`;
   }).join("");
 }
@@ -2366,30 +2509,25 @@ async function libLoad(){
     if(!res.ok) throw new Error("HTTP "+res.status);
     const rows=await res.json();
     libItems = Array.isArray(rows) ? rows : [];
-    cnt.textContent = `· ${libItems.length} image${libItems.length===1?"":"s"}`;
+    const nf = LIB_FACETS.filter(f=>libFilter[f]).length;
+    cnt.innerHTML = `<b>${libItems.length}</b> image${libItems.length===1?"":"s"}` + (nf ? ` match ${nf===1?"this filter":"these filters"}` : "");
     msg.textContent="";
-    grid.innerHTML = libItems.map(libTile).join("") || `<div style="color:#6f7f74;">No images match.</div>`;
+    grid.innerHTML = libItems.map(libTile).join("") || `<div class="empty">No images match. Remove a filter, or clear them all.</div>`;
   }catch(e){
     msg.className="draftmsg err"; msg.textContent="Couldn't load the library: "+e.message;
   }
 }
 function libTile(r){
   const tags = LIB_FACETS.flatMap(f=>(f==="topic" ? topicLeaves(r[f]) : (r[f]||[])).map(v=>tagLabel(f,v))).filter(Boolean);
-  const tagHtml = tags.length
-    ? tags.map(t=>`<span style="display:inline-block;font-size:10px;background:#eef1ec;color:#4a5a4f;border-radius:4px;padding:1px 6px;margin:2px 2px 0 0;">${t}</span>`).join("")
-    : `<span style="font-size:10px;color:#a59;">no tags</span>`;
-  return `<div style="border:1px solid #e7e3da;border-radius:10px;overflow:hidden;background:#fff;">
-    <div style="aspect-ratio:16/10;background:#f4f2ea;overflow:hidden;display:flex;align-items:center;justify-content:center;">
-      <img src="${FL_IMG_BYTES}${encodeURIComponent(r.id)}" loading="lazy"
-           style="width:100%;height:100%;object-fit:cover;display:block;">
+  const tagHtml = tags.length ? tags.map(t=>`<span class="tag">${t}</span>`).join("") : `<span class="notags">No tags</span>`;
+  return `<article class="card">
+    <div class="thumb"><img src="${FL_IMG_BYTES}${encodeURIComponent(r.id)}" loading="lazy" alt=""></div>
+    <div class="meta">
+      <h3 class="mt">${(r.title||r.id||"").replace(/</g,"&lt;")}</h3>
+      <div class="tags">${tagHtml}</div>
+      <button class="btn btn-sm btn-danger" onclick="libDelete('${(r.id||'').replace(/'/g,"\\'")}', this)">Remove</button>
     </div>
-    <div style="padding:9px 10px 11px;">
-      <div style="font-size:12px;font-weight:600;color:#33413a;word-break:break-word;">${(r.title||r.id||"").replace(/</g,"&lt;")}</div>
-      <div style="margin-top:5px;line-height:1.5;">${tagHtml}</div>
-      <button class="btn" style="margin-top:9px;font-size:11px;padding:3px 10px;color:#b3261e;border-color:#e6c4c0;"
-              onclick="libDelete('${(r.id||'').replace(/'/g,"\\'")}', this)">Remove</button>
-    </div>
-  </div>`;
+  </article>`;
 }
 function libAddCatChange(){
   const cat=document.getElementById("libAddCat").value, par=document.getElementById("libAddParent");
@@ -2819,11 +2957,24 @@ document.getElementById("nl_stage").addEventListener("click", e=>{
   fl_openPicker("nl:" + z.dataset.zone);
 });
 
+// Studio brand: tenant brand_config from hub-config; none/failed → MedWell defaults.
+const HUB_CONFIG_URL = "https://n8n-admin.willclower.com/webhook/hub-config";
+async function studioBrand(){
+  try{
+    const r = await fetch(HUB_CONFIG_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
+    let c = await r.json(); if(Array.isArray(c)) c=c[0];
+    const nm = StudioBrand.apply(c && c.brand_config, c && c.name);
+    document.title = nm + " \u2014 " + (repoActive() ? "Image Library" : "Resource Builder");
+  }catch(e){ StudioBrand.apply(null); }
+}
+
 // init
 buildPills(FALLBACK_VOCAB);
 (async ()=>{
+  studioBrand();                     // header name/colors (best-effort, never blocks)
   await loadVocab();                 // wait for live vocab before painting filters that read it
   if(repoActive()){
+    document.getElementById("sbProduct").textContent="Image Library";
     document.querySelector(".wrap").style.display="none";
     document.getElementById("repoMode").style.display="";
     repoInitDropzone();
