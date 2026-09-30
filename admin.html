@@ -71,6 +71,17 @@
   /* Screen BUILD: form | preview | template rail */
   .wrap.build3s{grid-template-columns:minmax(0,0.95fr) minmax(0,1.1fr) minmax(300px,0.62fr);max-width:1780px;}
   #sc_tplRail{position:sticky;top:24px;}
+  .sgmask{position:fixed;inset:0;z-index:1200;display:none;align-items:flex-start;justify-content:center;padding:80px 16px;
+    background:rgba(12,30,40,.45);}
+  .sgmask.on{display:flex;}
+  .sgbox{background:#fff;border-radius:14px;width:100%;max-width:500px;overflow:hidden;box-shadow:0 24px 60px -20px rgba(0,0,0,.5);font-family:var(--sb-font);}
+  .sghead{display:flex;align-items:center;justify-content:space-between;background:var(--sb-primary);color:#fff;padding:14px 20px;}
+  .sghead h2{margin:0;font-size:17px;font-weight:700;font-family:var(--sb-font);color:#fff;}
+  .sgx{background:none;border:0;color:rgba(255,255,255,.85);font-size:22px;cursor:pointer;line-height:1;}
+  .sgbody{padding:16px 20px 4px;font-size:13.5px;line-height:1.5;color:var(--sb-ink);}
+  .sgbody p{margin:0 0 10px;} .sgbody ul{margin:0 0 12px;padding-left:20px;color:var(--sb-muted);}
+  .sgfoot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:12px 20px 18px;}
+  .sgfoot .btn{padding:8px 14px;}
   .sc-zone{position:relative;cursor:pointer;}
   .sc-zone::after{content:"Pick image";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-size:14px;font-weight:700;color:transparent;background:transparent;border-radius:inherit;transition:background .15s,color .15s;pointer-events:none;z-index:10;}
@@ -642,7 +653,7 @@
   </div>
 
   <div class="seg-label">Fine print</div>
-  <div class="fld"><label>Powered-by line</label><input type="text" id="fl_in_footPowered" value="Concentra Onsite Health · Wellness powered by Mediterranean Wellness"></div>
+  <div class="fld"><label>Powered-by line</label><input type="text" id="fl_in_footPowered" value="Content powered by Mediterranean Wellness"></div>
   <div class="fld"><label>Asset code <span class="hint">auto-assigned at Finalize</span></label><input type="text" id="fl_in_footCode" value="" placeholder="e.g. CON-FLY-202609-014" readonly></div>
 
   <div class="seg-label">Quality check</div>
@@ -662,6 +673,17 @@
   </label>
   <button class="draftbtn" id="fl_finalizeBtn" style="background:#17402F;opacity:.5;" disabled>Finalize &amp; add to library</button>
   <div class="draftmsg" id="fl_finalizeMsg"></div>
+  <div class="sgmask" id="fl_signMask" onclick="if(event.target===this)fl_signClose()">
+    <div class="sgbox" role="dialog" aria-modal="true" aria-labelledby="fl_signTitle">
+      <div class="sghead"><h2 id="fl_signTitle">Before you sign off</h2><button type="button" class="sgx" onclick="fl_signClose()" aria-label="Close">&times;</button></div>
+      <div class="sgbody" id="fl_signBody"></div>
+      <div class="sgfoot">
+        <button type="button" class="btn" onclick="fl_signClose()">Go back</button>
+        <button type="button" class="btn" id="fl_signAlt">Send to Rita instead</button>
+        <button type="button" class="btn btn-primary" id="fl_signGo">Sign off &amp; publish</button>
+      </div>
+    </div>
+  </div>
     </div><!-- /#fl_composer -->
     </div><!-- /#flyerBuild -->
 
@@ -792,7 +814,7 @@
       </div>
     </div>
     <div class="row2">
-      <div class="field">
+      <div class="field screen-only">
         <label>Tone</label>
         <div class="pills" id="t-tone"></div>
       </div>
@@ -807,10 +829,8 @@
       <label id="idLabel">Screen ID <span class="hint">auto from headline; edit if needed</span></label>
       <input type="text" id="id" placeholder="heart-bp-check-01">
     </div>
-    <div class="field screen-only">
-      <label>QR URL <span class="hint">auto from ID</span></label>
-      <input type="text" id="qr_url" placeholder="https://go.mymedwellness.com/s/heart-bp-check-01">
-    </div>
+    <!-- No QR URL field: screens are saved generic. The QR is minted per client at download
+         (drl-qr-mint via the download picker), or left off by choosing "No QR". -->
 
     <div class="actions">
       <button class="btn btn-primary" id="save" onclick="save()">Publish screen</button>
@@ -1064,13 +1084,11 @@ function slugify(s){
 }
 function onTitle(){
   const t=document.getElementById("title").value;
-  const idEl=document.getElementById("id"), qrEl=document.getElementById("qr_url");
+  const idEl=document.getElementById("id");
   if(!idEl.dataset.touched){ idEl.value = slugify(t); }
-  if(!qrEl.dataset.touched){ qrEl.value = idEl.value ? "https://go.mymedwellness.com/s/"+idEl.value : ""; }
   draw();
 }
-document.getElementById("id").addEventListener("input",e=>{ e.target.dataset.touched="1"; const q=document.getElementById("qr_url"); if(!q.dataset.touched) q.value="https://go.mymedwellness.com/s/"+e.target.value; });
-document.getElementById("qr_url").addEventListener("input",e=>{ e.target.dataset.touched="1"; });
+document.getElementById("id").addEventListener("input",e=>{ e.target.dataset.touched="1"; });
 
 // ===== Screen templates (rendered by overlay.js; stored in `treatment`) =====
 // tpl-panel | tpl-card | tpl-circles, or "classic" = the #treatment select (scrim side).
@@ -1104,7 +1122,7 @@ function currentScreen(){
     treatment:sc_treatment(),
     accent:document.getElementById("accent").value,
     format:document.getElementById("format").value,
-    qr_url:document.getElementById("qr_url").value.trim(),
+    qr_url:"preview",            // builder preview only: shows the QR spot; not saved
     background:bg
   };
 }
@@ -1443,18 +1461,21 @@ async function save(){
     overlay_bullets: assetType==="screen" ? sc_bullets() : undefined,
     accent:document.getElementById("accent").value.trim(),
     format:document.getElementById("format").value,
-    qr_url:document.getElementById("qr_url").value.trim(),
+    qr_url:null,                 // generic: the real QR is minted per client at download
     description:document.getElementById("description").value.trim(),
     issue_date:document.getElementById("issue_date").value.trim() || null,
     subject:[...sel.subject], month:[...sel.month], setting:[...sel.setting],
-    tone:[...sel.tone], aspect:[...sel.aspect],
+    tone: assetType==="screen" ? [...sel.tone] : [],   // tone is a screen-only tag
+    aspect:[...sel.aspect],
     // screens send the background image; docs send the PDF bytes (uploaded OR built). Both ride image_base64.
     image: imageDataUrl || null,
     file_base64: (isBuild||isNl) ? buildFile  : (assetB64 || null),
     thumb_base64: (isBuild||isNl) ? buildThumb : (docThumbB64 || null),
     mime: (isBuild||isNl) ? buildMime : (assetMime || null),
     // Flyer re-render source (white-label download). Only for built flyers; null otherwise.
-    source_manifest: isBuild ? await fl_captureManifest() : (isNl ? await nl_captureManifest() : null)
+    source_manifest: isBuild ? await fl_captureManifest() : (isNl ? await nl_captureManifest() : null),
+    // RD-routed builder flyer: saved hidden until the RD approves (drl-screen-write honours this).
+    hidden_from_drl: (isBuild && flRequireRd) ? true : undefined
   };
 
   // If a doc was uploaded but its thumbnail is still rendering, wait briefly.
@@ -1471,6 +1492,7 @@ async function save(){
     const out=await res.json();
     if(out.ok){
       setMsg(isNl ? `Saved “${out.saved}”.`
+                  : (isBuild && flRequireRd) ? `Saved “${out.saved}”, hidden until Rita approves.`
                   : `Saved “${out.saved}”${out.width?` (${out.width}×${out.height})`:""}. It's in the library now.`,"ok");
       if(isNl) await nl_recordBuilderPass(out.saved, nlAssetCode);
       // Optional companion: publish a 16:9 wall screen built from the banner photo.
@@ -1479,6 +1501,18 @@ async function save(){
       if(isBuild && alsoBox && alsoBox.checked){
         fl_busySet("Publishing companion screen…");
         await fl_publishBannerScreen(out.saved || id);
+      }
+      // Builder sign-off (after the companion exists, so an RD approval can publish both).
+      if(isBuild){
+        fl_busySet("Recording sign-off…");
+        const so = await fl_recordBuilderPass(out.saved || id);
+        const fm = document.getElementById("fl_finalizeMsg");
+        const txt = !so.ok ? `Saved, but recording the sign-off failed (${so.error}). Open it in content-qc to finish.`
+          : so.status==="approved" ? `Signed off and published.`
+          : `Sent to Rita. It appears in the library once she approves.`;
+        setMsg(`“${out.saved}”: ${txt}`, so.ok ? "ok" : "err");
+        if(fm){ fm.textContent = txt; fm.style.color = so.ok ? "" : "#b3261e"; }
+        flRequireRd = false;
       }
       // Build-mode finalize succeeded: fully reset the composer so the next flyer starts clean
       // (copy, brief, banner, logo, id, description, QC state) — keeps branding colors + issue lines.
@@ -1535,7 +1569,8 @@ async function fl_publishBannerScreen(flyerId){
     treatment: "left-scrim",
     accent: (document.getElementById("fl_in_c_secondary_hex").value||"#d9b98f").trim(),
     format: "still",
-    qr_url: "https://go.mymedwellness.com/s/" + flyerId,
+    qr_url: null,                // generic: QR minted per client at download
+    hidden_from_drl: flRequireRd ? true : undefined,   // RD-routed: publishes with the flyer on approval
     overlay_bullets: bullets,
     // tags carried from the flyer so the screen is findable alongside it
     subject:[...sel.subject], month:[...sel.month], setting:[...sel.setting],
@@ -1575,7 +1610,7 @@ async function fl_publishBannerScreen(flyerId){
 }
 
 function resetForm(){
-  ["title","subtitle","eyebrow","cta","qr_url","id","description","issue_date"].forEach(k=>{const el=document.getElementById(k);if(el){el.value="";el.dataset.touched="";}});
+  ["title","subtitle","eyebrow","cta","id","description","issue_date"].forEach(k=>{const el=document.getElementById(k);if(el){el.value="";el.dataset.touched="";}});
   document.getElementById("accent").value="#d9b98f";
   document.getElementById("treatment").value="left-scrim";
   document.getElementById("sc_bullets").value="";
@@ -1602,6 +1637,8 @@ let flyerMode = "upload";   // upload | build  (only meaningful when assetType==
 // --- composer state (hoisted: touched by init-time counter/gate/relocate before their
 //     original declaration points, which threw a temporal-dead-zone ReferenceError) ---
 var flQcReview = null;          // last QC review object (schema), or null if none/stale
+var flQcReviewId = null;        // its qc_review id (for the builder sign-off)
+var flRequireRd = false;        // this Finalize routes to the RD (flagged, or builder chose to)
 var _tagHome = null, _tagAfter = null;
 var fl_suppressInvalidate = false;
 
@@ -2106,12 +2143,13 @@ async function fl_sendToQC(){
   try{
     const res = await fetch(QC_ENDPOINT,{
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ content_id:id, content_title:title, content, content_source:"builder" })
+      body: JSON.stringify({ content_id:id, content_title:title, content, content_source:content,
+                             origin:"builder", asset_type:"flyer" })
     });
     if(!res.ok) throw new Error("HTTP "+res.status);
     const d = await res.json();
     if(!d || d.ok!==true || !d.review) throw new Error("Unexpected QC response");
-    flQcReview = d.review;
+    flQcReview = d.review; flQcReviewId = d.review_id || null;
     fl_qcSetMsg("Review complete.","ok");
     fl_qcRender();
   }catch(err){
@@ -2139,10 +2177,14 @@ function fl_qcRender(){
   const nf=(r.findings||[]).length;
   sum.innerHTML=`<span class="score">Score ${score}/5 — ${QC_SCORE_LABEL[score]||""}</span> · ${nf} finding${nf===1?"":"s"}` +
     (r.in_scope===false ? ` · <b>Out of scope:</b> ${fl_esc(r.scope_note||"")}` : "");
-  // Elevated-review banner intentionally NOT shown for client-built flyers — this oversight
-  // tier isn't required here. (The QC record still carries elevated_review_triggers for anyone
-  // who needs it downstream; we simply don't surface it in this panel.)
-  elev.style.display="none";
+  // Elevated-review flags decide routing (2026-09-30): any flag ⇒ the RD signs off before
+  // the flyer appears in the library. No flags ⇒ the builder's sign-off publishes it.
+  const trig = fl_elevated();
+  if(trig.length){
+    elev.style.display="";
+    elev.innerHTML = `<b>Needs RD review:</b> ${trig.map(t=>FL_ELEV_LABEL[t]||t).join(", ")}. `
+      + `Finalizing sends this to Rita; it appears in the library once she approves.`;
+  } else elev.style.display="none";
   list.innerHTML="";
   (r.findings||[]).forEach((f,idx)=>{
     const match=fl_qcMatchField(f);
@@ -2301,7 +2343,66 @@ function fl_updateFinalizeGate(){
 }
 
 document.getElementById("fl_qcBtn").onclick = fl_sendToQC;
-document.getElementById("fl_finalizeBtn").onclick = ()=>{ save(); };
+document.getElementById("fl_finalizeBtn").onclick = fl_confirmSignoff;
+
+// ===== Single sign-off (flyers) =====
+const FL_ELEV_LABEL = {
+  numeric_dietary_target:"specific nutrition targets", weight_eating_behavior:"weight or eating behavior",
+  named_condition:"a named health condition", medication_adjacent:"medication-related content",
+  mental_health:"mental-health content"
+};
+function fl_elevated(){
+  const t = flQcReview && flQcReview.elevated_review_triggers;
+  return Array.isArray(t) ? t.filter(Boolean) : [];
+}
+function fl_confirmSignoff(){
+  const trig = fl_elevated();
+  const body = document.getElementById("fl_signBody"), go = document.getElementById("fl_signGo"),
+        alt = document.getElementById("fl_signAlt");
+  if(trig.length){
+    body.innerHTML = `<p>The first pass flagged this flyer for RD review:</p>
+      <ul>${trig.map(t=>`<li>${fl_esc(FL_ELEV_LABEL[t]||t)}</li>`).join("")}</ul>
+      <p>It will be saved <b>hidden</b> and sent to Rita. It appears in the library (with its companion screen) once she approves.</p>`;
+    go.textContent = "Send to Rita"; go.onclick = ()=>fl_signChoose(true);
+    alt.style.display = "none";
+  } else {
+    body.innerHTML = `<p>Your sign-off is the only one for this flyer. Finalizing publishes it to the library now.</p>
+      <p><b>Reminder:</b> the first pass can miss things. If this flyer covers any of these, send it to Rita instead:</p>
+      <ul>${Object.values(FL_ELEV_LABEL).map(v=>`<li>${v}</li>`).join("")}</ul>`;
+    go.textContent = "Sign off & publish"; go.onclick = ()=>fl_signChoose(false);
+    alt.style.display = ""; alt.onclick = ()=>fl_signChoose(true);
+  }
+  document.getElementById("fl_signMask").classList.add("on");
+  go.focus();
+}
+function fl_signClose(){ document.getElementById("fl_signMask").classList.remove("on"); }
+function fl_signChoose(toRd){ flRequireRd = !!toRd; fl_signClose(); save(); }
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") fl_signClose(); });
+
+// Record the builder's sign-off. No flags + builder didn't choose Rita ⇒ QC_Signoff marks it
+// approved (single sign-off). Otherwise it waits for the RD and Publish If Approved unhides the
+// flyer and its "-screen" companion on her approval.
+const FL_BUILDER_REVIEWER = "Will Clower";      // TODO: from session (same as NL_BUILDER_REVIEWER)
+async function fl_recordBuilderPass(savedId){
+  if(!flQcReviewId || !flQcReview) return { ok:false, error:"QC link missing" };
+  const MAP = { accept:"accept", accept_with_edits:"edit", return:"reject" };
+  const fds = (flQcReview.findings||[]).map((f,i)=>{
+    const decision = MAP[f.disposition] || "reject";
+    const final_text = decision==="reject" ? null : (f.final_text || null);
+    return { finding_id:f.id || ("f"+(i+1)), decision: (decision!=="reject" && !final_text) ? "reject" : decision,
+             final_text, original_suggestion: f.suggested_edit ?? null, note:null };
+  });
+  try{
+    const r = await fetch(QC_ENDPOINT.replace(/qc-first-pass$/,"qc-signoff"), { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ review_id:flQcReviewId, reviewer_role:"editorial", reviewer_user_id:FL_BUILDER_REVIEWER,
+        decision:"approve", require_rd: flRequireRd,
+        note: flRequireRd ? "Builder sign-off; sent to the RD." : "Single builder sign-off.",
+        finding_dispositions:fds, corrected_content: fl_qcSerialize() }) });
+    const d = await r.json();
+    if(!d || !d.ok) throw new Error((d && d.error) || ("HTTP "+r.status));
+    return { ok:true, status:d.status };
+  }catch(e){ return { ok:false, error:e.message }; }
+}
 
 // Reset the build composer to a clean slate for a new flyer: copy fields, brief, banner/logo,
 // QC state, and the resource ID/description. Branding colors and issue lines are left as-is
@@ -2330,7 +2431,7 @@ function fl_startNewFlyer(){
   // next flyer mints its own; leaving it would make flyer #2 reuse #1's code.
   const fc=document.getElementById("fl_in_footCode"); if(fc) fc.value="";
   // QC state + messages
-  flQcReview=null;
+  flQcReview=null; flQcReviewId=null;
   const qr=document.getElementById("fl_qcResult"); if(qr) qr.style.display="none";
   fl_qcSetMsg("",""); 
   const dm=document.getElementById("fl_in_draftMsg"); if(dm){ dm.textContent=""; dm.className="draftmsg"; }
