@@ -443,7 +443,7 @@
 <script src="assets/overlay.js"></script>
 <script>
 let DATA = { screens: [] };
-const sel = { asset:new Set(), subject:new Set(), month:new Set(), setting:new Set(), tone:new Set(), format:new Set() };
+const sel = { asset:new Set(), subject:new Set(), month:new Set(), setting:new Set(), format:new Set() };   // tone retired 2026-09-30
 
 // ---- Screen data API (DRL) ----
 const DRL_API   = "https://n8n-admin.willclower.com/webhook/drl";
@@ -520,7 +520,7 @@ function normalize(row){
     tags: {
       subject: first(row.subject), month: first(row.month),
       setting: first(row.setting), aspect: first(row.aspect),
-      tone: first(row.tone), format: row.format, asset: at
+      format: row.format, asset: at
     },
     createdAt: row.created_at || null
   };
@@ -540,7 +540,6 @@ function trackDownload(screen){
 const LABELS = { "mental-health":"Mental health", "heat":"Heat & hydration" };
 const GLABELS = {
   asset:{ screen:"Screens", flyer:"Flyers", newsletter:"Newsletters" },
-  tone:{ calm:"Calm tone", action:"Action tone" },
   setting:{ any:"Any setting" }, month:{ any:"Any month" }
 };
 const label = (v, g) => (g && GLABELS[g] && GLABELS[g][v]) || LABELS[v] || (v.charAt(0).toUpperCase()+v.slice(1));
@@ -562,7 +561,7 @@ function buildFilters(){
     assets.map(v=>`<button type="button" data-v="${v}" aria-pressed="false" onclick="setAsset(this)">${label(v,"asset")}</button>`).join("");
   const pill = (g,v) => `<button type="button" class="pill" data-g="${g}" data-v="${v}" data-on="0" onclick="togPill(this)">${label(v,g)}</button>`;
   document.getElementById("f-month").innerHTML = ordered("month").map(v=>pill("month",v)).join("");
-  document.getElementById("f-style").innerHTML = ["format","tone","setting"].flatMap(g=>ordered(g).map(v=>pill(g,v))).join("");
+  document.getElementById("f-style").innerHTML = ["format","setting"].flatMap(g=>ordered(g).map(v=>pill(g,v))).join("");
 }
 
 function togCheck(el){ const g=el.dataset.g, v=el.dataset.v; el.checked ? sel[g].add(v) : sel[g].delete(v); render(); }
@@ -1321,7 +1320,9 @@ async function renderScreenPng(screen, brand){
   if(brand && brand.primary)   sc.brand_primary   = brand.primary;
   if(brand && brand.secondary) sc.brand_secondary = brand.secondary;
   sc.asset_code = screen.asset_code || screen.assetCode || "";
-  renderScreen(stage, sc, { scale:1, chrome:true, qr: !!(screen.qrUrl||screen.qr_url) });
+  // QR only when this pick minted a real one — a stored qr_url must never put the
+  // placeholder pattern into a client file ("No QR" = no QR).
+  renderScreen(stage, sc, { scale:1, chrome:true, qr: !!sc.qrDataUrl });
   if(document.fonts && document.fonts.ready) await document.fonts.ready;
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   const canvas = await html2canvas(stage, { width:1280, height:720, scale:1, useCORS:true, backgroundColor:null });
@@ -1550,7 +1551,7 @@ async function runDownload(){
       }else{
         // screen: pass the real QR data-URL + force the QR on for this render
         const screenForRender = qrOut
-          ? Object.assign({}, dlScreen, { qrDataUrl: qrOut.qrData, qr_url: (dlScreen.qr_url || "1") })
+          ? Object.assign({}, dlScreen, { qrDataUrl: qrOut.qrData })
           : dlScreen;
         const pngB64 = await renderScreenPng(screenForRender, brand);
         files.push({ filename: `${cc}-${assetSlug}-${ym}.png`, b64: pngB64, mime:"image/png" });
@@ -1624,7 +1625,7 @@ async function boot(){
       subject:["stress","sleep","heat","mental-health","movement","nutrition","hydration","prevention","burnout","heart-health","connection"],
       month:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","any"],
       setting:["floor","breakroom","office","any"],
-      aspect:["16:9","9:16"], tone:["calm","action"], format:["still","video"]
+      aspect:["16:9","9:16"], format:["still","video"]
     };
     DATA = Object.assign(lib, { client: DATA.client });
   }catch(e){
