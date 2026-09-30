@@ -63,7 +63,7 @@
   .frame .vwl-screen{border-radius:0;height:100%;}
   .dims{font-size:11.5px;color:var(--muted);margin-top:10px;}
   .dims .warn{color:var(--danger);}
-  @media(max-width:900px){ .wrap{grid-template-columns:1fr;} .wrap.build3,.wrap.build3s{grid-template-columns:1fr;} #sc_tplRail{position:static;} .previewwrap{position:static;} }
+  @media(max-width:900px){ .wrap{grid-template-columns:1fr;} .wrap.build3,.wrap.build3s{grid-template-columns:1fr;} #sc_tplRail,#nl_tplRail{position:static;} .previewwrap{position:static;} }
   /* ===== Persistent template switcher rail (flyer build, right column) ===== */
   #fl_tplRail{position:sticky;top:24px;}
   #fl_tplRail .rail-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);margin-bottom:10px;}
@@ -71,6 +71,18 @@
   /* Screen BUILD: form | preview | template rail */
   .wrap.build3s{grid-template-columns:minmax(0,0.95fr) minmax(0,1.1fr) minmax(300px,0.62fr);max-width:1780px;}
   #sc_tplRail{position:sticky;top:24px;}
+  #nl_tplRail{position:sticky;top:24px;}
+  #nl_tplRail .rail-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sb-subtle);margin-bottom:10px;}
+  .nl-rail-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .nl-tpl-card{font:inherit;text-align:left;cursor:pointer;background:var(--sb-panel);border:1.5px solid var(--sb-border);border-radius:10px;
+    padding:8px;display:flex;flex-direction:column;gap:3px;}
+  .nl-tpl-card:hover{border-color:var(--sb-primary);}
+  .nl-tpl-card.sel{border-color:var(--sb-primary);box-shadow:0 0 0 2px var(--sb-ring);}
+  .nl-mini{width:100%;aspect-ratio:612/792;overflow:hidden;border-radius:4px;background:#fff;margin-bottom:5px;pointer-events:none;
+    box-shadow:0 1px 3px rgba(0,0,0,.15);position:relative;}
+  .nl-mini__in{position:absolute;left:0;top:0;width:612px;transform-origin:top left;}
+  .nl-mini .nl-pg2{display:none;}
+  .nl-mini .nl-page{box-shadow:none;}
   .sgmask{position:fixed;inset:0;z-index:1200;display:none;align-items:flex-start;justify-content:center;padding:80px 16px;
     background:rgba(12,30,40,.45);}
   .sgmask.on{display:flex;}
@@ -725,13 +737,14 @@
       <div class="seg-label">Page 1 · Cover</div>
       <div class="fld"><label>Title <span class="sub">Enter = line break</span></label><textarea id="nl_in_headline" rows="2" placeholder="Small Habits,&#10;Big Year"></textarea></div>
       <div class="fld"><label>Subhead</label><input type="text" id="nl_in_subhead" placeholder="One bold line under the title"></div>
-      <div class="fld"><label>Hook</label><textarea id="nl_in_hook" rows="4" placeholder="The opening paragraph on the cover panel"></textarea></div>
+      <div class="fld"><label>Hook</label><textarea id="nl_in_hook" rows="4" placeholder="The opening paragraph on the cover"></textarea></div>
+      <div class="fld" id="nl_f_bullets"><label>Sidebar bullets <span class="sub">Editorial · one per line, up to 5</span></label><textarea id="nl_in_bullets" rows="4" placeholder="Tight schedules and long hours&#10;Staffing shortages"></textarea></div>
 
       <div class="seg-label">Page 1 · Intro + callout</div>
-      <div class="fld"><label>Intro <span class="sub">blank line = new paragraph</span></label><textarea id="nl_in_intro" rows="5"></textarea></div>
+      <div class="fld" id="nl_f_intro"><label>Intro <span class="sub">blank line = new paragraph</span></label><textarea id="nl_in_intro" rows="5"></textarea></div>
       <div class="row2">
         <div class="fld" style="flex:2"><label>Callout title <span class="sub">Enter = line break</span></label><textarea id="nl_in_coTitle" rows="2"></textarea></div>
-        <div class="fld"><label>Icon</label><select id="nl_in_coIcon">
+        <div class="fld" id="nl_f_coIcon"><label>Icon</label><select id="nl_in_coIcon">
           <option value="shield">Shield</option><option value="heart">Heart</option><option value="leaf">Leaf</option>
           <option value="moon">Moon</option><option value="bolt">Bolt</option><option value="clock">Clock</option>
           <option value="pot">Cooking pot</option><option value="steps">Steps</option></select></div>
@@ -741,9 +754,10 @@
       <div class="seg-label">Page 2 · Tips</div>
       <div class="fld"><label>Section title</label><input type="text" id="nl_in_secTitle"></div>
       <div class="fld"><label>Section intro</label><textarea id="nl_in_secIntro" rows="3"></textarea></div>
-      <div class="fld"><label>Number of tips <span class="sub">5 = one feature photo · 4 = tall feature photo · 6 = no photo</span></label>
+      <div class="fld" id="nl_f_tipCount"><label>Number of tips <span class="sub">5 = one feature photo · 4 = tall feature photo · 6 = no photo</span></label>
         <select id="nl_in_tipCount"><option value="4">4</option><option value="5" selected>5</option><option value="6">6</option></select></div>
       <div id="nl_in_tips"></div>
+      <div class="fld" id="nl_f_actions"><label>What you can do now <span class="sub">Cover · one action per line, up to 4</span></label><textarea id="nl_in_actions" rows="4" placeholder="Name one stress trigger in your shift.&#10;Plan one short break away from the noise."></textarea></div>
       <div class="fld"><label>Running footer <span class="sub">bottom-right of page 2</span></label><input type="text" id="nl_in_runfoot" placeholder="Volume 11.1 : Habits"></div>
 
       <div class="seg-label">Center info (footer)</div>
@@ -904,6 +918,20 @@
     <div id="nl_fit"><div id="nl_stage" class="nl-scope"></div></div>
   </div>
   <div id="nl_print" class="nl-scope" aria-hidden="true"></div>
+
+  <!-- ===== Newsletter template rail (newsletter only, 3rd column) ===== -->
+  <div id="nl_tplRail" class="nl-build-only" style="display:none">
+    <div class="rail-label">Template</div>
+    <div class="nl-rail-cards">
+      <button type="button" class="nl-tpl-card" data-tpl="magazine2" onclick="nl_setTemplate('magazine2')">
+        <div class="nl-mini"><div class="nl-mini__in nl-scope"></div></div><div class="sc-tpl-name">Diagonal</div><div class="sc-tpl-desc">Angled cover panel, callout, 4–6 tips</div></button>
+      <button type="button" class="nl-tpl-card" data-tpl="editorial" onclick="nl_setTemplate('editorial')">
+        <div class="nl-mini"><div class="nl-mini__in nl-scope"></div></div><div class="sc-tpl-name">Editorial</div><div class="sc-tpl-desc">Big title, sidebar list, 3 photo rows</div></button>
+      <button type="button" class="nl-tpl-card" data-tpl="cover" onclick="nl_setTemplate('cover')">
+        <div class="nl-mini"><div class="nl-mini__in nl-scope"></div></div><div class="sc-tpl-name">Cover</div><div class="sc-tpl-desc">Full-bleed photo, contents, 2 habits + actions</div></button>
+    </div>
+    <p class="sc-rail-note">Switching keeps your copy and photos. Colors follow each client's brand at download.</p>
+  </div>
 
   <!-- ===== Template switcher rail (flyer build only, 3rd column) ===== -->
   <div id="fl_tplRail" class="flyer-build-only flyer-scope" style="display:none">
@@ -1164,7 +1192,7 @@ function setAssetType(t){
     setFlyerMode(flyerMode || "upload");
   } else {
     document.querySelectorAll(".flyer-build-only").forEach(el=>el.style.display="none");
-    const wrapEl=document.querySelector(".wrap"); if(wrapEl){ wrapEl.classList.remove("build3"); wrapEl.classList.toggle("build3s", isScreen); }
+    const wrapEl=document.querySelector(".wrap"); if(wrapEl){ wrapEl.classList.remove("build3"); wrapEl.classList.toggle("build3s", isScreen || isNl); }
     // Restore the upload dropzone + draft row: BUILD mode hides them (shared DOM
     // nodes), and screen/newsletter always need them shown. Without this, returning
     // from a flyer Build session leaves the screen upload field hidden.
@@ -1183,7 +1211,7 @@ function setAssetType(t){
     const saveBtn=document.getElementById("save");
     if(saveBtn){ saveBtn.style.display = isNl ? "none" : ""; saveBtn.textContent = isScreen ? "Publish screen" : "Publish resource"; }
     const clearBtn=document.getElementById("clearBtn"); if(clearBtn) clearBtn.style.display = isNl ? "none" : "";
-    if(isNl && typeof nl_draw==="function") nl_draw();
+    if(isNl && typeof nl_setTemplate==="function") nl_setTemplate(nl_tpl);
   }
 }
 
@@ -1814,7 +1842,7 @@ async function fl_openPicker(zone){
   let pickTitle = zone==="subject" ? "Choose a subject image (square)" : (zone==="screen" ? "Choose the screen image (16:9)" : "Choose a banner image (16:9)");
   if(String(zone).startsWith("nl:")){                     // newsletter photo spots
     const z = zone.slice(3);
-    fl_pickAspect = /^tip\d$/.test(z) ? "square" : (z==="side" ? "16:9" : "portrait");
+    fl_pickAspect = nl_zoneAspect(z);
     pickTitle = "Choose a newsletter photo (" + fl_pickAspect + ")";
   }
   fl_pickActiveFacet = { key:null, val:null };
@@ -2834,12 +2862,41 @@ function nl_v(id){ const el=document.getElementById(id); return el ? el.value : 
 (function nl_buildTipEditors(){
   const box=document.getElementById("nl_in_tips"); if(!box) return;
   box.innerHTML = [0,1,2,3,4,5].map(i=>`
-    <div class="tile-block" id="nl_tipblk${i}"><div class="tnum">TIP ${i+1} · click its circle in the preview to set the photo</div>
+    <div class="tile-block" id="nl_tipblk${i}"><div class="tnum">TIP ${i+1} · click its photo in the preview to set it</div>
       <div class="fld"><label>Heading</label><input type="text" id="nl_in_t${i}_h"></div>
       <div class="fld" style="margin-bottom:0"><label>Body</label><textarea id="nl_in_t${i}_p" rows="2"></textarea></div></div>`).join("");
 })();
 
-function nl_tipCount(){ return Math.max(4, Math.min(6, +nl_v("nl_in_tipCount") || 5)); }
+// ---- Newsletter templates (nl-render.js NL_TEMPLATES): magazine2 = "Diagonal", editorial, cover ----
+let nl_tpl = "magazine2";
+function nl_T(){ return NL_TEMPLATES[nl_tpl] || NL_TEMPLATES.magazine2; }
+function nl_has(field){ return nl_T().fields.indexOf(field) !== -1; }
+function nl_tipCount(){
+  const T = nl_T();
+  if(T.tipsMin === T.tipsMax) return T.tipsMin;
+  return Math.max(T.tipsMin, Math.min(T.tipsMax, +nl_v("nl_in_tipCount") || 5));
+}
+function nl_setTemplate(t){
+  if(!NL_TEMPLATES[t]) t = "magazine2";
+  const changed = (t !== nl_tpl);
+  nl_tpl = t;
+  document.querySelectorAll("#nl_tplRail .nl-tpl-card").forEach(c=>c.classList.toggle("sel", c.dataset.tpl===t));
+  const show=(id,on)=>{ const el=document.getElementById(id); if(el) el.style.display = on ? "" : "none"; };
+  show("nl_f_intro", nl_has("intro"));
+  show("nl_f_coIcon", nl_has("co_icon"));
+  show("nl_f_bullets", nl_has("bullets"));
+  show("nl_f_actions", nl_has("actions"));
+  show("nl_f_tipCount", nl_T().tipsMin !== nl_T().tipsMax);
+  const pl=document.querySelector("#nlPreviewWrap .plabel"); if(pl) pl.textContent = "Live preview · 2 pages · " + nl_T().name;
+  if(changed && typeof nl_qcInvalidate==="function") nl_qcInvalidate();   // reviewed fields differ per template
+  nl_draw();
+}
+// Picker shape per photo spot, per template (the picker also offers "show all shapes").
+function nl_zoneAspect(z){
+  if(nl_tpl==="editorial") return z==="hero" ? "square" : "16:9";
+  if(nl_tpl==="cover")     return "16:9";
+  return /^tip\d$/.test(z) ? "square" : (z==="side" ? "16:9" : "portrait");
+}
 
 // Assemble the render data. mode "preview" -> image data URLs; "manifest" -> library refs.
 function nl_collect(){
@@ -2848,16 +2905,18 @@ function nl_collect(){
   for(let i=0;i<n;i++) tips.push({ h:nl_v(`nl_in_t${i}_h`), p:nl_v(`nl_in_t${i}_p`),
                                    img:(nl_imgs["tip"+i]||{}).data || null });
   return {
-    v:1, template:"magazine2",
+    v:1, template:nl_tpl,
+    bullets: nl_has("bullets") ? nl_v("nl_in_bullets") : "",
+    actions: nl_has("actions") ? nl_v("nl_in_actions") : "",
     masthead:{ title:nl_v("nl_in_mastTitle"), volume:nl_v("nl_in_volume"), issue:nl_v("nl_in_issue") },
     cover:{ headline:nl_v("nl_in_headline"), subhead:nl_v("nl_in_subhead"), hook:nl_v("nl_in_hook"),
             hero:(nl_imgs.hero||{}).data || null },
-    intro:nl_v("nl_in_intro"),
-    side:(nl_imgs.side||{}).data || null,
+    intro: nl_has("intro") ? nl_v("nl_in_intro") : "",
+    side: nl_has("side") ? ((nl_imgs.side||{}).data || null) : null,
     callout:{ icon:nl_v("nl_in_coIcon"), title:nl_v("nl_in_coTitle"), body:nl_v("nl_in_coBody") },
     section:{ title:nl_v("nl_in_secTitle"), intro:nl_v("nl_in_secIntro") },
     tips,
-    feature:(n<6 ? (nl_imgs.feature||{}).data || null : null),
+    feature:(nl_has("feature") && n<6 ? (nl_imgs.feature||{}).data || null : null),
     runfoot:nl_v("nl_in_runfoot"),
     powered:nl_v("nl_in_powered"),
     footer:{ name:nl_v("nl_in_ftName"), addr1:nl_v("nl_in_ftAddr1"), addr2:nl_v("nl_in_ftAddr2"),
@@ -2881,6 +2940,18 @@ function nl_draw(){
   const st=document.getElementById("nl_stage"); if(!st || assetType!=="newsletter") return;
   const d = nl_collect(); d.brand = nl_previewBrand();
   nl_render(st, d, { edit:true });
+  // live mini previews (page 1) of the same content in every template
+  document.querySelectorAll("#nl_tplRail .nl-tpl-card").forEach(c=>{
+    const box=c.querySelector(".nl-mini"), inn=c.querySelector(".nl-mini__in"); if(!box||!inn) return;
+    const T=NL_TEMPLATES[c.dataset.tpl], dd=nl_collect();
+    dd.template=c.dataset.tpl; dd.brand=d.brand;
+    dd.bullets=nl_v("nl_in_bullets"); dd.actions=nl_v("nl_in_actions");
+    dd.intro=nl_v("nl_in_intro"); dd.side=(nl_imgs.side||{}).data||null; dd.feature=(nl_imgs.feature||{}).data||null;
+    dd.tips=[0,1,2,3,4,5].slice(0, T.tipsMax===T.tipsMin ? T.tipsMin : Math.max(T.tipsMin, Math.min(T.tipsMax, +nl_v("nl_in_tipCount")||5)))
+      .map(i=>({ h:nl_v(`nl_in_t${i}_h`), p:nl_v(`nl_in_t${i}_p`), img:(nl_imgs["tip"+i]||{}).data||null }));
+    nl_render(inn, dd, {});
+    const k=(box.clientWidth||130)/612; inn.style.transform=`scale(${k})`;
+  });
   // show only the tip editors in use
   for(let i=0;i<6;i++){ const b=document.getElementById("nl_tipblk"+i); if(b) b.style.display = i<nl_tipCount() ? "" : "none"; }
   requestAnimationFrame(nl_fitPreview);
@@ -2929,8 +3000,9 @@ async function nl_captureManifest(){
   };
   const hero = await img("hero",1000), side = await img("side",800), feat = await img("feature",800);
   d.cover.hero = null; d.cover.hero_ref = hero.ref; d.cover.hero_data = hero.data;
-  d.side = null; d.side_ref = side.ref; d.side_data = side.data;
-  d.feature = null; d.feature_ref = d.tips.length<6 ? feat.ref : null; d.feature_data = d.tips.length<6 ? feat.data : null;
+  const useSide = nl_has("side"), useFeat = nl_has("feature") && d.tips.length<6;
+  d.side = null; d.side_ref = useSide ? side.ref : null; d.side_data = useSide ? side.data : null;
+  d.feature = null; d.feature_ref = useFeat ? feat.ref : null; d.feature_data = useFeat ? feat.data : null;
   for(let i=0;i<d.tips.length;i++){
     const t = await img("tip"+i, 500);
     d.tips[i].img = null; d.tips[i].img_ref = t.ref; d.tips[i].img_data = t.data;
@@ -2970,7 +3042,7 @@ async function nl_draftCopy(){
   btn.disabled = true; msg.textContent = "Drafting… (about 20–40 seconds)";
   try{
     const res = await fetch(NL_DRAFT_ENDPOINT, { method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ brief, tip_count: nl_tipCount(), caps: NL_CAPS }) });
+      body: JSON.stringify({ brief, template: nl_tpl, tip_count: nl_tipCount(), caps: NL_CAPS }) });
     const d = await res.json();
     if(!d || !d.ok) throw new Error("no draft returned");
     nl_setFld("nl_in_headline", d.headline);  nl_setFld("nl_in_subhead", d.subhead);
@@ -3004,10 +3076,16 @@ const NL_QC_MAP = {
   "SECTION TITLE":   "nl_in_secTitle",
   "SECTION INTRO":   "nl_in_secIntro"
 };
+NL_QC_MAP["BULLETS"] = "nl_in_bullets";
+NL_QC_MAP["ACTIONS"] = "nl_in_actions";
 for(let i=0;i<6;i++){
   NL_QC_MAP[`TIP ${i+1} TITLE`] = `nl_in_t${i}_h`;
   NL_QC_MAP[`TIP ${i+1} BODY`]  = `nl_in_t${i}_p`;
 }
+// QC label -> template field key (only fields the chosen template shows are reviewed)
+const NL_QC_FIELD = { "HEADLINE":"headline","SUBHEAD":"subhead","HOOK":"hook","INTRO":"intro",
+  "CALLOUT TITLE":"co_title","CALLOUT BODY":"co_body","SECTION TITLE":"sec_title","SECTION INTRO":"sec_intro",
+  "BULLETS":"bullets","ACTIONS":"actions" };
 const NL_QC_LABELS = Object.keys(NL_QC_MAP).sort((a,b)=>b.length-a.length);   // longest first
 let nlQcReview = null;
 let nlQcReviewId = null;   // qc_review.review_id from the first pass (for the builder sign-off)
@@ -3018,6 +3096,7 @@ function nl_qcSerialize(){
   for(const label of Object.keys(NL_QC_MAP)){
     const m = /^TIP (\d+)/.exec(label);
     if(m && (+m[1]) > n) continue;                       // tips beyond the chosen count
+    if(!m && NL_QC_FIELD[label] && !nl_has(NL_QC_FIELD[label])) continue;   // not on this template
     const v = (nl_v(NL_QC_MAP[label])||"").trim();
     if(v) lines.push(`[${label}] ${v.replace(/\s*\n\s*/g," ")}`);
   }
