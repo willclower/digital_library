@@ -221,7 +221,7 @@ async function renderFlyerFromManifest(manifest, brand){
 }
 
 // ---------------------------------------------------------------------------
-// NEWSLETTER (template "magazine2"). Engine = SHARED assets/nl-render.js.
+// NEWSLETTER (templates magazine2 | editorial | cover). Engine = SHARED assets/nl-render.js.
 // Manifest images are library refs (*_ref) or small inlined data URLs (*_data);
 // both resolve through fl_toDataUrl. Refs are cached across clients in one batch.
 // Brand rules mirror the flyer driver:
@@ -275,7 +275,8 @@ window.addEventListener("message", async (ev)=>{
   const d = ev.data || {};
   if(d.type !== "render") return;
   try{
-    const isNl = d.manifest && d.manifest.template === "magazine2";
+    // newsletter templates are the keys of NL_TEMPLATES (nl-render.js); anything else = flyer
+    const isNl = !!(d.manifest && typeof NL_TEMPLATES !== "undefined" && NL_TEMPLATES[d.manifest.template]);
     const out = isNl ? await renderNewsletterFromManifest(d.manifest, d.brand)
                      : await renderFlyerFromManifest(d.manifest, d.brand);
     (ev.source||window.parent).postMessage({ type:"render-result", reqId:d.reqId, ok:true,
