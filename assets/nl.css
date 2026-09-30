@@ -116,3 +116,82 @@
 .nl-scope .nl-addr--dark .nl-qrlabel{color:#fff;}
 .nl-scope .nl-p2page.has-addr .nl-addr--dark ~ .nl-foot{background:#e7e6f0;}
 .nl-scope .nl-logo.nl-chip img{max-width:120px;max-height:36px;}
+
+/* =====================================================================================
+   Template EDITORIAL (nl-t-editorial) — white page, stacked title, organic hero, zig-zag p2
+   Page space 612x792 (PDF points). Rounded corners on photos (modern, not "Word").
+   ===================================================================================== */
+.nl-scope .nl-e-mast{position:absolute;left:0;top:44px;width:352px;height:54px;background:var(--brand-primary);
+  color:#fff;padding:10px 0 0 44px;box-sizing:border-box;}
+.nl-scope .nl-e-mast__title{font-weight:600;font-size:19px;line-height:1.05;}
+.nl-scope .nl-e-mast__sub{font-size:9.5px;opacity:.85;margin-top:3px;white-space:pre;}
+.nl-scope .nl-doc .nl-e-title{position:absolute;left:44px;top:124px;width:240px;margin:0;font-weight:700;font-size:46px;
+  line-height:1;letter-spacing:-.02em;color:var(--brand-primary);max-height:250px;overflow:hidden;}
+.nl-scope .nl-e-hero{position:absolute;left:296px;top:120px;width:278px;height:250px;
+  border-radius:58% 42% 46% 54% / 52% 48% 52% 48%;background:#e9edf0 center/cover no-repeat;}
+.nl-scope .nl-e-side{position:absolute;left:44px;top:404px;width:208px;max-height:330px;overflow:hidden;}
+.nl-scope .nl-e-lead{font-weight:700;font-size:13.5px;line-height:1.35;color:var(--brand-primary);margin:0 0 9px;}
+.nl-scope .nl-e-body{font-size:11px;line-height:1.55;color:var(--ink);margin:0 0 9px;}
+.nl-scope .nl-e-list{margin:0;padding-left:15px;font-size:11px;line-height:1.7;color:var(--ink);}
+.nl-scope .nl-e-main{position:absolute;left:290px;top:392px;width:278px;max-height:300px;overflow:hidden;}
+.nl-scope .nl-doc .nl-e-h2{font-weight:700;font-size:24px;line-height:1.12;color:var(--brand-secondary);margin:0 0 10px;}
+.nl-scope .nl-e-logo{position:absolute;right:44px;bottom:30px;height:40px;max-width:150px;display:flex;align-items:center;}
+.nl-scope .nl-e-logo img{max-height:40px;max-width:150px;display:block;}
+.nl-scope .nl-e-logo--dark{background:var(--brand-primary);border-radius:6px;padding:6px 10px;}
+.nl-scope .nl-e-p2{position:absolute;left:44px;right:44px;top:44px;}
+.nl-scope .nl-doc .nl-e-sec{font-weight:700;font-size:26px;line-height:1.12;color:var(--brand-secondary);margin:0 0 8px;}
+.nl-scope .nl-e-secintro{margin:0 0 20px;}
+.nl-scope .nl-e-rows{display:flex;flex-direction:column;gap:18px;}
+.nl-scope .nl-e-row{display:flex;align-items:center;gap:22px;}
+.nl-scope .nl-e-img{flex:0 0 250px;width:250px;height:150px;border-radius:15px;background:#e9edf0 center/cover no-repeat;}
+.nl-scope .nl-e-rowtxt{flex:1;min-width:0;max-height:150px;overflow:hidden;}
+.nl-scope .nl-e-rowtxt.r{text-align:right;}
+.nl-scope .nl-doc .nl-e-h3{font-weight:700;font-size:17px;line-height:1.15;color:var(--brand-primary);margin:0 0 6px;}
+
+/* =====================================================================================
+   Template COVER (nl-t-cover) — full-bleed hero + title card, contents, habit cards
+   ===================================================================================== */
+.nl-scope .nl-c-bar{position:absolute;left:0;top:0;width:612px;height:62px;box-sizing:border-box;padding:0 42px;
+  display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--brand-accent);background:#fff;}
+.nl-scope .nl-c-logo{height:38px;max-width:150px;display:flex;align-items:center;}
+.nl-scope .nl-c-logo img{max-height:38px;max-width:150px;display:block;}
+.nl-scope .nl-c-logo--dark{background:var(--brand-primary);border-radius:6px;padding:5px 9px;}
+.nl-scope .nl-c-mast{text-align:right;color:var(--brand-primary);}
+.nl-scope .nl-c-mast__title{font-weight:700;font-size:14.5px;}
+.nl-scope .nl-c-mast__sub{font-size:8.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;opacity:.85;white-space:pre;}
+.nl-scope .nl-c-hero{position:absolute;left:0;top:65px;width:612px;height:420px;background:#e9edf0 center/cover no-repeat;}
+.nl-scope .nl-c-card{position:absolute;left:42px;top:356px;width:392px;background:#fff;padding:22px 26px 20px;box-sizing:border-box;
+  box-shadow:0 8px 24px rgba(18,58,82,.18);max-height:200px;overflow:hidden;}
+.nl-scope .nl-c-card__bar{position:absolute;left:0;top:0;width:100%;height:6px;background:var(--brand-primary);}
+.nl-scope .nl-doc .nl-c-title{font-weight:700;font-size:40px;line-height:1.02;letter-spacing:-.02em;color:var(--brand-primary);margin:0;}
+.nl-scope .nl-c-sub{font-weight:600;font-size:12px;line-height:1.4;color:var(--brand-secondary);margin:8px 0 0;}
+.nl-scope .nl-c-hook{position:absolute;left:42px;top:572px;width:246px;font-size:11.5px;line-height:1.55;color:var(--ink);margin:0;
+  max-height:118px;overflow:hidden;}
+.nl-scope .nl-c-inside{position:absolute;left:316px;top:566px;width:254px;}
+.nl-scope .nl-c-label{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-secondary);margin:0 0 7px;}
+.nl-scope .nl-c-item{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid #d5dde1;font-size:11.5px;font-weight:600;color:var(--ink);}
+.nl-scope .nl-c-item:last-child{border-bottom:1px solid #d5dde1;}
+.nl-scope .nl-c-item .n{font-size:16px;font-weight:700;color:var(--brand-accent);flex:0 0 auto;}
+.nl-scope .nl-c-band{position:absolute;left:0;bottom:0;width:612px;height:80px;background:var(--brand-primary);box-sizing:border-box;
+  padding:0 42px;display:flex;align-items:center;gap:16px;}
+.nl-scope .nl-c-band__icon svg{width:28px;height:28px;display:block;}
+.nl-scope .nl-c-band__text{margin:0;color:#fff;font-size:13.5px;line-height:1.35;font-weight:600;max-height:56px;overflow:hidden;}
+.nl-scope .nl-c-p2{position:absolute;left:42px;right:42px;top:40px;}
+.nl-scope .nl-doc .nl-c-sec{font-weight:700;font-size:26px;line-height:1.12;color:var(--brand-primary);margin:0 0 6px;}
+.nl-scope .nl-c-secintro{font-size:11px;line-height:1.55;color:var(--ink);margin:0 0 4px;max-height:34px;overflow:hidden;}
+.nl-scope .nl-c-rows{display:flex;flex-direction:column;gap:14px;margin:14px 0 18px;}
+.nl-scope .nl-c-row{position:relative;height:200px;}
+.nl-scope .nl-c-img{position:absolute;right:0;top:0;width:315px;height:200px;border-radius:15px;background:#e9edf0 center/cover no-repeat;}
+.nl-scope .nl-c-cardtip{position:absolute;left:0;top:30px;width:250px;background:#e4ecf0;border-radius:12px;padding:16px 18px;box-sizing:border-box;
+  max-height:170px;overflow:hidden;z-index:1;}
+.nl-scope .nl-c-row.flip .nl-c-img{right:auto;left:0;}
+.nl-scope .nl-c-row.flip .nl-c-cardtip{left:auto;right:0;}
+.nl-scope .nl-c-num{width:26px;height:26px;border-radius:50%;background:var(--brand-primary);color:#fff;font-size:12.5px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;margin-bottom:7px;}
+.nl-scope .nl-doc .nl-c-h3{font-weight:700;font-size:15.5px;line-height:1.15;color:var(--brand-primary);margin:0 0 5px;}
+.nl-scope .nl-c-p{font-size:10.5px;line-height:1.5;color:var(--ink);margin:0;}
+.nl-scope .nl-c-acts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+.nl-scope .nl-c-act{border-top:3px solid var(--brand-accent);padding-top:7px;font-size:10.5px;line-height:1.4;font-weight:600;color:var(--ink);
+  max-height:62px;overflow:hidden;}
+/* template zones keep the pick-image hover inside their own shape */
+.nl-scope .nl-edit .nl-e-img{position:relative;}   /* the others are already absolutely positioned */
