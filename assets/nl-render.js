@@ -9,10 +9,29 @@
          intro column + small side photo · callout box (icon, title, body)
      p2  section title + intro · 4–6 tips (circle photo, heading, body)
          5 tips → 1 feature photo cell · 4 tips → feature photo spans 2 rows · 6 → none
+   Template "editorial" (2 pages, 2026-09-30):
+     p1  masthead block · big stacked title · organic-shape hero photo · sidebar
+         (subhead lead, hook, bullets) · main column (callout title as H2 + callout body)
+     p2  section title + intro · 3 zig-zag rows (photo | heading + body)
+   Template "cover" (2 pages, 2026-09-30):
+     p1  logo/masthead bar · full-bleed hero · title card (headline + subhead) over it
+         hook · "Inside this issue" (callout title, section title, actions) · callout band
+     p2  section title + intro · 2 numbered habit cards over photos · 4 "What you can do now" actions
+   All three share ONE content object; each shows its own subset (NL_TEMPLATES[t].fields), so
+   switching template reflows the same copy. Page-2 center footer / QR is shared by all.
    Requires html2canvas + jspdf (UMD) only for nl_buildPDF.
    ============================================================================ */
 
-const NL_TEMPLATES = { magazine2: { pages:2, tipsMin:4, tipsMax:6 } };
+const NL_TEMPLATES = {
+  magazine2: { name:"Diagonal",  pages:2, tipsMin:4, tipsMax:6,
+               fields:["headline","subhead","hook","intro","side","co_icon","co_title","co_body","sec_title","sec_intro","tips","feature","runfoot"] },
+  editorial: { name:"Editorial", pages:2, tipsMin:3, tipsMax:3,
+               fields:["headline","subhead","hook","bullets","co_title","co_body","sec_title","sec_intro","tips","runfoot"] },
+  cover:     { name:"Cover",     pages:2, tipsMin:2, tipsMax:2,
+               fields:["headline","subhead","hook","co_icon","co_title","co_body","sec_title","sec_intro","tips","actions","runfoot"] }
+};
+function nl_tplKey(t){ return NL_TEMPLATES[t] ? t : "magazine2"; }
+function nl_lines(v, max){ return (Array.isArray(v)?v:String(v||"").split("\n")).map(x=>String(x).trim()).filter(Boolean).slice(0, max||99); }
 
 const NL_ICONS = {
   shield:'<path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z"/><path d="M12 8.5v6M9 11.5h6"/>',
@@ -106,7 +125,17 @@ function nl_render(el, d, opts){
   const coverChip = !!b.logo && b.logoTone === "dark" && darkPanel;
   const darkBand  = !!b.logo && b.logoTone === "light";
 
-  const p1 = `
+  const T = nl_tplKey(d.template);
+  const foot = nl_footer(d, b, opts, darkBand);
+  let p1, p2;
+  if(T === "editorial"){
+    p1 = nl_p1Editorial(d, b, z, pgtab);
+    p2 = nl_p2Editorial(d, tips, z, pgtab, foot);
+  } else if(T === "cover"){
+    p1 = nl_p1Cover(d, b, z, svg, P);
+    p2 = nl_p2Cover(d, tips, z, pgtab, foot);
+  } else {
+  p1 = `
   <section class="nl-page nl-p1">
     <div class="nl-cover">
       <div class="nl-hero${z}" data-zone="hero"${nl_bg(c.hero)}></div>
@@ -145,8 +174,129 @@ function nl_render(el, d, opts){
       <h4 class="nl-tip__h">${nl_esc(t.h)}</h4><p class="nl-tip__p">${nl_esc(t.p)}</p></div>`;
   }).join("");
 
-  // ---- center footer (page 2). Mirrors render.html flyer rules:
-  //   branded   -> address band (name/addr/phone | hours | logo | QR cell)
+  p2 = `
+  <section class="nl-page nl-p2page nl-pg2${foot.cls}">
+    <div class="nl-p2">
+      <h2 class="nl-sec__title">${nl_esc(s.title)}</h2>
+      <p class="nl-sec__intro">${nl_esc(s.intro)}</p>
+      <div class="nl-grid">${cells}</div>
+    </div>
+    ${pgtab(2)}
+    <div class="nl-runfoot">${nl_esc(d.runfoot || "")}</div>
+    ${foot.html}
+  </section>`;
+  }
+
+  el.innerHTML = `<div class="nl-doc nl-t-${T}${opts.edit?" nl-edit":""}${opts.print?" nl-print":""}" style="${style}">${p1}${p2}</div>`;
+}
+
+
+// ============================ Template: EDITORIAL ============================
+function nl_p1Editorial(d, b, z, pgtab){
+  const m = d.masthead || {}, c = d.cover || {}, co = d.callout || {};
+  const lightLogo = !!b.logo && b.logoTone === "light";     // white page: a light logo needs a dark chip
+  const bullets = nl_lines(d.bullets, 5);
+  return `
+  <section class="nl-page nl-p1 nl-e1">
+    <div class="nl-e-mast">
+      <div class="nl-e-mast__title">${nl_esc(m.title || "Wellness Newsletter")}</div>
+      <div class="nl-e-mast__sub">${nl_esc([m.volume ? "Volume " + m.volume : "", m.issue || ""].filter(Boolean).join("  |  "))}</div>
+    </div>
+    <h1 class="nl-e-title">${nl_br(c.headline)}</h1>
+    <div class="nl-e-hero${z}" data-zone="hero"${nl_bg(c.hero)}></div>
+    <div class="nl-e-side">
+      ${c.subhead ? `<p class="nl-e-lead">${nl_esc(c.subhead)}</p>` : ""}
+      ${c.hook ? `<p class="nl-e-body">${nl_esc(c.hook)}</p>` : ""}
+      ${bullets.length ? `<ul class="nl-e-list">${bullets.map(x=>`<li>${nl_esc(x)}</li>`).join("")}</ul>` : ""}
+    </div>
+    <div class="nl-e-main">
+      <h2 class="nl-e-h2">${nl_br(co.title)}</h2>
+      ${nl_paras(co.body).map(p=>`<p class="nl-e-body">${nl_esc(p)}</p>`).join("")}
+    </div>
+    <div class="nl-e-logo${lightLogo?" nl-e-logo--dark":""}">${b.logo ? `<img src="${b.logo}" alt="">` : ""}</div>
+    ${pgtab(1)}
+  </section>`;
+}
+function nl_p2Editorial(d, tips, z, pgtab, foot){
+  const s = d.section || {};
+  const rows = tips.slice(0,3).map((t,i)=>{
+    const img = `<div class="nl-e-img${z}" data-zone="tip${i}"${nl_bg(t.img)}></div>`;
+    const txt = `<div class="nl-e-rowtxt${i%2===0?" r":""}"><h3 class="nl-e-h3">${nl_esc(t.h)}</h3><p class="nl-e-body">${nl_esc(t.p)}</p></div>`;
+    return `<div class="nl-e-row">${i%2===0 ? txt+img : img+txt}</div>`;
+  }).join("");
+  return `
+  <section class="nl-page nl-p2page nl-pg2 nl-e2${foot.cls}">
+    <div class="nl-e-p2">
+      <h2 class="nl-e-sec">${nl_esc(s.title)}</h2>
+      <p class="nl-e-body nl-e-secintro">${nl_esc(s.intro)}</p>
+      <div class="nl-e-rows">${rows}</div>
+    </div>
+    ${pgtab(2)}
+    <div class="nl-runfoot">${nl_esc(d.runfoot || "")}</div>
+    ${foot.html}
+  </section>`;
+}
+
+// ============================== Template: COVER ==============================
+function nl_p1Cover(d, b, z, svg, P){
+  const m = d.masthead || {}, c = d.cover || {}, co = d.callout || {}, s = d.section || {};
+  const lightLogo = !!b.logo && b.logoTone === "light";
+  const items = [co.title, s.title, nl_lines(d.actions,4).length ? "What you can do now" : ""]
+    .map(x=>String(x||"").replace(/\s*\n\s*/g," ").trim()).filter(Boolean);
+  const bandText = nl_paras(co.body)[0] || "";
+  return `
+  <section class="nl-page nl-p1 nl-c1">
+    <div class="nl-c-bar">
+      <div class="nl-c-logo${lightLogo?" nl-c-logo--dark":""}">${b.logo ? `<img src="${b.logo}" alt="">` : ""}</div>
+      <div class="nl-c-mast">
+        <div class="nl-c-mast__title">${nl_esc(m.title || "Wellness Newsletter")}</div>
+        <div class="nl-c-mast__sub">${nl_esc([m.issue || "", m.volume ? "Vol " + m.volume : ""].filter(Boolean).join("  ·  "))}</div>
+      </div>
+    </div>
+    <div class="nl-c-hero${z}" data-zone="hero"${nl_bg(c.hero)}></div>
+    <div class="nl-c-card">
+      <div class="nl-c-card__bar"></div>
+      <h1 class="nl-c-title">${nl_br(c.headline)}</h1>
+      ${c.subhead ? `<p class="nl-c-sub">${nl_esc(c.subhead)}</p>` : ""}
+    </div>
+    <p class="nl-c-hook">${nl_esc(c.hook)}</p>
+    <div class="nl-c-inside">
+      <div class="nl-c-label">Inside this issue</div>
+      ${items.map((x,i)=>`<div class="nl-c-item"><span class="n">0${i+1}</span><span>${nl_esc(x)}</span></div>`).join("")}
+    </div>
+    <div class="nl-c-band">
+      <div class="nl-c-band__icon">${nl_icon(co.icon)}</div>
+      <p class="nl-c-band__text">${nl_esc(bandText)}</p>
+    </div>
+  </section>`;
+}
+function nl_p2Cover(d, tips, z, pgtab, foot){
+  const s = d.section || {};
+  const acts = nl_lines(d.actions, 4);
+  const cards = tips.slice(0,2).map((t,i)=>`
+    <div class="nl-c-row${i%2 ? " flip" : ""}">
+      <div class="nl-c-img${z}" data-zone="tip${i}"${nl_bg(t.img)}></div>
+      <div class="nl-c-cardtip"><div class="nl-c-num">${i+1}</div>
+        <h3 class="nl-c-h3">${nl_esc(t.h)}</h3><p class="nl-c-p">${nl_esc(t.p)}</p></div>
+    </div>`).join("");
+  return `
+  <section class="nl-page nl-p2page nl-pg2 nl-c2${foot.cls}">
+    <div class="nl-c-p2">
+      <h2 class="nl-c-sec">${nl_esc(s.title)}</h2>
+      ${s.intro ? `<p class="nl-c-secintro">${nl_esc(s.intro)}</p>` : ""}
+      <div class="nl-c-rows">${cards}</div>
+      ${acts.length ? `<div class="nl-c-label">What you can do now</div>
+      <div class="nl-c-acts">${acts.map(a=>`<div class="nl-c-act">${nl_esc(a)}</div>`).join("")}</div>` : ""}
+    </div>
+    ${pgtab(2)}
+    <div class="nl-runfoot">${nl_esc(d.runfoot || "")}</div>
+    ${foot.html}
+  </section>`;
+}
+
+// ---- center footer (page 2, every template). Mirrors render.html flyer rules:
+//   branded   -> address band (name/addr/phone | hours | logo | QR cell)
+function nl_footer(d, b, opts, darkBand){
   //   unbranded -> no band, no logo; QR floats bottom-right
   //   brand.footer overrides the manifest footer field-by-field
   const unbranded = (b.mode === "none");
@@ -172,19 +322,7 @@ function nl_render(el, d, opts){
   const floatQR = (unbranded && qrHTML) ? `<div class="nl-qr-float">${qrHTML}</div>` : "";
   const p2cls = (unbranded ? "" : " has-addr") + (floatQR ? " qr-float" : "");
 
-  const p2 = `
-  <section class="nl-page nl-p2page${p2cls}">
-    <div class="nl-p2">
-      <h2 class="nl-sec__title">${nl_esc(s.title)}</h2>
-      <p class="nl-sec__intro">${nl_esc(s.intro)}</p>
-      <div class="nl-grid">${cells}</div>
-    </div>
-    ${pgtab(2)}
-    <div class="nl-runfoot">${nl_esc(d.runfoot || "")}</div>
-    ${addrHTML}${floatQR}
-  </section>`;
-
-  el.innerHTML = `<div class="nl-doc${opts.edit?" nl-edit":""}${opts.print?" nl-print":""}" style="${style}">${p1}${p2}</div>`;
+  return { html: addrHTML + floatQR, cls: p2cls };
 }
 
 /* ---- PDF: one letter page per .nl-page; returns { pdfB64, thumbB64 } without downloading ---- */
