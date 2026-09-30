@@ -68,7 +68,7 @@ function fl_renderBody(){
       `<h4 class="ts-card__head">${fl_esc(t.h)}</h4>`+
       `<p class="ts-card__body">${fl_esc(t.p)}</p></div>`).join("");
     const sweep = `<div class="ts-sweep"><svg viewBox="0 0 612 46" preserveAspectRatio="none">`+
-      `<path d="M0,46 L0,4 Q306,52 612,4 L612,46 Z" fill="var(--page)"></path></svg></div>`;
+      `<path d="M0,46 L0,4 Q306,52 612,4 L612,46 Z" fill="#ffffff"></path></svg></div>`;
     bodyHTML = sweep +
       `<h1 class="ts-title">${fl_esc(title)}</h1>`+
       `<div class="ts-intro"><div class="ts-circle fl-zone"${circleStyle}></div>`+
