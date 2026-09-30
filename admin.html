@@ -815,10 +815,6 @@
     </div>
     <div class="row2">
       <div class="field screen-only">
-        <label>Tone</label>
-        <div class="pills" id="t-tone"></div>
-      </div>
-      <div class="field screen-only">
         <label>Aspect</label>
         <div class="pills" id="t-aspect"></div>
       </div>
@@ -1057,16 +1053,15 @@ const FALLBACK_VOCAB = {
   subject:["stress","sleep","heat","mental-health","movement","nutrition","hydration","prevention","burnout","heart-health","connection"],
   month:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
   setting:["floor","breakroom","office","any"],
-  tone:["calm","action"],
   aspect:["5:2","16:9","square","portrait","9:16"]
 };
-const sel = { subject:new Set(), month:new Set(), setting:new Set(), tone:new Set(), aspect:new Set(["16:9"]) };
+const sel = { subject:new Set(), month:new Set(), setting:new Set(), aspect:new Set(["16:9"]) };   // tone retired 2026-09-30
 let imageDataUrl = null, imageDims = null;
 let VOCAB = Object.assign({}, FALLBACK_VOCAB);   // live vocab (fallback until /vocab loads)
 function currentVocab(){ return VOCAB; }
 
 function buildPills(vocab){
-  for(const g of ["subject","month","setting","tone","aspect"]){
+  for(const g of ["subject","month","setting","aspect"]){
     const host = document.getElementById("t-"+g);
     host.innerHTML = (vocab[g]||[]).map(v=>
       `<span class="pill" data-g="${g}" data-v="${v}" data-on="${sel[g].has(v)?1:0}" onclick="togPill(this)">${v}</span>`
@@ -1465,7 +1460,7 @@ async function save(){
     description:document.getElementById("description").value.trim(),
     issue_date:document.getElementById("issue_date").value.trim() || null,
     subject:[...sel.subject], month:[...sel.month], setting:[...sel.setting],
-    tone: assetType==="screen" ? [...sel.tone] : [],   // tone is a screen-only tag
+    tone: [],                    // tone retired (all asset types) 2026-09-30
     aspect:[...sel.aspect],
     // screens send the background image; docs send the PDF bytes (uploaded OR built). Both ride image_base64.
     image: imageDataUrl || null,
@@ -1574,7 +1569,7 @@ async function fl_publishBannerScreen(flyerId){
     overlay_bullets: bullets,
     // tags carried from the flyer so the screen is findable alongside it
     subject:[...sel.subject], month:[...sel.month], setting:[...sel.setting],
-    tone:[...sel.tone], aspect:["16:9"],
+    tone:[], aspect:["16:9"],
     // the banner photo (downscaled) becomes the screen background (16:9 center-crop via object-fit)
     image: screenImg,
     mime: screenMime,
