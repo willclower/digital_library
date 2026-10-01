@@ -15,8 +15,11 @@
 </head>
 <body>
 <div class="stage"><div class="frame"><div id="screen" class="vwl-screen"></div></div></div>
+<script src="../wellness_tools/studio-auth.js"></script>
 <script src="assets/overlay.js"></script>
 <script>
+// Studio page: login with the 'drl' tool required (no session -> hub, then back here).
+if(!StudioAuth.require('drl')) document.documentElement.style.visibility = 'hidden';
 const DRL_API = "https://n8n-admin.willclower.com/webhook/drl";  // read: /library, image: /image/:id, file: /file/:id
 
 // API returns arrays for tag fields + flat columns; overlay.js expects a single
