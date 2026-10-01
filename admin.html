@@ -213,6 +213,12 @@
 #fl_pick .fl-pick__head{display:flex;justify-content:space-between;align-items:center;
     padding:16px 20px;border-bottom:1px solid #ece8df;font-weight:700;color:#1e2d35;font-size:15px;}
 #fl_pick .fl-pick__close{border:none;background:none;font-size:26px;line-height:1;cursor:pointer;color:#8a8478;}
+#fl_pick .fl-pick__search{position:relative;display:block;margin:12px 20px 0;}
+#fl_pick .fl-pick__search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#8a8478;pointer-events:none;}
+#fl_pick .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+#fl_pick .fl-pick__search input{width:100%;box-sizing:border-box;height:36px;padding:0 10px 0 32px;font:inherit;font-size:13px;
+    border:1px solid #d5d0c6;border-radius:8px;background:#faf9f6;color:#1e2d35;}
+#fl_pick .fl-pick__search input:focus{outline:2px solid #17402F;outline-offset:1px;border-color:#17402F;background:#fff;}
 #fl_pick .fl-pick__facets{display:flex;flex-wrap:wrap;gap:7px;padding:12px 20px 4px;}
 #fl_pick .fl-pick__facet{font:inherit;font-size:11.5px;border:1px solid #d5d0c6;background:#fff;
     color:#4a5e66;border-radius:100px;padding:5px 12px;cursor:pointer;}
@@ -1008,6 +1014,11 @@
       <span id="fl_pickTitle">Choose an image</span>
       <button type="button" id="fl_pickClose" class="fl-pick__close" aria-label="Close">×</button>
     </div>
+    <label class="fl-pick__search">
+      <span class="sr">Search images</span>
+      <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input id="fl_pickQ" type="search" placeholder="Try &ldquo;berries&rdquo; or &ldquo;office&rdquo;" autocomplete="off" oninput="fl_renderPickGrid()">
+    </label>
     <div class="fl-pick__facets" id="fl_pickFacets"></div>
     <div class="fl-pick__grid" id="fl_pickGrid"></div>
     <div class="fl-pick__msg" id="fl_pickMsg"></div>
@@ -1826,6 +1837,7 @@ let fl_pickZone = null;   // 'banner' | 'subject' — which zone we're filling
 let fl_pickAspect = null; // aspect filter for the current zone
 let fl_pickActiveFacet = { key:null, val:null };
 let fl_pickAllShapes = false;   // picker "show all shapes" override (resets each open)
+let fl_pickRows = [];           // rows from the last fetch; the search box filters these locally
 
 // Fetch bytes for one image id and return a data URL (so the chosen image survives PDF export
 // and the companion-screen send without a live network dependency at Finalize time).
@@ -1847,9 +1859,11 @@ async function fl_openPicker(zone){
   }
   fl_pickActiveFacet = { key:null, val:null };
   fl_pickAllShapes = false;
+  fl_$("fl_pickQ").value = "";                          // fresh search each open
   fl_$("fl_pickTitle").textContent = pickTitle;
   fl_$("fl_pick").style.display="block"; fl_$("fl_pick").setAttribute("aria-hidden","false");
   await fl_loadPicker();
+  fl_$("fl_pickQ").focus();
 }
 function fl_closePicker(){ const p=fl_$("fl_pick"); p.style.display="none"; p.setAttribute("aria-hidden","true"); }
 
@@ -1865,8 +1879,18 @@ async function fl_loadPicker(){
     rows = await res.json();
     if(!Array.isArray(rows)) rows = [];
   }catch(e){ msg.textContent="Couldn't reach the image library."; return; }
+  fl_pickRows = rows;
   fl_renderFacets(rows);
-  if(rows.length===0){
+  fl_renderPickGrid();
+}
+
+// Grid render, filtered by the search box. Same matching as the image library page
+// (libHay: title + id + every tag label/value; every word typed must match).
+function fl_renderPickGrid(){
+  const grid=fl_$("fl_pickGrid"), msg=fl_$("fl_pickMsg");
+  const all = fl_pickRows || [];
+  grid.innerHTML="";
+  if(all.length===0){
     msg.textContent = (fl_pickAspect==="portrait")
       ? "No portrait images in the library yet — upload portrait photos first, or pick another spot."
       : fl_pickAspect==="square"
@@ -1874,7 +1898,10 @@ async function fl_loadPicker(){
       : "No images match. Try clearing a filter.";
     return;
   }
-  msg.textContent="";
+  const terms=(fl_$("fl_pickQ").value||"").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const rows = terms.length ? all.filter(r=>{ const h=libHay(r); return terms.every(t=>h.includes(t)); }) : all;
+  if(rows.length===0){ msg.textContent="No images match that search. Try another word, or clear a filter."; return; }
+  msg.textContent = terms.length ? `Showing ${rows.length} of ${all.length}` : "";
   const sq = (fl_pickAspect==="square");
   rows.forEach(r=>{
     const d=document.createElement("div");
