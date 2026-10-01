@@ -71,8 +71,9 @@
 .flyer-scope .fl-col__body{margin:0;font-size:10.5px;line-height:1.5;color:var(--ink-soft);}
 .flyer-scope .ts-mode .fl-header{min-height:255px;}
 .flyer-scope .ts-mode .fl-header .hcontent{display:none;}
-/* 2 Steps: no text on the banner, so no dark fade or stripe texture over the photo. */
-.flyer-scope .ts-mode .fl-header .scrim, .flyer-scope .ts-mode .fl-header .htexture{display:none;}
+/* No dark fade or stripe texture over the banner photo in ANY template (2026-10-01).
+   Banner photos are made dark-left for the headline, so they carry the text on their own. */
+.flyer-scope .fl-header .scrim, .flyer-scope .fl-header .htexture{display:none;}
 .flyer-scope .ts-mode .fl-body{padding-top:0;}
 .flyer-scope .ts-sweep{position:relative;height:0;z-index:2;margin:0 -40px;}
 .flyer-scope .ts-sweep svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:46px;display:block;}
