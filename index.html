@@ -726,16 +726,16 @@ async function loadBranding(){
 
 /* ============================================================================
    TEST AUTH + client roster (white-label).  DISPOSABLE — replaced by MedWell's
-   real login at production. Session id lives in sessionStorage; every authed
+   real login at production. Session id lives in localStorage (shared by every Studio page); every authed
    call sends it in the POST body as `session`.
    ============================================================================ */
 let SESSION = null;   // { session, am:{id,name,is_super_admin} }
 
 function loadSession(){
-  try{ const s = sessionStorage.getItem("mw_am"); if(s) SESSION = JSON.parse(s); }catch(e){}
+  try{ const s = localStorage.getItem("mw_am"); if(s) SESSION = JSON.parse(s); }catch(e){}
 }
-function saveSession(){ try{ sessionStorage.setItem("mw_am", JSON.stringify(SESSION)); }catch(e){} }
-function clearSession(){ SESSION=null; try{ sessionStorage.removeItem("mw_am"); }catch(e){} }
+function saveSession(){ try{ localStorage.setItem("mw_am", JSON.stringify(SESSION)); }catch(e){} }
+function clearSession(){ SESSION=null; try{ localStorage.removeItem("mw_am"); }catch(e){} }
 
 function paintAuth(){
   const inn = !!SESSION;
