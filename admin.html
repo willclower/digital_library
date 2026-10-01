@@ -576,6 +576,17 @@
       <span class="msg" id="draftMsg"></span>
     </div>
 
+    <!-- Screens draft from a BRIEF (same model as the flyer/newsletter builders). The picked image,
+         if any, goes along as extra context. Workflow: drl-draft-screen (webhook drl/draft-screen). -->
+    <div class="field screen-only" id="sc_briefFld">
+      <label>Start with a brief <span class="hint">a line or two &mdash; drafts the headline, subtitle, bullets and tags</span></label>
+      <textarea id="sc_brief" oninput="sc_briefInput()" placeholder="e.g. October flu-shot reminder: free on-site clinic, takes five minutes, protects your crew"></textarea>
+      <div class="actions" style="margin:8px 0 0;">
+        <button class="btn" id="sc_draftBtn" type="button" onclick="sc_draftCopy()" disabled>Draft Content</button>
+        <span class="msg" id="sc_draftMsg"></span>
+      </div>
+    </div>
+
     <div class="field">
       <label id="titleLabel">Headline <span class="hint">the big line</span></label>
       <input type="text" id="title" oninput="onTitle()" placeholder="Know your numbers.">
@@ -1211,7 +1222,7 @@ function setAssetType(t){
     if(uploadRow) uploadRow.style.display = isScreen ? "none" : "";   // screens pick the image on the preview
     const draftBtnEl = document.getElementById("draftBtn");
     const draftRow = draftBtnEl ? draftBtnEl.closest(".actions") : null;
-    if(draftRow) draftRow.style.display = "";
+    if(draftRow) draftRow.style.display = isScreen ? "none" : "";   // screens draft from the brief box instead
     relocateTagBlock(false, isNl ? "tagSlotNl" : null);
     if(isNl){                                   // newsletter is build-only: no upload / draft-on-upload row
       if(uploadRow) uploadRow.style.display = "none";
@@ -1299,6 +1310,47 @@ async function makeDocThumb(pdfDataUrl){
 const assetDrop=document.getElementById("assetDrop");
 ["dragover","dragenter"].forEach(e=>assetDrop.addEventListener(e,ev=>{ev.preventDefault();assetDrop.classList.add("hasfile");}));
 assetDrop.addEventListener("drop",ev=>{ ev.preventDefault(); const f=ev.dataTransfer.files[0]; if(f){ document.getElementById("assetFile").files=ev.dataTransfer.files; onAsset({target:{files:[f]}}); }});
+
+// ===== Screen draft from a brief (drl-draft-screen) =====
+const SCREEN_DRAFT_URL = DRL_API + "/draft-screen";
+function sc_briefInput(){ document.getElementById("sc_draftBtn").disabled = !document.getElementById("sc_brief").value.trim(); }
+function sc_msg(t,c){ const m=document.getElementById("sc_draftMsg"); m.textContent=t; m.className="msg "+(c||""); }
+// shrink the picked image for context only (keeps the request small); null if none
+function sc_contextImage(){
+  return new Promise(ok=>{
+    if(!imageDataUrl) return ok(null);
+    const img=new Image();
+    img.onload=()=>{ const k=Math.min(1, 1024/img.naturalWidth), c=document.createElement("canvas");
+      c.width=Math.round(img.naturalWidth*k); c.height=Math.round(img.naturalHeight*k);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height); ok(c.toDataURL("image/jpeg",0.8)); };
+    img.onerror=()=>ok(null); img.src=imageDataUrl;
+  });
+}
+async function sc_draftCopy(){
+  const brief=document.getElementById("sc_brief").value.trim(); if(!brief) return;
+  const ids=["title","subtitle","eyebrow","cta","sc_bullets"];
+  const filled=ids.some(id=>{ const el=document.getElementById(id); return el && el.value.trim(); });
+  if(filled && !confirm("Replace the headline, subtitle, bullets and tags you already have with a new draft?")) return;
+  const btn=document.getElementById("sc_draftBtn"); btn.disabled=true; sc_msg("Drafting\u2026","");
+  try{
+    const image=await sc_contextImage();
+    const res=await fetch(SCREEN_DRAFT_URL,{ method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ brief, template: sc_tpl, image }) });
+    if(!res.ok) throw new Error("draft "+res.status);
+    const d=await res.json(); if(!d || !d.ok) throw new Error("bad draft");
+    const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v||""; };
+    set("title",d.title); set("subtitle",d.subtitle); set("cta",d.cta);
+    if(sc_tpl==="classic") set("eyebrow",d.eyebrow);
+    set("sc_bullets",(d.bullets||[]).join("\n"));
+    const tags=d.tags||{};
+    ["subject","month","setting"].forEach(g=>{ if(!sel[g]) return; sel[g].clear();
+      (Array.isArray(tags[g])?tags[g]:[]).forEach(v=>sel[g].add(v)); });
+    if(sel.aspect && sel.aspect.size===0) sel.aspect.add("16:9");
+    buildPills(currentVocab()); onTitle(); draw();
+    sc_msg("Drafted \u2014 review and edit below.","ok");
+  }catch(e){ sc_msg("Draft failed \u2014 check drl-draft-screen is active.","err"); }
+  finally{ sc_briefInput(); }
+}
 
 // ===== AI draft =====
 function setDraftMsg(text,cls){ const m=document.getElementById("draftMsg"); m.textContent=text; m.className="msg "+(cls||""); }
