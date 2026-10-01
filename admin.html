@@ -1964,9 +1964,16 @@ fl_$("fl_pickClose").onclick=fl_closePicker;
 fl_$("fl_pickBackdrop").onclick=fl_closePicker;
 document.addEventListener("keydown",e=>{ if(e.key==="Escape" && fl_$("fl_pick").style.display==="block") fl_closePicker(); });
 
-// Make the banner zone clickable (present in all templates). The subject-circle zone is
-// injected per-render in fl_renderBody for twostep; it's wired via event delegation below.
-(function(){ const bg=fl_$("fl_bg"); if(bg){ bg.classList.add("fl-zone"); bg.onclick=()=>fl_openPicker("banner"); } })();
+// Banner photo zone = the WHOLE header, not the .bg layer: in text-on-banner templates
+// (Checklist / Explainer / Segments) the headline block sits on top of .bg and swallowed the
+// click. Every template — and any new one — shares .fl-header, so this covers them all.
+// The subject-circle zone is injected per-render (twostep); wired via delegation below.
+(function(){
+  const bg=fl_$("fl_bg"); const hd=bg && bg.closest(".fl-header");
+  if(hd){ hd.classList.add("fl-zone"); hd.onclick=()=>fl_openPicker("banner");
+          hd.setAttribute("role","button"); hd.setAttribute("tabindex","0"); hd.setAttribute("aria-label","Pick banner image");
+          hd.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); fl_openPicker("banner"); } }); }
+})();
 // Delegated click for the twostep circle (re-created on every render).
 document.addEventListener("click",e=>{
   const c=e.target.closest && e.target.closest(".ts-circle.fl-zone");
