@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="../wellness_tools/studio-brand.css">
 <script src="../wellness_tools/studio-brand.js"></script>
+<script src="../wellness_tools/studio-auth.js"></script>
 <!-- styles.css carries the .vwl-* SCREEN render rules (shared with screen.html).
      The library INTERFACE chrome is inlined below so this page is self-contained
      and never depends on the asset path resolving. -->
@@ -246,7 +247,7 @@
     <button class="sb-link" id="manageLink" style="display:none;" onclick="openRoster()">Manage clients</button>
     <button class="sb-link" id="parentLink" style="display:none;" onclick="openParents()">Parent brands</button>
     <button class="sb-link" id="logoutLink" style="display:none;" onclick="doLogout()">Log out</button>
-    <button class="sb-btn-light" id="loginLink" onclick="openLogin()">Log in</button>
+    <button class="sb-btn-light" id="loginLink" style="display:none" onclick="openLogin()">Log in</button>
   </div>
 </header>
 
@@ -716,7 +717,7 @@ function applyBrand(bc, fallbackName){ return StudioBrand.apply(bc, { fallbackNa
 const CONFIG_URL = "https://n8n-admin.willclower.com/webhook/hub-config";
 async function loadBranding(){
   try{
-    const res=await fetch(CONFIG_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const res=await fetch(CONFIG_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session:StudioAuth.session()})});
     let cfg=await res.json(); if(Array.isArray(cfg)) cfg=cfg[0];
     const nm = applyBrand(cfg.brand_config, cfg.name);
     document.title = nm + " \u2014 Visual Wellness Library";
@@ -731,11 +732,11 @@ async function loadBranding(){
    ============================================================================ */
 let SESSION = null;   // { session, am:{id,name,is_super_admin} }
 
-function loadSession(){
-  try{ const s = localStorage.getItem("mw_am"); if(s) SESSION = JSON.parse(s); }catch(e){}
-}
-function saveSession(){ try{ localStorage.setItem("mw_am", JSON.stringify(SESSION)); }catch(e){} }
-function clearSession(){ SESSION=null; try{ localStorage.removeItem("mw_am"); }catch(e){} }
+// Studio login lives on the hub (wellness_tools). No session -> hub, then back here;
+// no 'drl' tool on the account -> hub. Shared session = StudioAuth (localStorage "mw_am").
+function loadSession(){ SESSION = StudioAuth.require('drl'); }
+function saveSession(){ StudioAuth.set(SESSION); }
+function clearSession(){ SESSION=null; StudioAuth.clear(); }
 
 function paintAuth(){
   const inn = !!SESSION;
@@ -751,7 +752,7 @@ function paintAuth(){
 }
 
 /* ---- login modal ---- */
-function openLogin(){ show("loginMask"); document.getElementById("liEmail").focus(); }
+function openLogin(){ StudioAuth.expired(); }   // expired/missing session -> hub login, then back
 function closeLogin(){ hide("loginMask"); }
 async function doLogin(){
   const email = document.getElementById("liEmail").value.trim();
@@ -770,7 +771,7 @@ async function doLogin(){
     setTimeout(()=>{ closeLogin(); openRoster(); }, 300);
   }catch(e){ m.className="msg err"; m.textContent="Could not reach the server."; }
 }
-function doLogout(){ clearSession(); paintAuth(); hide("rosterMask"); hide("parentMask"); }
+function doLogout(){ StudioAuth.logout(); }
 
 /* ---- roster modal (list clients; add/delete come next) ---- */
 function openRoster(){ show("rosterMask"); loadRoster(); }
@@ -1613,7 +1614,7 @@ function logDownload(picks, files){
 }
 
 async function boot(){
-  loadSession(); paintAuth();
+  loadSession(); if(!SESSION) return; paintAuth();
   await loadBranding();
   try{
     const res = await fetch(DRL_API + "/library");
