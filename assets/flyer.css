@@ -31,7 +31,7 @@
     padding:5px 14px;border-radius:100px;}
 .flyer-scope .fl-head{font-family:var(--font-voice);font-weight:700;font-size:30px;line-height:1.06;
     margin:9px 0 0;text-shadow:0 2px 18px rgba(0,0,0,.45);max-width:72%;}
-  .flyer-scope .fl-body{padding:30px 40px 22px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:flex-start;}
+  .flyer-scope .fl-body{padding:30px 40px 22px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;position:relative;}
 .flyer-scope .fl-lead{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:0 0 4px;max-width:92%;flex:0 0 auto;}
 .flyer-scope #fl_bodyZone{display:contents;}
 .flyer-scope #fl_bodyZone > *{flex:0 0 auto;}
@@ -75,7 +75,7 @@
    Banner photos are made dark-left for the headline, so they carry the text on their own. */
 .flyer-scope .fl-header .scrim, .flyer-scope .fl-header .htexture{display:none;}
 .flyer-scope .ts-mode .fl-body{padding-top:0;}
-.flyer-scope .ts-sweep{position:relative;height:0;z-index:2;margin:0 -40px;}
+.flyer-scope .ts-sweep{position:absolute;top:0;left:0;right:0;height:0;z-index:2;}
 .flyer-scope .ts-sweep svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:46px;display:block;}
 .flyer-scope .ts-title{font-family:var(--font-voice);font-weight:800;font-size:34px;line-height:1.05;
     color:var(--brand-primary);text-align:center;margin:2px 0 22px;}
