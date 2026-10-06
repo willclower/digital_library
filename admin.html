@@ -67,7 +67,13 @@
   /* ===== Persistent template switcher rail (flyer build, right column) ===== */
   #fl_tplRail{position:sticky;top:24px;}
   #fl_tplRail .rail-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle);margin-bottom:10px;}
-  #fl_tplRail .rail-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  #fl_tplRail .rail-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  /* live mini previews of the current flyer in each template (same pattern as the newsletter rail) */
+  #fl_tplRail .fl-mini{width:100%;aspect-ratio:612/792;overflow:hidden;border-radius:4px;background:#fff;pointer-events:none;
+    box-shadow:0 1px 3px rgba(0,0,0,.15);position:relative;}
+  #fl_tplRail .fl-mini__in{position:absolute;left:0;top:0;width:612px;transform-origin:top left;}
+  #fl_tplRail .fl-mini .flyer{box-shadow:none;}
+  #fl_tplRail .fl-mini .fl-zone::after{display:none;}
   /* Screen BUILD: form | preview | template rail */
   .wrap.build3s{grid-template-columns:minmax(0,0.95fr) minmax(0,1.1fr) minmax(300px,0.62fr);max-width:1780px;}
   #sc_tplRail{position:sticky;top:24px;}
@@ -894,7 +900,7 @@
   <div class="previewwrap flyer-build-only flyer-scope" id="flyerPreviewWrap" style="display:none">
     <div class="plabel">Live preview</div>
 <div class="flyer-wrap">
-  <div class="flyer" id="fl_in_flyer">
+  <div class="flyer fl-authoring" id="fl_in_flyer">
     <div class="fl-header">
       <div class="bg" id="fl_bg"></div>
       <div class="htexture"></div>
@@ -955,47 +961,22 @@
     <div class="rail-label">Template</div>
     <div class="rail-cards">
       <button type="button" class="fl-tpl-card" data-tpl="checklist" onclick="fl_setTemplate('checklist')">
-        <div class="fl-wire">
-          <div class="fw-banner"><span class="fw-pill"></span><span class="fw-title"></span></div>
-          <div class="fw-lead"></div>
-          <div class="fw-grid"><span></span><span></span><span></span><span></span></div>
-          <div class="fw-cta"></div>
-        </div>
+        <div class="fl-mini"><div class="fl-mini__in"></div></div>
         <div class="fl-tpl-name">Checklist</div>
         <div class="fl-tpl-desc">2×2 grid of check items</div>
       </button>
       <button type="button" class="fl-tpl-card" data-tpl="explainer" onclick="fl_setTemplate('explainer')">
-        <div class="fl-wire">
-          <div class="fw-banner"><span class="fw-pill"></span><span class="fw-title"></span></div>
-          <div class="fw-lead"></div>
-          <div class="fw-flow"><span></span><span></span><span></span><span></span></div>
-          <div class="fw-cta"></div>
-        </div>
+        <div class="fl-mini"><div class="fl-mini__in"></div></div>
         <div class="fl-tpl-name">Explainer</div>
         <div class="fl-tpl-desc">Numbered step-by-step</div>
       </button>
       <button type="button" class="fl-tpl-card" data-tpl="segments" onclick="fl_setTemplate('segments')">
-        <div class="fl-wire">
-          <div class="fw-banner"><span class="fw-pill"></span><span class="fw-title"></span></div>
-          <div class="fw-lead"></div>
-          <div class="fw-hero"></div>
-          <div class="fw-cols"><span></span><span></span><span></span></div>
-          <div class="fw-cta"></div>
-        </div>
+        <div class="fl-mini"><div class="fl-mini__in"></div></div>
         <div class="fl-tpl-name">Segments</div>
         <div class="fl-tpl-desc">Hero topic + three areas</div>
       </button>
       <button type="button" class="fl-tpl-card" data-tpl="twostep" onclick="fl_setTemplate('twostep')">
-        <div class="fl-wire">
-          <div class="fw-ts-banner"></div>
-          <div class="fw-ts-title"></div>
-          <div class="fw-ts-intro">
-            <span class="fw-ts-circle"></span>
-            <span class="fw-ts-lines"><span></span><span></span><span></span></span>
-          </div>
-          <div class="fw-ts-cards"><span></span><span></span></div>
-          <div class="fw-cta"></div>
-        </div>
+        <div class="fl-mini"><div class="fl-mini__in"></div></div>
         <div class="fl-tpl-name">2 Steps</div>
         <div class="fl-tpl-desc">Photo banner + circle + 2 cards</div>
       </button>
@@ -1420,9 +1401,19 @@ async function fl_captureManifest(){
     if(fl_subjectRef){ subject_ref = fl_subjectRef; }
     else { const s=await fl_shrinkForDraft(fl_subjectData,800,0.85); subject = s ? "data:"+s.mime+";base64,"+s.base64 : null; }
   }
+  // Segments column photos: same ref-or-small-data-URL rule as the banner/subject.
+  const seg_refs=[null,null,null], segs=[null,null,null];
+  if(fl_template==="segments"){
+    for(let i=0;i<3;i++){
+      if(!fl_segData[i]) continue;
+      if(fl_segRef[i]) seg_refs[i]=fl_segRef[i];
+      else { const s=await fl_shrinkForDraft(fl_segData[i],900,0.85); segs[i] = s ? "data:"+s.mime+";base64,"+s.base64 : null; }
+    }
+  }
   return {
     v: 1,
     template: fl_template,
+    seg_refs, segs,         // Segments column photos (optional; null = no photo in that column)
     headline: g("fl_in_headline"),
     eyebrow:  g("fl_in_eyebrow"),
     lead:     g("fl_in_lead"),
@@ -1904,6 +1895,10 @@ async function fl_openPicker(zone){
   fl_pickZone = zone;
   fl_pickAspect = (zone==="subject") ? "square" : "16:9";
   let pickTitle = zone==="subject" ? "Choose a subject image (square)" : (zone==="screen" ? "Choose the screen image (16:9)" : "Choose a banner image (16:9)");
+  if(String(zone).startsWith("seg:")){                    // Segments column photos
+    fl_pickAspect = "16:9";
+    pickTitle = "Choose a photo for column " + (+zone.slice(4)+1);
+  }
   if(String(zone).startsWith("nl:")){                     // newsletter photo spots
     const z = zone.slice(3);
     fl_pickAspect = nl_zoneAspect(z);
@@ -1966,6 +1961,7 @@ function fl_renderPickGrid(){
         const dataUrl = await fl_fetchImageDataUrl(r.id);
         if(fl_pickZone==="screen") sc_setImage(dataUrl, r.title || r.id);
         else if(String(fl_pickZone).startsWith("nl:")) nl_setImage(fl_pickZone.slice(3), dataUrl, r.id);
+        else if(String(fl_pickZone).startsWith("seg:")) fl_setSeg(+fl_pickZone.slice(4), dataUrl, r.id);
         else if(fl_pickZone==="subject") fl_setSubject(dataUrl, r.id); else fl_setBanner(dataUrl, r.id);
         fl_closePicker();
       }catch(e){ msg.textContent="Couldn't load that image."; }
@@ -2026,11 +2022,44 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape" && fl_$("fl_pick").
           hd.setAttribute("role","button"); hd.setAttribute("tabindex","0"); hd.setAttribute("aria-label","Pick banner image");
           hd.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); fl_openPicker("banner"); } }); }
 })();
-// Delegated click for the twostep circle (re-created on every render).
+// Delegated click for the twostep circle and the Segments column photos (re-created on every render).
 document.addEventListener("click",e=>{
-  const c=e.target.closest && e.target.closest(".ts-circle.fl-zone");
-  if(c) fl_openPicker("subject");
+  if(!e.target.closest || !e.target.closest("#fl_in_flyer")) return;   // ignore the rail minis
+  const c=e.target.closest(".ts-circle.fl-zone");
+  if(c){ fl_openPicker("subject"); return; }
+  const g=e.target.closest(".fl-col__img.fl-zone");
+  if(g) fl_openPicker("seg:" + g.dataset.seg);
 });
+// Segments column photo i (0-2). Optional: an empty slot shows only while authoring and is
+// left out of the PDF (the column then renders as a text card).
+function fl_setSeg(i, dataUrl, libId){
+  if(!(i>=0 && i<3)) return;
+  fl_segData[i] = dataUrl; fl_segRef[i] = libId || null;
+  fl_draw();
+}
+
+// Live mini previews in the template rail: the current flyer, re-laid-out in every template.
+// Called after each fl_draw (hook in flyer-render.js); debounced so typing stays smooth.
+let fl_miniTimer = null;
+function fl_afterDraw(){ clearTimeout(fl_miniTimer); fl_miniTimer = setTimeout(fl_drawMinis, 200); }
+function fl_drawMinis(){
+  const src = fl_$("fl_in_flyer"); if(!src) return;
+  const eyebrow = fl_$("fl_in_eyebrow") ? fl_$("fl_in_eyebrow").value : "";
+  const headline = fl_$("fl_in_headline") ? fl_$("fl_in_headline").value : "";
+  document.querySelectorAll("#fl_tplRail .fl-tpl-card").forEach(card=>{
+    const box = card.querySelector(".fl-mini"), inn = card.querySelector(".fl-mini__in"); if(!box||!inn) return;
+    const t = card.dataset.tpl, isTs = (t==="twostep");
+    const clone = src.cloneNode(true);
+    clone.removeAttribute("id"); clone.querySelectorAll("[id]").forEach(el=>el.removeAttribute("id"));
+    clone.classList.toggle("ts-mode", isTs);
+    const ey = clone.querySelector(".eyebrow-pill"); if(ey) ey.textContent = isTs ? "" : eyebrow;
+    const hd = clone.querySelector(".fl-head");      if(hd) hd.textContent = isTs ? "" : headline;
+    const zone = clone.querySelector(".fl-body > div");
+    if(zone){ zone.className = "fl-bodyzone"; zone.innerHTML = fl_bodyHTML(t); }
+    inn.replaceChildren(clone);
+    inn.style.transform = `scale(${(box.clientWidth||150)/612})`;
+  });
+}
 
 // fl_template now declared in the shared flyer-render.js; fl_setTemplate below reassigns it.
 // Select a template: outline its rail card, set the body layout, re-render the CENTER
@@ -2526,6 +2555,7 @@ function fl_startNewFlyer(){
   ["fl_in_briefText","fl_in_lead"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   // banner + logo
   fl_bannerData=null; fl_logoData=null; fl_subjectData=null; fl_bannerRef=null; fl_subjectRef=null;
+  fl_segData=[null,null,null]; fl_segRef=[null,null,null];
   fl_bannerY=50;
   const slY=document.getElementById("fl_bannerY"); if(slY){ slY.value=50; slY.disabled=true; }
   const slW=document.getElementById("fl_bannerYWrap"); if(slW) slW.style.opacity=".5";
