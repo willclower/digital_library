@@ -517,6 +517,7 @@ function resolveThumb(marker){
 // Normalize each API row into the shape this page already knows.
 function normalize(row){
   const first = a => Array.isArray(a) ? a[0] : a;
+  const arr   = a => Array.isArray(a) ? a : (a==null ? [] : [a]);
   const at = row.asset_type || "screen";
   const isDoc = at !== "screen";
   return {
@@ -541,8 +542,8 @@ function normalize(row){
     // For docs the "background" is the /file endpoint (preview + download both use it).
     background: isDoc ? resolveImage(row) : (resolveImage(row) || "gradient:night"),
     tags: {
-      subject: first(row.subject), month: first(row.month),
-      setting: first(row.setting), aspect: first(row.aspect),
+      subject: arr(row.subject), month: arr(row.month),
+      setting: arr(row.setting), aspect: first(row.aspect),
       format: row.format, asset: at
     },
     createdAt: row.created_at || null
@@ -566,11 +567,11 @@ const GLABELS = {
   setting:{ any:"Any setting" }, month:{ any:"Any month" }
 };
 const label = (v, g) => (g && GLABELS[g] && GLABELS[g][v]) || LABELS[v] || (v.charAt(0).toUpperCase()+v.slice(1));
-function countFor(g, v){ return DATA.screens.filter(s=>s.tags[g]===v).length; }
+function countFor(g, v){ return DATA.screens.filter(s=>{ const t=s.tags[g]; return Array.isArray(t)?t.includes(v):t===v; }).length; }
 
 function buildFilters(){
   const vocab = DATA.library.tagVocabulary;
-  const present = g => [...new Set(DATA.screens.map(s => s.tags[g]).filter(Boolean))];
+  const present = g => [...new Set(DATA.screens.flatMap(s => { const t=s.tags[g]; return Array.isArray(t)?t:(t?[t]:[]); }))];
   const ordered = g => { const order=vocab[g]||[]; return present(g).sort((a,b)=>order.indexOf(a)-order.indexOf(b)); };
 
   document.getElementById("f-subject").innerHTML = ordered("subject").map(v=>`
@@ -614,10 +615,15 @@ function removeFilter(g,v){
 }
 
 function matches(s){
-  for(const g in sel){ if(sel[g].size && !sel[g].has(s.tags[g])) return false; }
+  for(const g in sel){
+    if(!sel[g].size) continue;
+    const t = s.tags[g];
+    const ok = Array.isArray(t) ? [...sel[g]].some(v=>t.includes(v)) : sel[g].has(t);
+    if(!ok) return false;
+  }
   const q = document.getElementById("q").value.trim().toLowerCase();
   if(q){
-    const hay = [s.title, s.subtitle, s.eyebrow, ...Object.values(s.tags)].join(" ").toLowerCase();
+    const hay = [s.title, s.subtitle, s.eyebrow, ...Object.values(s.tags).flat()].join(" ").toLowerCase();
     if(!hay.includes(q)) return false;
   }
   return true;
@@ -665,8 +671,9 @@ function render(){
   out.forEach(s=>{
     const card = document.createElement("article");
     card.className = "card";
-    const badges = [["subject",""],["month","mo"]].filter(([k])=>s.tags[k])
-      .map(([k,c])=>`<span class="tag ${c}">${label(s.tags[k],k)}</span>`).join("");
+    const badges = [["subject",""],["month","mo"]]
+      .flatMap(([k,c])=>{ const t=s.tags[k]; const vals=Array.isArray(t)?t:(t?[t]:[]); return vals.map(v=>`<span class="tag ${c}">${label(v,k)}</span>`); })
+      .join("");
 
     if(s.isDoc){
       // Document card (flyer / newsletter): no screen overlay; Preview + Download
