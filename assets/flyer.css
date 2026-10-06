@@ -84,9 +84,27 @@
 /* Segment photo (optional, one per column). Empty slots show only in the authoring preview. */
 .flyer-scope .fl-col__img{flex:0 0 auto;aspect-ratio:2/1;background:#e9edf0 center/cover no-repeat;
     border-bottom:3px solid var(--brand-secondary);}
-.flyer-scope .fl-col__img--empty{display:none;}
-.flyer-scope .flyer.fl-authoring .fl-col__img--empty{display:block;}
-.flyer-scope .flyer.fl-rendering .fl-col__img--empty{display:none !important;}
+/* ===== Optional item photos (all templates) — empty slots show only while authoring ===== */
+.flyer-scope .fl-img{background:#e9edf0 center/cover no-repeat;}
+.flyer-scope .fl-img--empty{display:none;}
+.flyer-scope .flyer.fl-authoring .fl-img--empty{display:block;}
+.flyer-scope .flyer.fl-rendering .fl-img--empty{display:none !important;}
+/* Checklist: small round photo tucked in the tile's top-right corner; only the title wraps around it */
+.flyer-scope .tile__img{position:absolute !important;top:10px;right:10px;width:50px;height:50px;border-radius:50%;
+    border:3px solid #fff;box-shadow:0 2px 6px -2px rgba(0,0,0,.35);}
+.flyer-scope .tile .tbody{flex:1 1 auto;min-width:0;}
+.flyer-scope .tile.has-img .tbody h4, .flyer-scope .flyer.fl-authoring .tile .tbody h4{padding-right:50px;min-height:46px;display:flex;align-items:center;}
+.flyer-scope .flyer.fl-rendering .tile:not(.has-img) .tbody h4{padding-right:0;min-height:0;display:block;}
+/* Explainer: rounded square photo on the right of each step */
+.flyer-scope .fl-flow__item.has-img, .flyer-scope .flyer.fl-authoring .fl-flow__item{grid-template-columns:40px 1fr 64px;}
+.flyer-scope .flyer.fl-rendering .fl-flow__item:not(.has-img){grid-template-columns:40px 1fr;}
+.flyer-scope .fl-flow__img{width:64px;height:64px;border-radius:10px;}
+/* 2 Steps: photo strip across the top of each card */
+.flyer-scope .ts-card__img{margin:-22px -20px 14px;aspect-ratio:3/1;border-radius:12px 12px 0 0;
+    border-bottom:3px solid var(--brand-secondary);}
+.flyer-scope .ts-card.has-img, .flyer-scope .flyer.fl-authoring .ts-card{border-top:none;}
+.flyer-scope .flyer.fl-rendering .ts-card:not(.has-img){border-top:4px solid var(--brand-secondary);}
+.flyer-scope .ts-badge{z-index:2;}
 .flyer-scope .fl-col__text{flex:1 1 auto;padding:11px 13px 13px;}
 .flyer-scope .fl-col:not(.has-img) .fl-col__text{border-top:3px solid var(--brand-secondary);}
 .flyer-scope .flyer.fl-authoring .fl-col:not(.has-img) .fl-col__text{border-top:none;}
@@ -204,3 +222,6 @@
    line breaks but still collapses runs of spaces. */
 .flyer-scope .tile .tbody p, .flyer-scope .fl-flow__body, .flyer-scope .fl-hero__body,
 .flyer-scope .ts-card__body, .flyer-scope .ts-intro__body, .flyer-scope .fl-lead{white-space:pre-line;}
+/* 2 Steps with card photos: smaller circle so the page still fits */
+.flyer-scope .ts-mode .ts-intro{grid-template-columns:130px 1fr;}
+.flyer-scope .ts-mode .ts-circle{width:130px;height:130px;}
