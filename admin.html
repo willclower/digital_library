@@ -1401,19 +1401,18 @@ async function fl_captureManifest(){
     if(fl_subjectRef){ subject_ref = fl_subjectRef; }
     else { const s=await fl_shrinkForDraft(fl_subjectData,800,0.85); subject = s ? "data:"+s.mime+";base64,"+s.base64 : null; }
   }
-  // Segments column photos: same ref-or-small-data-URL rule as the banner/subject.
-  const seg_refs=[null,null,null], segs=[null,null,null];
-  if(fl_template==="segments"){
-    for(let i=0;i<3;i++){
-      if(!fl_segData[i]) continue;
-      if(fl_segRef[i]) seg_refs[i]=fl_segRef[i];
-      else { const s=await fl_shrinkForDraft(fl_segData[i],900,0.85); segs[i] = s ? "data:"+s.mime+";base64,"+s.base64 : null; }
-    }
+  // Item photos (by tile index): same ref-or-small-data-URL rule as the banner/subject.
+  // Only the slots the chosen template uses are saved.
+  const item_img_refs=[null,null,null,null], item_imgs=[null,null,null,null];
+  for(const i of (FL_IMG_SLOTS[fl_template]||[])){
+    if(!fl_imgData[i]) continue;
+    if(fl_imgRef[i]) item_img_refs[i]=fl_imgRef[i];
+    else { const s=await fl_shrinkForDraft(fl_imgData[i],900,0.85); item_imgs[i] = s ? "data:"+s.mime+";base64,"+s.base64 : null; }
   }
   return {
     v: 1,
     template: fl_template,
-    seg_refs, segs,         // Segments column photos (optional; null = no photo in that column)
+    item_img_refs, item_imgs,   // optional per-tile photos, index = tile index (null = none)
     headline: g("fl_in_headline"),
     eyebrow:  g("fl_in_eyebrow"),
     lead:     g("fl_in_lead"),
@@ -1756,9 +1755,11 @@ const FL_CAPS_SHARED = {
 };
 const FL_CAPS_TPL = {
   // Checklist: 2x2 grid, half-width text column (narrowest body of the three).
-  checklist: { fl_in_lead: 190, _tile_h: 34, _tile_p: 120 },
+  // 2026-10-06 photo pass: every template's limits verified one page with all fields at cap AND
+  // all photo slots filled. Lead 190->170 (round photos).
+  checklist: { fl_in_lead: 170, _tile_h: 34, _tile_p: 120 },
   // Explainer: full-width numbered rail — widest column, holds more per item.
-  explainer: { fl_in_lead: 190, _tile_h: 46, _tile_p: 170 },
+  explainer: { fl_in_lead: 170, _tile_h: 46, _tile_p: 140 },   // photo pass: 190/170 -> 170/140
   // Segments: hero (item 0) is roomy full-width; items 1-3 are the tight uppercase columns.
   // 2026-10-06: column body 95 -> 150 (room for a second point after a line break); lead and
   // hero trimmed to 140 to pay for it. Verified one page with every field at its cap.
@@ -1766,7 +1767,8 @@ const FL_CAPS_TPL = {
   // Concentra: lead = bold intro line (right of the circle); item0.p = grey continuation
   // paragraph; items 1-2 = the two badge cards (head + body). item0.h unused (no field shown
   // for it in this layout, but the tile editor still exposes it — ignored at render).
-  twostep: { fl_in_lead: 130, _tile_h: 30, _tile_p: 130 }
+  // photo pass: one-line title (46->32), one-line card titles (30->24), bodies 130->110
+  twostep: { fl_in_lead: 130, fl_in_headline: 32, _tile_h: 24, _tile_p: 110 }
 };
 // How many item slots each template actually USES (draft-fills, QC-serializes, gates, clears).
 // The tile editor still shows 4 fields; this only bounds what's populated/reviewed/rendered.
@@ -1776,8 +1778,9 @@ const FL_CAPS_TPL = {
 // Cap for a field id under the CURRENT template. Tile fields are index-aware so segments
 // item 0 (the hero) gets the hero caps and items 1-3 get the column caps.
 function fl_capFor(id){
-  if(FL_CAPS_SHARED[id]!=null) return FL_CAPS_SHARED[id];
   const t = FL_CAPS_TPL[fl_template] || FL_CAPS_TPL.checklist;
+  if(t[id]!=null) return t[id];                          // per-template override (e.g. twostep headline)
+  if(FL_CAPS_SHARED[id]!=null) return FL_CAPS_SHARED[id];
   if(id==="fl_in_lead") return t.fl_in_lead;
   const mh=/_t(\d+)_h$/.exec(id), mp=/_t(\d+)_p$/.exec(id);
   if(mh){ const i=+mh[1]; return (fl_template==="segments" && i===0 && t._hero_h!=null) ? t._hero_h : t._tile_h; }
@@ -1897,9 +1900,10 @@ async function fl_openPicker(zone){
   fl_pickZone = zone;
   fl_pickAspect = (zone==="subject") ? "square" : "16:9";
   let pickTitle = zone==="subject" ? "Choose a subject image (square)" : (zone==="screen" ? "Choose the screen image (16:9)" : "Choose a banner image (16:9)");
-  if(String(zone).startsWith("seg:")){                    // Segments column photos
-    fl_pickAspect = "16:9";
-    pickTitle = "Choose a photo for column " + (+zone.slice(4)+1);
+  if(String(zone).startsWith("img:")){                    // per-tile photos (all flyer templates)
+    // round/square spots (checklist, explainer) pull square images; strips (segments, 2 steps) pull 16:9
+    fl_pickAspect = (fl_template==="checklist" || fl_template==="explainer") ? "square" : "16:9";
+    pickTitle = "Choose a photo for item " + (+zone.slice(4)+1) + " (" + fl_pickAspect + ")";
   }
   if(String(zone).startsWith("nl:")){                     // newsletter photo spots
     const z = zone.slice(3);
@@ -1963,7 +1967,7 @@ function fl_renderPickGrid(){
         const dataUrl = await fl_fetchImageDataUrl(r.id);
         if(fl_pickZone==="screen") sc_setImage(dataUrl, r.title || r.id);
         else if(String(fl_pickZone).startsWith("nl:")) nl_setImage(fl_pickZone.slice(3), dataUrl, r.id);
-        else if(String(fl_pickZone).startsWith("seg:")) fl_setSeg(+fl_pickZone.slice(4), dataUrl, r.id);
+        else if(String(fl_pickZone).startsWith("img:")) fl_setImg(+fl_pickZone.slice(4), dataUrl, r.id);
         else if(fl_pickZone==="subject") fl_setSubject(dataUrl, r.id); else fl_setBanner(dataUrl, r.id);
         fl_closePicker();
       }catch(e){ msg.textContent="Couldn't load that image."; }
@@ -2024,19 +2028,19 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape" && fl_$("fl_pick").
           hd.setAttribute("role","button"); hd.setAttribute("tabindex","0"); hd.setAttribute("aria-label","Pick banner image");
           hd.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); fl_openPicker("banner"); } }); }
 })();
-// Delegated click for the twostep circle and the Segments column photos (re-created on every render).
+// Delegated click for the twostep circle and the per-tile photos (re-created on every render).
 document.addEventListener("click",e=>{
   if(!e.target.closest || !e.target.closest("#fl_in_flyer")) return;   // ignore the rail minis
   const c=e.target.closest(".ts-circle.fl-zone");
   if(c){ fl_openPicker("subject"); return; }
-  const g=e.target.closest(".fl-col__img.fl-zone");
-  if(g) fl_openPicker("seg:" + g.dataset.seg);
+  const g=e.target.closest(".fl-img.fl-zone");
+  if(g) fl_openPicker("img:" + g.dataset.img);
 });
-// Segments column photo i (0-2). Optional: an empty slot shows only while authoring and is
-// left out of the PDF (the column then renders as a text card).
-function fl_setSeg(i, dataUrl, libId){
-  if(!(i>=0 && i<3)) return;
-  fl_segData[i] = dataUrl; fl_segRef[i] = libId || null;
+// Photo for tile i (0-3), any template. Optional: an empty slot shows only while authoring and is
+// left out of the PDF. Kept by tile index, so a pick survives switching templates.
+function fl_setImg(i, dataUrl, libId){
+  if(!(i>=0 && i<4)) return;
+  fl_imgData[i] = dataUrl; fl_imgRef[i] = libId || null;
   fl_draw();
 }
 
@@ -2558,7 +2562,7 @@ function fl_startNewFlyer(){
   ["fl_in_briefText","fl_in_lead"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   // banner + logo
   fl_bannerData=null; fl_logoData=null; fl_subjectData=null; fl_bannerRef=null; fl_subjectRef=null;
-  fl_segData=[null,null,null]; fl_segRef=[null,null,null];
+  fl_imgData=[null,null,null,null]; fl_imgRef=[null,null,null,null];
   fl_bannerY=50;
   const slY=document.getElementById("fl_bannerY"); if(slY){ slY.value=50; slY.disabled=true; }
   const slW=document.getElementById("fl_bannerYWrap"); if(slW) slW.style.opacity=".5";
