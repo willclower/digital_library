@@ -159,6 +159,16 @@ async function renderFlyerFromManifest(manifest, brand){
 
   fl_subjectData = (m.subject_ref || m.subject) ? await fl_toDataUrl(m.subject_ref || m.subject) : null;
 
+  // Segments column photos (optional). Always reset — the iframe is reused across renders.
+  const segRefs = Array.isArray(m.seg_refs) ? m.seg_refs : [], segs = Array.isArray(m.segs) ? m.segs : [];
+  fl_segData = [null,null,null]; fl_segRef = [null,null,null];
+  if(fl_template === "segments"){
+    for(let i=0;i<3;i++){
+      const src = segRefs[i] || segs[i];
+      if(src){ try{ fl_segData[i] = await fl_toDataUrl(src); }catch(e){ fl_segData[i] = null; } }
+    }
+  }
+
   // Bottom-zone pop-in/pop-out:
   //   branded    -> address footer shown, resource hidden
   //   unbranded  -> address footer hidden; if a resource block exists, show it
