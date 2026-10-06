@@ -2138,8 +2138,9 @@ async function fl_draftCopy(){
     caps: {
       eyebrow:fl_capFor("fl_in_eyebrow"), headline:fl_capFor("fl_in_headline"),
       lead:fl_capFor("fl_in_lead"),
-      // tile caps: item 1 is representative (for segments item 0 is the hero, edited up by hand)
-      tile_h:fl_capFor("fl_in_t1_h"), tile_p:fl_capFor("fl_in_t1_p")
+      // tile caps: item 1 is representative; segments item 0 (the hero) has its own caps
+      tile_h:fl_capFor("fl_in_t1_h"), tile_p:fl_capFor("fl_in_t1_p"),
+      hero_h:fl_capFor("fl_in_t0_h"), hero_p:fl_capFor("fl_in_t0_p")
     } };
   // reuse the banner already loaded in Branding, downscaled so the payload stays small.
   if (fl_bannerData && /^data:image\/(png|jpe?g|gif|webp);base64,/.test(fl_bannerData)) {
