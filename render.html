@@ -159,14 +159,18 @@ async function renderFlyerFromManifest(manifest, brand){
 
   fl_subjectData = (m.subject_ref || m.subject) ? await fl_toDataUrl(m.subject_ref || m.subject) : null;
 
-  // Segments column photos (optional). Always reset — the iframe is reused across renders.
-  const segRefs = Array.isArray(m.seg_refs) ? m.seg_refs : [], segs = Array.isArray(m.segs) ? m.segs : [];
-  fl_segData = [null,null,null]; fl_segRef = [null,null,null];
-  if(fl_template === "segments"){
-    for(let i=0;i<3;i++){
-      const src = segRefs[i] || segs[i];
-      if(src){ try{ fl_segData[i] = await fl_toDataUrl(src); }catch(e){ fl_segData[i] = null; } }
-    }
+  // Per-tile photos (optional). Always reset — the iframe is reused across renders.
+  // Legacy segments manifests (seg_refs/segs, columns 0-2) map to tiles 1-3.
+  fl_imgData = [null,null,null,null]; fl_imgRef = [null,null,null,null];
+  const srcs = [null,null,null,null];
+  const ir = Array.isArray(m.item_img_refs) ? m.item_img_refs : [], id = Array.isArray(m.item_imgs) ? m.item_imgs : [];
+  for(let i=0;i<4;i++) srcs[i] = ir[i] || id[i] || null;
+  if(Array.isArray(m.seg_refs) || Array.isArray(m.segs)){
+    const sr = m.seg_refs || [], sd = m.segs || [];
+    for(let i=0;i<3;i++) if(!srcs[i+1]) srcs[i+1] = sr[i] || sd[i] || null;
+  }
+  for(const i of (FL_IMG_SLOTS[fl_template] || [])){
+    if(srcs[i]){ try{ fl_imgData[i] = await fl_toDataUrl(srcs[i]); }catch(e){ fl_imgData[i] = null; } }
   }
 
   // Bottom-zone pop-in/pop-out:
