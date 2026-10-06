@@ -15,8 +15,11 @@ var fl_template   = "checklist";              // reassigned by admin's template 
 var fl_bannerData = null, fl_logoData = null, fl_subjectData = null;
 var fl_bannerRef  = null, fl_subjectRef = null;   // image-library ids when picked from library
 var fl_bannerY    = 50;                        // banner vertical crop (background-position Y%)
-var fl_segData    = [null,null,null];          // Segments: optional photo per column (data URLs)
-var fl_segRef     = [null,null,null];          // ...and their image-library ids when picked from library
+// Optional per-item photos, indexed by TILE index (0-3) so picks carry across templates.
+// Used: checklist 0-3 (round), explainer 0-3 (square), segments 1-3 (column strip), twostep 1-2 (card strip).
+var fl_imgData    = [null,null,null,null];     // data URLs
+var fl_imgRef     = [null,null,null,null];     // image-library ids when picked from library
+const FL_IMG_SLOTS = { checklist:[0,1,2,3], explainer:[0,1,2,3], segments:[1,2,3], twostep:[1,2] };
 const fl_TILES    = [0,1,2,3,4,5];             // render funcs iterate this to read fl_in_t{i}_h/_p
 
 // ---- helpers ----
@@ -41,28 +44,31 @@ function fl_bodyData(){
 // admin template rail can render live mini previews of every template from the same content.
 // Item count is bounded per template (FL_ITEMS_TPL). Layout fill rules live in flyer.css
 // (.fl-main grows to a cap, .fl-tail takes the rest, .fl-gap = capped gap between sections).
+// One photo slot for tile i. Empty slots render only in the builder (flyer.css), never in the PDF.
+function fl_imgSlot(i, cls){
+  const img = fl_imgData[i];
+  return `<div class="fl-img ${cls} fl-zone${img?"":" fl-img--empty"}" data-img="${i}"`+
+    (img ? ` style="background-image:url('${img}')"` : "") + `></div>`;
+}
 function fl_bodyHTML(tpl){
   const { lead, items } = fl_bodyData();
   const n = FL_ITEMS_TPL[tpl] ?? 4;
-  const shown = items.slice(0, n).filter(t=>t.h||t.p);
+  const shown = items.slice(0, n).map((t,i)=>Object.assign({i},t)).filter(t=>t.h||t.p);   // t.i = tile index
   const leadHTML = `<p class="fl-lead">${fl_esc(lead)}</p>`;
   const tail = `<div class="fl-tail"></div>`;
   if(tpl==="explainer"){
     const li = shown.map((t,i)=>
-      `<li class="fl-flow__item fl-tint"><div class="fl-flow__num">${i+1}</div>`+
+      `<li class="fl-flow__item fl-tint${fl_imgData[t.i]?" has-img":""}"><div class="fl-flow__num">${i+1}</div>`+
       `<div><h4 class="fl-flow__head">${fl_esc(t.h)}</h4>`+
-      `<p class="fl-flow__body">${fl_esc(t.p)}</p></div></li>`).join("");
+      `<p class="fl-flow__body">${fl_esc(t.p)}</p></div>${fl_imgSlot(t.i,"fl-flow__img")}</li>`).join("");
     return leadHTML + `<ol class="fl-flow fl-main">${li}</ol>` + tail;
   }
   if(tpl==="segments"){
     const hero = shown[0]
       ? `<div class="fl-hero fl-tint"><h4 class="fl-hero__label">${fl_esc(shown[0].h)}</h4>`+
         `<p class="fl-hero__body">${fl_esc(shown[0].p)}</p></div>` : "";
-    const cols = shown.slice(1).map((t,i)=>{
-      const img = fl_segData[i];
-      const imgHTML = `<div class="fl-col__img fl-zone${img?"":" fl-col__img--empty"}" data-seg="${i}"`+
-        (img ? ` style="background-image:url('${img}')"` : "") + `></div>`;
-      return `<div class="fl-col${img?" has-img":""}">${imgHTML}`+
+    const cols = shown.slice(1).map(t=>{
+      return `<div class="fl-col${fl_imgData[t.i]?" has-img":""}">${fl_imgSlot(t.i,"fl-col__img")}`+
         `<div class="fl-col__text fl-tint"><h4 class="fl-col__label">${fl_esc(t.h)}</h4>`+
         `<p class="fl-col__body">${fl_esc(t.p)}</p></div></div>`;
     }).join("");
@@ -75,10 +81,9 @@ function fl_bodyHTML(tpl){
     const introHead = items[0] ? items[0].h : "";
     const introBody = items[0] ? items[0].p : "";
     const circleStyle = fl_subjectData ? ` style="background-image:url('${fl_subjectData}')"` : "";
-    const cards = [items[1], items[2]].filter(t=>t && (t.h||t.p)).map((t,i)=>
-      `<div class="ts-card"><div class="ts-badge">${i+1}</div>`+
+    const cards = [1,2].filter(k=>items[k] && (items[k].h||items[k].p)).map((k,i)=>{ const t=items[k]; return `<div class="ts-card${fl_imgData[k]?" has-img":""}">${fl_imgSlot(k,"ts-card__img")}<div class="ts-badge">${i+1}</div>`+
       `<h4 class="ts-card__head">${fl_esc(t.h)}</h4>`+
-      `<p class="ts-card__body">${fl_esc(t.p)}</p></div>`).join("");
+      `<p class="ts-card__body">${fl_esc(t.p)}</p></div>`; }).join("");
     const sweep = `<div class="ts-sweep"><svg viewBox="0 0 612 46" preserveAspectRatio="none">`+
       `<path d="M0,46 L0,42 Q306,-6 612,42 L612,46 Z" fill="#ffffff"></path></svg></div>`;
     const gap = `<div class="fl-gap"></div>`;
@@ -92,8 +97,8 @@ function fl_bodyHTML(tpl){
   }
   // checklist (default)
   const tiles = shown.map(t=>
-    `<div class="tile fl-tint"><div class="box"></div>`+
-    `<div class="tbody"><h4>${fl_esc(t.h)}</h4><p>${fl_esc(t.p)}</p></div></div>`).join("");
+    `<div class="tile fl-tint${fl_imgData[t.i]?" has-img":""}"><div class="box"></div>`+
+    `<div class="tbody"><h4>${fl_esc(t.h)}</h4><p>${fl_esc(t.p)}</p></div>${fl_imgSlot(t.i,"tile__img")}</div>`).join("");
   return leadHTML + `<div class="tile-grid fl-main" id="fl_tiles">${tiles}</div>` + tail;
 }
 
