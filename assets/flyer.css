@@ -82,7 +82,7 @@
 .flyer-scope .fl-col{display:flex;flex-direction:column;background:#fff;border:1px solid var(--tile-border);
     border-radius:12px;overflow:hidden;}
 /* Segment photo (optional, one per column). Empty slots show only in the authoring preview. */
-.flyer-scope .fl-col__img{flex:0 0 auto;aspect-ratio:16/9;background:#e9edf0 center/cover no-repeat;
+.flyer-scope .fl-col__img{flex:0 0 auto;aspect-ratio:2/1;background:#e9edf0 center/cover no-repeat;
     border-bottom:3px solid var(--brand-secondary);}
 .flyer-scope .fl-col__img--empty{display:none;}
 .flyer-scope .flyer.fl-authoring .fl-col__img--empty{display:block;}
@@ -93,7 +93,7 @@
 .flyer-scope .flyer.fl-rendering .fl-col:not(.has-img) .fl-col__text{border-top:3px solid var(--brand-secondary);}
 .flyer-scope .fl-col__label{margin:0 0 7px;font-size:11.5px;font-weight:700;letter-spacing:.07em;
     text-transform:uppercase;color:var(--brand-primary);line-height:1.3;}
-.flyer-scope .fl-col__body{margin:0;font-size:11.5px;line-height:1.4;color:var(--ink-soft);}
+.flyer-scope .fl-col__body{margin:0;white-space:pre-line;font-size:11.5px;line-height:1.4;color:var(--ink-soft);}
 .flyer-scope .ts-mode .fl-header{min-height:170px;}
 .flyer-scope .ts-mode .fl-header .hcontent{display:none;}
 /* No dark fade or stripe texture over the banner photo in ANY template (2026-10-01).
@@ -199,3 +199,8 @@
 /* When the float QR is shown (unbranded + QR), reserve a right gutter so the
    closing resource block clears the QR corner. No-QR unbranded keeps full width. */
 .flyer-scope .flyer.has-float-qr .fl-resource{ margin-right:120px; }
+
+/* Paragraph returns typed in the builder show in the flyer (2026-10-06). pre-line keeps
+   line breaks but still collapses runs of spaces. */
+.flyer-scope .tile .tbody p, .flyer-scope .fl-flow__body, .flyer-scope .fl-hero__body,
+.flyer-scope .ts-card__body, .flyer-scope .ts-intro__body, .flyer-scope .fl-lead{white-space:pre-line;}
