@@ -6,7 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Visual Wellness Library</title>
+<title>Digital Resource Library</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="../wellness_tools/studio-brand.css">
@@ -72,6 +72,10 @@
   .fld input:focus{outline:none;border-color:var(--library);box-shadow:0 0 0 3px var(--chip-lib-bg);}
   .msg{font-size:12.5px;margin:8px 0 0;min-height:16px;}
   .msg.err{color:#b3423a;} .msg.ok{color:var(--library);}
+  .edtags{display:flex;flex-wrap:wrap;gap:8px 14px;}
+  .edtags label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer;}
+  .edtags input{accent-color:var(--library);}
+  #editMask .fgroup{margin:16px 0 4px;} #editMask .flabel{font-size:12px;font-weight:600;margin-bottom:9px;}
 
   /* roster list */
   .addrow{display:flex;gap:8px;margin-bottom:18px;}
@@ -251,7 +255,7 @@
 <header class="sb-header">
   <img class="sb-logo" id="sbLogo" alt="">
   <span class="sb-tenant" id="sbTenant"></span>
-  <span class="sb-product">Wellness Visual Library</span>
+  <span class="sb-product">Digital Resource Library</span>
   <div class="sb-right" id="authbar">
     <a href="../wellness_tools/index.html">&larr; Back to tools</a>
     <span class="sb-who" id="whoami" style="display:none;"></span>
@@ -265,7 +269,7 @@
 <section class="hero">
   <div class="hero-in">
     <div class="titleblock">
-      <div class="eyebrow"><span></span>Visual library</div>
+      <div class="eyebrow"><span></span>Digital resource library</div>
       <h1>Content your crews <em>actually stop for.</em></h1>
       <p class="sub" id="libsub">Ready-to-post breakroom screens and printable flyers. Every item is white-label ready.</p>
     </div>
@@ -319,6 +323,23 @@
     </div>
     <div class="active" id="active"></div>
     <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<!-- ---- edit resource modal (admin) ---- -->
+<div class="mask" id="editMask" onclick="if(event.target===this) closeEdit()">
+  <div class="modal wide">
+    <div class="mhead"><h2 id="edHeading">Edit resource</h2>
+      <button class="mclose" onclick="closeEdit()" aria-label="Close">&times;</button></div>
+    <div class="mbody">
+      <div class="fld"><label for="edTitle">Title</label><input id="edTitle" type="text"></div>
+      <div class="fld" id="edBlurbFld"><label id="edBlurbLabel" for="edBlurb">Subtitle</label><input id="edBlurb" type="text"></div>
+      <div class="fgroup"><div class="flabel">Subject</div><div class="edtags" id="ed-subject"></div></div>
+      <div class="fgroup"><div class="flabel">Month</div><div class="edtags" id="ed-month"></div></div>
+      <div class="fgroup"><div class="flabel">Setting</div><div class="edtags" id="ed-setting"></div></div>
+      <button class="btn btn-primary" id="edSave" style="width:100%;margin-top:14px;" onclick="saveEdit()">Save changes</button>
+      <p class="msg" id="edMsg"></p>
+    </div>
   </div>
 </div>
 
@@ -734,12 +755,90 @@ function render(){
 function addDeleteBtn(card, s){
   const row = card.querySelector(".rowbtns");
   if(!row) return;
+  const e = document.createElement("button");
+  e.className = "btn";
+  e.style.cssText = "grid-column:1 / -1;margin-top:2px;";
+  e.textContent = "Edit";
+  e.onclick = () => openEdit(s.id);
+  row.appendChild(e);
   const b = document.createElement("button");
   b.className = "btn";
   b.style.cssText = "grid-column:1 / -1;border-color:#b3423a;color:#b3423a;margin-top:2px;";
   b.textContent = "Delete";
   b.onclick = () => deleteRow(s.id, s.title || s.id, b);
   row.appendChild(b);
+}
+
+// ---- Admin inline edit (metadata only) ----------------------------------
+// Reuses the existing drl/screen upsert. We OMIT image/thumb/manifest/asset_code
+// (the workflow COALESCEs those) and round-trip every other field from the loaded
+// row, so the non-coalesced columns can't be blanked by a partial save.
+let editId = null;
+const asArr = v => Array.isArray(v) ? v : (v==null||v==="" ? [] : [v]);
+function renderEditTags(group, current){
+  const cur = new Set(asArr(current));
+  const vocab = ((DATA.library.tagVocabulary||{})[group]||[]).slice();
+  for(const v of cur) if(!vocab.includes(v)) vocab.push(v);   // never drop an existing tag
+  document.getElementById("ed-"+group).innerHTML = vocab.map(v=>
+    `<label><input type="checkbox" value="${v}" ${cur.has(v)?"checked":""}>${label(v,group)}</label>`
+  ).join("");
+}
+function openEdit(id){
+  const s = DATA.screens.find(x=>x.id===id); if(!s) return;
+  editId = id;
+  document.getElementById("edHeading").textContent =
+    "Edit " + (s.isDoc ? (s.assetType==="newsletter"?"newsletter":"flyer") : "screen");
+  document.getElementById("edTitle").value = s.title || "";
+  document.getElementById("edBlurbLabel").textContent = s.isDoc ? "Description" : "Subtitle";
+  document.getElementById("edBlurb").value = (s.isDoc ? s.description : s.subtitle) || "";
+  renderEditTags("subject", s.tags.subject);
+  renderEditTags("month",   s.tags.month);
+  renderEditTags("setting", s.tags.setting);
+  const m=document.getElementById("edMsg"); m.className="msg"; m.textContent="";
+  const b=document.getElementById("edSave"); b.disabled=false; b.textContent="Save changes";
+  show("editMask");
+}
+function closeEdit(){ hide("editMask"); editId=null; }
+async function saveEdit(){
+  const s = DATA.screens.find(x=>x.id===editId); if(!s) return;
+  const btn = document.getElementById("edSave"); btn.disabled=true; btn.textContent="Saving\u2026";
+  const pick = g => [...document.querySelectorAll(`#ed-${g} input:checked`)].map(i=>i.value);
+  const title = document.getElementById("edTitle").value.trim();
+  const blurb = document.getElementById("edBlurb").value.trim();
+  const subject = pick("subject"), month = pick("month"), setting = pick("setting");
+  // Full round-trip. subtitle is used by screens, description by docs; the workflow
+  // ignores whichever doesn't apply, so sending the blurb to both is safe.
+  const payload = {
+    id: s.id, asset_type: s.assetType, title,
+    subtitle: blurb, description: blurb,
+    eyebrow: s.eyebrow || null, cta: s.cta || null,
+    treatment: s.treatment || null, accent: s.accent || null, format: s.format || null,
+    qr_url: s.qrUrl || null, overlay_bullets: s.overlay_bullets || [],
+    background_ref: s.background_ref || null, issue_date: s.issueDate || null,
+    aspect: s.tags.aspect || null,
+    subject, month, setting
+  };
+  try{
+    const res = await fetch(DRL_API + "/screen", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const out = await res.json();
+    if(out && out.ok){
+      s.title = title;
+      if(s.isDoc) s.description = blurb; else s.subtitle = blurb;
+      s.tags.subject = subject; s.tags.month = month; s.tags.setting = setting;
+      const m=document.getElementById("edMsg"); m.className="msg ok"; m.textContent="Saved.";
+      buildFilters(); render();
+      setTimeout(closeEdit, 650);
+    } else {
+      const m=document.getElementById("edMsg"); m.className="msg err"; m.textContent="Save failed \u2014 nothing changed.";
+      btn.disabled=false; btn.textContent="Save changes";
+    }
+  }catch(e){
+    const m=document.getElementById("edMsg"); m.className="msg err"; m.textContent="Save failed \u2014 check the /screen workflow / CORS.";
+    btn.disabled=false; btn.textContent="Save changes";
+  }
 }
 
 // Tenant brand → shared applier (studio-brand.js). No brand_config = MedWell defaults.
@@ -750,7 +849,7 @@ async function loadBranding(){
     const res=await fetch(CONFIG_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session:StudioAuth.session()})});
     let cfg=await res.json(); if(Array.isArray(cfg)) cfg=cfg[0];
     const nm = applyBrand(cfg.brand_config, cfg.name);
-    document.title = nm + " \u2014 Visual Wellness Library";
+    document.title = nm + " \u2014 Digital Resource Library";
     if(cfg.vwl_client) DATA.client=cfg.vwl_client;
   }catch(e){ applyBrand(null); /* branding best-effort: MedWell defaults */ }
 }
@@ -1692,7 +1791,7 @@ async function boot(){
     // rebuild the tagVocabulary this page expects, from what's present
     lib.library = lib.library || {};
     lib.library.tagVocabulary = {
-      subject:["stress","sleep","heat","mental-health","movement","nutrition","hydration","prevention","burnout","heart-health","connection"],
+      subject:["stress","sleep","heat","mental-health","movement","nutrition","hydration","prevention","burnout","heart-health","connection","pilates","ergonomics","stretch","yoga","self-care","ppe","screening"],
       month:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","any"],
       setting:["floor","breakroom","office","any"],
       aspect:["16:9","9:16"], format:["still","video"]
@@ -1702,7 +1801,7 @@ async function boot(){
     document.getElementById("count").textContent = "Could not load library from API.";
     return;
   }
-  if(ADMIN) document.getElementById("libsub").textContent += " Admin mode: delete is on.";
+  if(ADMIN) document.getElementById("libsub").textContent += " Admin mode: edit \u0026 delete are on.";
   buildFilters();
   render();
 }
