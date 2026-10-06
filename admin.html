@@ -1760,7 +1760,9 @@ const FL_CAPS_TPL = {
   // Explainer: full-width numbered rail — widest column, holds more per item.
   explainer: { fl_in_lead: 190, _tile_h: 46, _tile_p: 170 },
   // Segments: hero (item 0) is roomy full-width; items 1-3 are the tight uppercase columns.
-  segments:  { fl_in_lead: 175, _hero_h: 40, _hero_p: 180, _tile_h: 34, _tile_p: 95 },
+  // 2026-10-06: column body 95 -> 150 (room for a second point after a line break); lead and
+  // hero trimmed to 140 to pay for it. Verified one page with every field at its cap.
+  segments:  { fl_in_lead: 140, _hero_h: 40, _hero_p: 140, _tile_h: 34, _tile_p: 150 },
   // Concentra: lead = bold intro line (right of the circle); item0.p = grey continuation
   // paragraph; items 1-2 = the two badge cards (head + body). item0.h unused (no field shown
   // for it in this layout, but the tile editor still exposes it — ignored at render).
