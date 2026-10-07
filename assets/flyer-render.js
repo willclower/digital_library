@@ -97,8 +97,11 @@ function fl_bodyHTML(tpl){
   }
   // checklist (default)
   const tiles = shown.map(t=>
-    `<div class="tile fl-tint${fl_imgData[t.i]?" has-img":""}"><div class="box"></div>`+
-    `<div class="tbody"><h4>${fl_esc(t.h)}</h4><p>${fl_esc(t.p)}</p></div>${fl_imgSlot(t.i,"tile__img")}</div>`).join("");
+    // photo floats right inside the text so the title and body wrap around it; checkbox sits
+    // centered at the bottom of the tile (2026-10-07)
+    `<div class="tile fl-tint${fl_imgData[t.i]?" has-img":""}">`+
+    `<div class="tbody">${fl_imgSlot(t.i,"tile__img")}<h4>${fl_esc(t.h)}</h4><p>${fl_esc(t.p)}</p></div>`+
+    `<div class="box"></div></div>`).join("");
   return leadHTML + `<div class="tile-grid fl-main" id="fl_tiles">${tiles}</div>` + tail;
 }
 
