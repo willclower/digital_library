@@ -50,7 +50,38 @@ function bgLayer(screen) {
   // Vertical crop offset (0=top…100=bottom) so a banner-derived screen frames the SAME
   // region its source flyer banner shows. Absent/invalid → 50 (center), the prior default.
   const fy = (screen.focus_y == null || isNaN(+screen.focus_y)) ? 50 : Math.max(0, Math.min(100, +screen.focus_y));
-  return `<div class="vwl-bg vwl-ken" style="background-image:url('${b}');background-position:50% ${fy}%;"></div>`;
+  const fx = scrFocusX(screen);
+  return `<div class="vwl-bg vwl-ken" style="background-image:url('${b}');background-position:${fx}% ${fy}%;"></div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Builder position adjustments (2026-10-07). Stored with the screen in its
+// source_manifest: { focus_x, layout:{ <block>: {x, y} } }. x/y are % of the
+// screen's width/height (-30..30). The builder passes them directly (screen.layout,
+// screen.focus_x); saved screens carry them in source_manifest. Absent = no shift.
+// ---------------------------------------------------------------------------
+function scrManifest(screen){
+  const m = screen.source_manifest;
+  if (m && typeof m === "string") { try { return JSON.parse(m); } catch(e) { return {}; } }
+  return m || {};
+}
+function scrFocusX(screen){
+  const v = screen.focus_x != null ? screen.focus_x : scrManifest(screen).focus_x;
+  return (v == null || isNaN(+v)) ? 50 : Math.max(0, Math.min(100, +v));
+}
+function scrOff(screen, key){
+  const L = screen.layout || scrManifest(screen).layout || {};
+  const o = L[key] || {};
+  const c = v => (v == null || isNaN(+v)) ? 0 : Math.max(-30, Math.min(30, +v));
+  return { x: c(o.x), y: c(o.y) };
+}
+// Wrap an absolutely-positioned block in a full-screen layer and shift that layer. The
+// block keeps its own CSS position (the layer is the same size as the screen), and the
+// translate %, being % of the layer, is % of the screen.
+function scrShift(screen, key, html, z){
+  const o = scrOff(screen, key);
+  return `<div class="vwl-off" data-off="${key}" style="position:absolute;inset:0;z-index:${z};pointer-events:none;`
+    + `transform:translate(${o.x}%,${o.y}%);">${html}</div>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -83,26 +114,28 @@ function renderTemplate(el, screen, ctx) {
     body = `
       <div class="vwl-t-photo">${bgLayer(screen)}</div>
       <div class="vwl-t-panel" style="background:${P};">
+        <div style="transform:translate(${scrOff(screen,'panel').x}cqw,${scrOff(screen,'panel').y*0.5625}cqw);">
         ${title}
         <div class="vwl-t-bar" style="background:${S};"></div>
         ${ctx.showChrome ? list : ""}
+        </div>
       </div>`;
   } else if (t === "tpl-card") {
     body = `
       ${bgLayer(screen)}
-      <div class="vwl-t-card">
+      ${scrShift(screen, 'card', `<div class="vwl-t-card">
         <div class="vwl-t-cardbg" style="background:${P};"></div>
         <div class="vwl-t-rule" style="background:${S};"></div>
         <div class="vwl-t-inner">${title}${ctx.showChrome ? list : ""}</div>
-      </div>`;
+      </div>`, 2)}`;
   } else { // tpl-circles
     const small = screen.cta || screen.subtitle || "";
     body = `
       ${bgLayer(screen)}
       <div class="vwl-t-c1" style="background:${P};"></div>
       <div class="vwl-t-c2" style="background:${S};"></div>
-      <div class="vwl-t-c1txt">${screen.title || ""}</div>
-      ${ctx.showChrome && small ? `<div class="vwl-t-c2txt">${small}</div>` : ""}`;
+      ${scrShift(screen, 'c1', `<div class="vwl-t-c1txt">${screen.title || ""}</div>`, 3)}
+      ${ctx.showChrome && small ? scrShift(screen, 'c2', `<div class="vwl-t-c2txt">${small}</div>`, 3) : ""}`;
   }
   el.classList.remove("vwl-right", "vwl-has-bullets");
   el.classList.add("vwl-tpl");
@@ -140,13 +173,13 @@ function renderScreen(el, screen, opts = {}) {
   el.innerHTML = `
     ${bgLayer(screen)}
     <div class="vwl-scrim" style="background:${scrim};"></div>
-    <div class="vwl-copy">
+    ${scrShift(screen, 'copy', `<div class="vwl-copy">
       ${showChrome && screen.eyebrow ? `<div class="vwl-eyebrow" style="background:${accent};font-size:${1.0*scale}em;">${screen.eyebrow}</div>` : ""}
       <div class="vwl-head" style="font-size:${2.6*scale}em;">${screen.title || ""}</div>
       ${showChrome && screen.subtitle ? `<div class="vwl-sub" style="font-size:${1.05*scale}em;">${screen.subtitle}</div>` : ""}
       ${showChrome && screen.cta ? `<span class="vwl-cta" style="font-size:${0.95*scale}em;">${screen.cta}</span>` : ""}
-    </div>
-    ${showBullets ? `<div class="vwl-bullets-card"><ul class="vwl-bullets" style="font-size:${1.15*scale}em;">${bullets.map(b=>`<li>${b}</li>`).join("")}</ul></div>` : ""}
+    </div>`, 1)}
+    ${showBullets ? scrShift(screen, 'bullets', `<div class="vwl-bullets-card"><ul class="vwl-bullets" style="font-size:${1.15*scale}em;">${bullets.map(b=>`<li>${b}</li>`).join("")}</ul></div>`, 2) : ""}
     ${showQr ? `<div class="vwl-qr"><div class="vwl-qrbox">${qrImg ? `<img src="${qrImg}" alt="Scan for support" style="width:100%;height:100%;display:block;">` : qrPlaceholder("#111")}</div><span class="vwl-qrlabel">Scan for support</span></div>` : ""}
     ${showCode ? `<span class="vwl-code" style="font-size:${0.62*scale}em;">${assetCode}</span>` : ""}
   `;
