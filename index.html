@@ -75,6 +75,10 @@
   .edtags{display:flex;flex-wrap:wrap;gap:8px 14px;}
   .edtags label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer;}
   .edtags input{accent-color:var(--library);}
+  #ed-topic details{margin:0 0 6px;} #ed-topic summary{cursor:pointer;font-size:12.5px;font-weight:600;}
+  #ed-topic .edsub{margin:6px 0 8px 14px;} #ed-topic .edsub>label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink,#1e2d35);cursor:pointer;}
+  #ed-topic .edleaf{display:flex;flex-wrap:wrap;gap:6px 12px;margin:4px 0 0 22px;}
+  .subj .tcat{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sb-subtle);margin:6px 0 0;}
   #editMask .fgroup{margin:16px 0 4px;} #editMask .flabel{font-size:12px;font-weight:600;margin-bottom:9px;}
 
   /* roster list */
@@ -294,7 +298,7 @@
       <div class="seg" id="f-asset" role="group" aria-labelledby="lbl-asset"></div>
     </div>
     <div class="fgroup">
-      <div class="flabel">Subject</div>
+      <div class="flabel">Topic</div>
       <div class="subj" id="f-subject"></div>
     </div>
     <div class="fgroup">
@@ -334,9 +338,11 @@
     <div class="mbody">
       <div class="fld"><label for="edTitle">Title</label><input id="edTitle" type="text"></div>
       <div class="fld" id="edBlurbFld"><label id="edBlurbLabel" for="edBlurb">Subtitle</label><input id="edBlurb" type="text"></div>
-      <div class="fgroup"><div class="flabel">Subject</div><div class="edtags" id="ed-subject"></div></div>
+      <div class="fgroup"><div class="flabel">Topic</div><div id="ed-topic"></div></div>
       <div class="fgroup"><div class="flabel">Month</div><div class="edtags" id="ed-month"></div></div>
-      <div class="fgroup"><div class="flabel">Setting</div><div class="edtags" id="ed-setting"></div></div>
+      <div class="fgroup"><div class="flabel">Setting</div><div class="edtags" id="ed-scene"></div></div>
+      <div class="fgroup"><div class="flabel">Season</div><div class="edtags" id="ed-season"></div></div>
+      <div class="fgroup"><div class="flabel">Mood</div><div class="edtags" id="ed-mood"></div></div>
       <button class="btn btn-primary" id="edSave" style="width:100%;margin-top:14px;" onclick="saveEdit()">Save changes</button>
       <p class="msg" id="edMsg"></p>
     </div>
@@ -487,7 +493,8 @@
 <script src="assets/overlay.js"></script>
 <script>
 let DATA = { screens: [] };
-const sel = { asset:new Set(), subject:new Set(), month:new Set(), setting:new Set(), format:new Set() };   // tone retired 2026-09-30
+// 2026-10-07: pieces filter by topic (subcategory) and setting (scene); subject/setting retired.
+const sel = { asset:new Set(), topic:new Set(), month:new Set(), scene:new Set(), format:new Set() };   // tone retired 2026-09-30
 
 // ---- Screen data API (DRL) ----
 const DRL_API   = "https://n8n-admin.willclower.com/webhook/drl";
@@ -565,6 +572,7 @@ function normalize(row){
     tags: {
       subject: arr(row.subject), month: arr(row.month),
       setting: arr(row.setting), aspect: first(row.aspect),
+      topic: arr(row.topic), scene: arr(row.scene), season: arr(row.season), mood: arr(row.mood),
       format: row.format, asset: at
     },
     createdAt: row.created_at || null
@@ -587,7 +595,17 @@ const GLABELS = {
   asset:{ screen:"Screens", flyer:"Flyers", newsletter:"Newsletters" },
   setting:{ any:"Any setting" }, month:{ any:"Any month" }
 };
-const label = (v, g) => (g && GLABELS[g] && GLABELS[g][v]) || LABELS[v] || (v.charAt(0).toUpperCase()+v.slice(1));
+const TOPIC_WORD = { "omega-3s":"Omega-3s", "glp-1-support":"GLP-1 support", "a1c-checks":"A1C checks", "eap":"EAP",
+  "herbs-spices":"Herbs & spices", "asthma-copd":"Asthma & COPD", "foot-eye-care":"Foot & eye care", "arthritis-joints":"Arthritis & joints",
+  "balance-mobility":"Balance & mobility", "slips-trips-falls":"Slips, trips & falls", "hearing-eye-protection":"Hearing & eye protection",
+  "strains-sprains":"Strains & sprains", "tools-vehicles":"Tools & vehicles", "family-friends":"Family & friends",
+  "community-volunteering":"Community & volunteering", "tobacco-vaping":"Tobacco & vaping", "womens-health":"Women's health",
+  "mens-health":"Men's health", "work-life-balance":"Work–life balance", "july-4th":"July 4th", "new-year":"New Year",
+  "valentines-day":"Valentine's Day", "memorial-day":"Memorial Day", "labor-day":"Labor Day" };
+function wordLabel(v){ const seg = String(v).split("/").pop(); return TOPIC_WORD[seg] || (seg.charAt(0).toUpperCase()+seg.slice(1)).replace(/-/g," "); }
+const label = (v, g) => (g && GLABELS[g] && GLABELS[g][v]) || LABELS[v] || ((g==="topic"||g==="scene"||g==="season"||g==="mood") ? wordLabel(v) : (v.charAt(0).toUpperCase()+v.slice(1)));
+// deepest topic paths only (drop any that is a prefix of another)
+const topicLeaves = a => (a||[]).filter(v=>!(a||[]).some(o=>o!==v && o.startsWith(v+"/")));
 function countFor(g, v){ return DATA.screens.filter(s=>{ const t=s.tags[g]; return Array.isArray(t)?t.includes(v):t===v; }).length; }
 
 function buildFilters(){
@@ -595,9 +613,13 @@ function buildFilters(){
   const present = g => [...new Set(DATA.screens.flatMap(s => { const t=s.tags[g]; return Array.isArray(t)?t:(t?[t]:[]); }))];
   const ordered = g => { const order=vocab[g]||[]; return present(g).sort((a,b)=>order.indexOf(a)-order.indexOf(b)); };
 
-  document.getElementById("f-subject").innerHTML = ordered("subject").map(v=>`
-    <label><input type="checkbox" data-g="subject" data-v="${v}" onchange="togCheck(this)">${label(v)}<span class="cnt">${countFor("subject",v)}</span></label>
-  `).join("");
+  // Topic filter: the subcategories present, grouped under their category.
+  const subs = ordered("topic").filter(v=>v.split("/").length===2);
+  const cats = [...new Set(subs.map(v=>v.split("/")[0]))];
+  document.getElementById("f-subject").innerHTML = cats.map(c=>`<div class="tcat">${wordLabel(c)}</div>` +
+    subs.filter(v=>v.startsWith(c+"/")).map(v=>`
+    <label><input type="checkbox" data-g="topic" data-v="${v}" onchange="togCheck(this)">${label(v,"topic")}<span class="cnt">${countFor("topic",v)}</span></label>
+  `).join("")).join("");
 
   const ASSET_ORDER = ["screen","flyer","newsletter"];
   const assets = [...new Set(DATA.screens.map(s=>s.tags.asset))].sort((a,b)=>ASSET_ORDER.indexOf(a)-ASSET_ORDER.indexOf(b));
@@ -606,7 +628,7 @@ function buildFilters(){
     assets.map(v=>`<button type="button" data-v="${v}" aria-pressed="false" onclick="setAsset(this)">${label(v,"asset")}</button>`).join("");
   const pill = (g,v) => `<button type="button" class="pill" data-g="${g}" data-v="${v}" data-on="0" onclick="togPill(this)">${label(v,g)}</button>`;
   document.getElementById("f-month").innerHTML = ordered("month").map(v=>pill("month",v)).join("");
-  document.getElementById("f-style").innerHTML = ["format","setting"].flatMap(g=>ordered(g).map(v=>pill(g,v))).join("");
+  document.getElementById("f-style").innerHTML = ["format","scene"].flatMap(g=>ordered(g).map(v=>pill(g,v))).join("");
 }
 
 function togCheck(el){ const g=el.dataset.g, v=el.dataset.v; el.checked ? sel[g].add(v) : sel[g].delete(v); render(); }
@@ -644,7 +666,7 @@ function matches(s){
   }
   const q = document.getElementById("q").value.trim().toLowerCase();
   if(q){
-    const hay = [s.title, s.subtitle, s.eyebrow, ...Object.values(s.tags).flat()].join(" ").toLowerCase();
+    const hay = [s.title, s.subtitle, s.eyebrow, ...Object.values(s.tags).flat(), ...(s.tags.topic||[]).map(wordLabel)].join(" ").toLowerCase();
     if(!hay.includes(q)) return false;
   }
   return true;
@@ -692,9 +714,8 @@ function render(){
   out.forEach(s=>{
     const card = document.createElement("article");
     card.className = "card";
-    const badges = [["subject",""],["month","mo"]]
-      .flatMap(([k,c])=>{ const t=s.tags[k]; const vals=Array.isArray(t)?t:(t?[t]:[]); return vals.map(v=>`<span class="tag ${c}">${label(v,k)}</span>`); })
-      .join("");
+    const badges = topicLeaves(s.tags.topic).filter(v=>v.includes("/")).slice(0,2).map(v=>`<span class="tag">${label(v,"topic")}</span>`).join("")
+      + (s.tags.month||[]).map(v=>`<span class="tag mo">${label(v,"month")}</span>`).join("");
 
     if(s.isDoc){
       // Document card (flyer / newsletter): no screen overlay; Preview + Download
@@ -783,6 +804,29 @@ function renderEditTags(group, current){
     `<label><input type="checkbox" value="${v}" ${cur.has(v)?"checked":""}>${label(v,group)}</label>`
   ).join("");
 }
+// Topic editor: one collapsible group per category; each subcategory has a checkbox and its
+// topics beneath. Unchecking a subcategory clears its topics on save.
+function renderEditTopic(current){
+  const cur = new Set(asArr(current));
+  const all = ((DATA.library.tagVocabulary||{}).topic||[]).slice();
+  for(const v of cur) if(!all.includes(v)) all.push(v);
+  const cats = all.filter(v=>!v.includes("/"));
+  document.getElementById("ed-topic").innerHTML = cats.map(c=>{
+    const subs = all.filter(v=>v.startsWith(c+"/") && v.split("/").length===2);
+    const open = subs.some(v=>cur.has(v)) ? " open" : "";
+    return `<details${open}><summary>${wordLabel(c)}</summary>` + subs.map(sub=>`
+      <div class="edsub"><label><input type="checkbox" value="${sub}" ${cur.has(sub)?"checked":""}> ${wordLabel(sub)}</label>
+      <div class="edtags edleaf">${all.filter(v=>v.startsWith(sub+"/")).map(v=>
+        `<label><input type="checkbox" value="${v}" ${cur.has(v)?"checked":""}>${wordLabel(v)}</label>`).join("")}</div></div>`).join("")
+      + `</details>`;
+  }).join("");
+}
+function pickEditTopic(){
+  const on = [...document.querySelectorAll("#ed-topic input:checked")].map(i=>i.value);
+  const subs = new Set(on.filter(v=>v.split("/").length===2));
+  // a topic only counts if its subcategory is still checked
+  return on.filter(v=>v.split("/").length===2 || subs.has(v.split("/").slice(0,2).join("/")));
+}
 function openEdit(id){
   const s = DATA.screens.find(x=>x.id===id); if(!s) return;
   editId = id;
@@ -791,54 +835,48 @@ function openEdit(id){
   document.getElementById("edTitle").value = s.title || "";
   document.getElementById("edBlurbLabel").textContent = s.isDoc ? "Description" : "Subtitle";
   document.getElementById("edBlurb").value = (s.isDoc ? s.description : s.subtitle) || "";
-  renderEditTags("subject", s.tags.subject);
-  renderEditTags("month",   s.tags.month);
-  renderEditTags("setting", s.tags.setting);
+  renderEditTopic(s.tags.topic);
+  renderEditTags("month",  s.tags.month);
+  renderEditTags("scene",  s.tags.scene);
+  renderEditTags("season", s.tags.season);
+  renderEditTags("mood",   s.tags.mood);
   const m=document.getElementById("edMsg"); m.className="msg"; m.textContent="";
   const b=document.getElementById("edSave"); b.disabled=false; b.textContent="Save changes";
   show("editMask");
 }
 function closeEdit(){ hide("editMask"); editId=null; }
 async function saveEdit(){
+  // 2026-10-07: targeted metadata update via drl/screen-edit (title, blurb, tags only). The old
+  // full re-post to drl/screen blanked any column the form didn't round-trip (topic, scene...).
   const s = DATA.screens.find(x=>x.id===editId); if(!s) return;
   const btn = document.getElementById("edSave"); btn.disabled=true; btn.textContent="Saving\u2026";
   const pick = g => [...document.querySelectorAll(`#ed-${g} input:checked`)].map(i=>i.value);
   const title = document.getElementById("edTitle").value.trim();
   const blurb = document.getElementById("edBlurb").value.trim();
-  const subject = pick("subject"), month = pick("month"), setting = pick("setting");
-  // Full round-trip. subtitle is used by screens, description by docs; the workflow
-  // ignores whichever doesn't apply, so sending the blurb to both is safe.
+  const topic = pickEditTopic(), month = pick("month"), scene = pick("scene"), season = pick("season"), mood = pick("mood");
   const payload = {
-    id: s.id, asset_type: s.assetType, title,
-    subtitle: blurb, description: blurb,
-    eyebrow: s.eyebrow || null, cta: s.cta || null,
-    treatment: s.treatment || null, accent: s.accent || null, format: s.format || null,
-    qr_url: s.qrUrl || null, overlay_bullets: s.overlay_bullets || [],
-    background_ref: s.background_ref || null, issue_date: s.issueDate || null,
-    aspect: s.tags.aspect || null,
-    subject, month, setting
+    id: s.id, title,
+    subtitle: s.isDoc ? (s.subtitle || null) : blurb,
+    description: s.isDoc ? blurb : (s.description || null),
+    topic, month, scene, season, mood
   };
+  const fail = t => { const m=document.getElementById("edMsg"); m.className="msg err"; m.textContent=t; btn.disabled=false; btn.textContent="Save changes"; };
   try{
-    const res = await fetch(DRL_API + "/screen", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify(payload)
+    const res = await fetch(DRL_API + "/screen-edit", {
+      method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload)
     });
     const out = await res.json();
     if(out && out.ok){
       s.title = title;
       if(s.isDoc) s.description = blurb; else s.subtitle = blurb;
-      s.tags.subject = subject; s.tags.month = month; s.tags.setting = setting;
+      // mirror the stored form: topic carries its ancestor paths
+      const withAnc = new Set(); topic.forEach(v=>{ const p=v.split("/"); for(let i=1;i<=p.length;i++) withAnc.add(p.slice(0,i).join("/")); });
+      s.tags.topic = [...withAnc]; s.tags.month = month; s.tags.scene = scene; s.tags.season = season; s.tags.mood = mood;
       const m=document.getElementById("edMsg"); m.className="msg ok"; m.textContent="Saved.";
       buildFilters(); render();
       setTimeout(closeEdit, 650);
-    } else {
-      const m=document.getElementById("edMsg"); m.className="msg err"; m.textContent="Save failed \u2014 nothing changed.";
-      btn.disabled=false; btn.textContent="Save changes";
-    }
-  }catch(e){
-    const m=document.getElementById("edMsg"); m.className="msg err"; m.textContent="Save failed \u2014 check the /screen workflow / CORS.";
-    btn.disabled=false; btn.textContent="Save changes";
-  }
+    } else fail("Save failed \u2014 nothing changed.");
+  }catch(e){ fail("Save failed \u2014 check the drl-screen-edit workflow / CORS."); }
 }
 
 // Tenant brand → shared applier (studio-brand.js). No brand_config = MedWell defaults.
@@ -1796,6 +1834,11 @@ async function boot(){
       setting:["floor","breakroom","office","any"],
       aspect:["16:9","9:16"], format:["still","video"]
     };
+    // piece tag framework (topic / scene / season / mood): live vocabulary, for order + the edit form
+    try{
+      const v = await (await fetch(DRL_API + "/vocab")).json();
+      for(const g of ["topic","scene","season","mood"]) if(Array.isArray(v[g])) lib.library.tagVocabulary[g] = v[g];
+    }catch(e){ /* filters fall back to the values present */ }
     DATA = Object.assign(lib, { client: DATA.client });
   }catch(e){
     document.getElementById("count").textContent = "Could not load library from API.";
