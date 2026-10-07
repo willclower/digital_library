@@ -87,7 +87,14 @@ async function nl_prepareBrand(brand){
 function nl_esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function nl_br(s){ return nl_esc(s).replace(/\n/g,"<br>"); }
 function nl_paras(v){ return (Array.isArray(v)?v:String(v||"").split(/\n\s*\n/)).filter(x=>String(x).trim()); }
-function nl_bg(src){ return src ? ` style="background-image:url('${String(src).replace(/'/g,"%27")}')"` : ""; }
+// Photo crop positions (2026-10-07): d.img_pos = { <zone>: {x, y} } in % (centre 50/50),
+// set per render in nl_render. Saved in the manifest, so downloads keep the framing.
+let NL_POS = {};
+function nl_bg(src, zone){
+  if(!src) return "";
+  const p = (zone && NL_POS[zone]) || {}, c = v => (v==null || isNaN(+v)) ? 50 : Math.max(0, Math.min(100, +v));
+  return ` style="background-image:url('${String(src).replace(/'/g,"%27")}');background-position:${c(p.x)}% ${c(p.y)}%"`;
+}
 
 /* Lay out the page-2 grid: returns an array of cells {kind:'tip'|'feature', tip, lastCol, span2} */
 function nl_gridCells(tips, hasFeature){
@@ -106,6 +113,7 @@ function nl_render(el, d, opts){
   opts = opts || {};
   d = d || {};
   const b = d.brand || {}, m = d.masthead || {}, c = d.cover || {}, co = d.callout || {}, s = d.section || {};
+  NL_POS = d.img_pos || {};
   // authoring shows every slot (so an empty tip's circle can still be clicked); print drops empties
   const tips = (d.tips || []).filter(t=>t && (opts.edit || t.h || t.p || t.img));
   const style = [
@@ -138,7 +146,7 @@ function nl_render(el, d, opts){
   p1 = `
   <section class="nl-page nl-p1">
     <div class="nl-cover">
-      <div class="nl-hero${z}" data-zone="hero"${nl_bg(c.hero)}></div>
+      <div class="nl-hero${z}" data-zone="hero"${nl_bg(c.hero,"hero")}></div>
       <div class="nl-panel">${svg(410,490,"0,0 410,0 336,490 0,490",P)}</div>
     </div>
     <div class="nl-logo${coverChip?" nl-chip":""}">${b.logo ? `<img src="${b.logo}" alt="">` : ""}</div>
@@ -161,16 +169,16 @@ function nl_render(el, d, opts){
         ${nl_paras(co.body).map(p=>`<p>${nl_esc(p)}</p>`).join("")}
       </div>
     </div>
-    <div class="nl-side${z}${d.side?"":" nl-empty"}" data-zone="side"${nl_bg(d.side)}></div>
+    <div class="nl-side${z}${d.side?"":" nl-empty"}" data-zone="side"${nl_bg(d.side,"side")}></div>
     ${pgtab(1)}
   </section>`;
 
   const cells = nl_gridCells(tips, !!d.feature || opts.edit).map((cell,i)=>{
     if(cell.kind==="feature")
-      return `<div class="nl-feature${cell.span2?" span2":""}${z}" data-zone="feature"${nl_bg(d.feature)}></div>`;
+      return `<div class="nl-feature${cell.span2?" span2":""}${z}" data-zone="feature"${nl_bg(d.feature,"feature")}></div>`;
     const t = cell.tip, ti = tips.indexOf(t);
     return `<div class="nl-tip${cell.lastCol?" nl-last-col":""}">
-      <div class="nl-tip__img${z}" data-zone="tip${ti}"${nl_bg(t.img)}></div>
+      <div class="nl-tip__img${z}" data-zone="tip${ti}"${nl_bg(t.img,"tip"+ti)}></div>
       <h4 class="nl-tip__h">${nl_esc(t.h)}</h4><p class="nl-tip__p">${nl_esc(t.p)}</p></div>`;
   }).join("");
 
@@ -203,7 +211,7 @@ function nl_p1Editorial(d, b, z, pgtab){
       <div class="nl-e-mast__sub">${nl_esc([m.volume ? "Volume " + m.volume : "", m.issue || ""].filter(Boolean).join("  |  "))}</div>
     </div>
     <h1 class="nl-e-title">${nl_br(c.headline)}</h1>
-    <div class="nl-e-hero${z}" data-zone="hero"${nl_bg(c.hero)}></div>
+    <div class="nl-e-hero${z}" data-zone="hero"${nl_bg(c.hero,"hero")}></div>
     <div class="nl-e-side">
       ${c.subhead ? `<p class="nl-e-lead">${nl_esc(c.subhead)}</p>` : ""}
       ${c.hook ? `<p class="nl-e-body">${nl_esc(c.hook)}</p>` : ""}
@@ -220,7 +228,7 @@ function nl_p1Editorial(d, b, z, pgtab){
 function nl_p2Editorial(d, tips, z, pgtab, foot){
   const s = d.section || {};
   const rows = tips.slice(0,3).map((t,i)=>{
-    const img = `<div class="nl-e-img${z}" data-zone="tip${i}"${nl_bg(t.img)}></div>`;
+    const img = `<div class="nl-e-img${z}" data-zone="tip${i}"${nl_bg(t.img,"tip"+i)}></div>`;
     const txt = `<div class="nl-e-rowtxt${i%2===0?" r":""}"><h3 class="nl-e-h3">${nl_esc(t.h)}</h3><p class="nl-e-body">${nl_esc(t.p)}</p></div>`;
     return `<div class="nl-e-row">${i%2===0 ? txt+img : img+txt}</div>`;
   }).join("");
@@ -253,7 +261,7 @@ function nl_p1Cover(d, b, z, svg, P){
         <div class="nl-c-mast__sub">${nl_esc([m.issue || "", m.volume ? "Vol " + m.volume : ""].filter(Boolean).join("  ·  "))}</div>
       </div>
     </div>
-    <div class="nl-c-hero${z}" data-zone="hero"${nl_bg(c.hero)}></div>
+    <div class="nl-c-hero${z}" data-zone="hero"${nl_bg(c.hero,"hero")}></div>
     <div class="nl-c-card">
       <div class="nl-c-card__bar"></div>
       <h1 class="nl-c-title">${nl_br(c.headline)}</h1>
@@ -275,7 +283,7 @@ function nl_p2Cover(d, tips, z, pgtab, foot){
   const acts = nl_lines(d.actions, 4);
   const cards = tips.slice(0,2).map((t,i)=>`
     <div class="nl-c-row${i%2 ? " flip" : ""}">
-      <div class="nl-c-img${z}" data-zone="tip${i}"${nl_bg(t.img)}></div>
+      <div class="nl-c-img${z}" data-zone="tip${i}"${nl_bg(t.img,"tip"+i)}></div>
       <div class="nl-c-cardtip"><div class="nl-c-num">${i+1}</div>
         <h3 class="nl-c-h3">${nl_esc(t.h)}</h3><p class="nl-c-p">${nl_esc(t.p)}</p></div>
     </div>`).join("");
