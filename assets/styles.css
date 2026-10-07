@@ -90,6 +90,10 @@ body{margin:0;font-family:var(--font-sans);}
 /* Circles — full-bleed photo, big primary circle top-right, small secondary circle overlapping */
 .vwl-tpl .vwl-t-c1{position:absolute;width:46cqw;height:46cqw;border-radius:50%;left:calc(84.5% - 23cqw);top:calc(37% - 23cqw);opacity:.93;z-index:1;}
 .vwl-tpl .vwl-t-c2{position:absolute;width:23.5cqw;height:23.5cqw;border-radius:50%;left:calc(65.5% - 11.75cqw);top:calc(67% - 11.75cqw);opacity:.9;z-index:2;}
-.vwl-tpl .vwl-t-c1txt{position:absolute;left:67.5%;top:19%;width:30cqw;z-index:3;font-family:var(--font-screen);font-weight:700;font-size:4.7cqw;line-height:1.08;}
-.vwl-tpl .vwl-t-c2txt{position:absolute;left:56%;top:61%;width:18.5cqw;z-index:3;font-family:var(--font-screen);font-weight:700;font-size:2.6cqw;line-height:1.2;}
+/* 2026-10-07: headline right-aligned against the screen edge inside the big circle; small-circle
+   text centered on the small circle (both vertically centered on their circle's middle). */
+.vwl-tpl .vwl-t-c1txt{position:absolute;right:4.5cqw;top:37%;transform:translateY(-50%);width:30cqw;z-index:3;text-align:right;
+  font-family:var(--font-screen);font-weight:700;font-size:4.7cqw;line-height:1.08;}
+.vwl-tpl .vwl-t-c2txt{position:absolute;left:calc(65.5% - 8.75cqw);top:67%;transform:translateY(-50%);width:17.5cqw;z-index:3;
+  text-align:center;font-family:var(--font-screen);font-weight:700;font-size:2.3cqw;line-height:1.18;}
 .vwl-tpl[data-tpl="tpl-circles"] .vwl-t-qr{right:5cqw;bottom:2.6cqw;width:11cqw;height:11cqw;}
