@@ -326,7 +326,8 @@
   .wrap{margin:0;padding-left:clamp(16px,3vw,34px);padding-right:clamp(16px,3vw,34px);} /* left-justified: template rail goes on the right */
   input[type=text],textarea,select{border:1.5px solid var(--sb-border);border-radius:var(--sb-r-input);}
   input:focus,textarea:focus,select:focus{border-color:var(--sb-primary);box-shadow:0 0 0 3px var(--sb-ring);}
-  .pill{font:inherit;font-size:12px;border:1.5px solid var(--sb-border);border-radius:var(--sb-r-pill);}
+  .pill{font:inherit;font-size:12px;line-height:1.3;border:1.5px solid var(--sb-border);border-radius:var(--sb-r-pill);
+    white-space:nowrap;flex-shrink:0;}   /* 2026-10-07: a pill never breaks onto two lines */
   .pill:hover{border-color:var(--sb-primary);color:var(--sb-primary);}
   .pill[data-on="1"]{border-color:var(--sb-primary);background:var(--sb-primary);color:#fff;}
   .drop{border:1.5px dashed var(--sb-border-st);border-radius:var(--sb-r-card);background:var(--sb-bg-lt);color:var(--sb-muted);}
@@ -421,8 +422,11 @@
   #repoMode .qtags .st{color:var(--sb-ok);}
   #repoMode .frow{display:flex;align-items:flex-start;gap:8px;margin:6px 0;}
   #repoMode .frow>.fl{flex:0 0 62px;font-size:10.5px;font-weight:700;color:var(--sb-subtle);text-transform:uppercase;letter-spacing:.08em;padding-top:6px;}
-  #repoMode .frow>.fv{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px;}
-  #repoMode .frow .cat{font-size:11.5px;font-weight:700;color:var(--sb-ink);margin-right:2px;}
+  /* 2026-10-07: descendant selector — the Topic block nests its category rows one level down, so
+     '>' missed them and their pills fell back to inline (overlapping, split across lines). */
+  #repoMode .frow .fv{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px;row-gap:7px;}
+  #repoMode .frow .fv + .fv, #repoMode .frow .leafbox + .fv{margin-top:6px;}
+  #repoMode .frow .cat{flex:0 0 74px;font-size:11.5px;font-weight:700;color:var(--sb-ink);}
   #repoMode .frow .leafbox{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:0 0 8px 14px;padding:6px 8px;background:var(--sb-bg);border-radius:8px;}
   #repoMode .frow .leafbox .crumb{font-size:10.5px;color:var(--sb-subtle);margin-right:2px;}
   #repoMode .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
@@ -701,11 +705,7 @@
     <div id="fl_qcFindings"></div>
   </div>
 
-  <div class="seg-label">Publish</div>
-  <label style="display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:#1e2d35;margin:0 0 12px;cursor:pointer;line-height:1.4;">
-    <input type="checkbox" id="fl_in_alsoScreen" style="margin-top:2px;flex:0 0 auto;">
-    <span>Also publish a 16:9 wall screen from the banner<span style="display:block;color:#6f7f74;font-size:11.5px;margin-top:1px;">Uses the banner photo + headline, lists the tile headings as action bullets, and adds a QR that points to this flyer.</span></span>
-  </label>
+  <!-- 2026-10-07: "Also publish a 16:9 wall screen" option removed; build screens separately. -->
   <button class="draftbtn" id="fl_finalizeBtn" style="background:#17402F;opacity:.5;" disabled>Finalize &amp; add to library</button>
   <div class="draftmsg" id="fl_finalizeMsg"></div>
   <div class="sgmask" id="fl_signMask" onclick="if(event.target===this)fl_signClose()">
@@ -1757,7 +1757,9 @@ const FL_CAPS_TPL = {
   // Checklist: 2x2 grid, half-width text column (narrowest body of the three).
   // 2026-10-06 photo pass: every template's limits verified one page with all fields at cap AND
   // all photo slots filled. Lead 190->170 (round photos).
-  checklist: { fl_in_lead: 170, _tile_h: 34, _tile_p: 120 },
+  // 2026-10-07: checkbox moved to the tile foot, photo 50->72px floated in the text: lead 170->150,
+  // title 34->30, body 120->170.
+  checklist: { fl_in_lead: 150, _tile_h: 30, _tile_p: 170 },
   // Explainer: full-width numbered rail — widest column, holds more per item.
   explainer: { fl_in_lead: 170, _tile_h: 46, _tile_p: 140 },   // photo pass: 190/170 -> 170/140
   // Segments: hero (item 0) is roomy full-width; items 1-3 are the tight uppercase columns.
@@ -1768,7 +1770,7 @@ const FL_CAPS_TPL = {
   // paragraph; items 1-2 = the two badge cards (head + body). item0.h unused (no field shown
   // for it in this layout, but the tile editor still exposes it — ignored at render).
   // photo pass: one-line title (46->32), one-line card titles (30->24), bodies 130->110
-  twostep: { fl_in_lead: 130, fl_in_headline: 32, _tile_h: 24, _tile_p: 110 }
+  twostep: { fl_in_lead: 130, fl_in_headline: 32, _tile_h: 24, _tile_p: 146 }   // 2026-10-07: bodies +1/3 (110->146)
 };
 // How many item slots each template actually USES (draft-fills, QC-serializes, gates, clears).
 // The tile editor still shows 4 fields; this only bounds what's populated/reviewed/rendered.
