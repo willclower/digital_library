@@ -44,6 +44,16 @@
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
   .pills{display:flex;flex-wrap:wrap;gap:6px;}
+  .pos-panel{font-size:12px;max-width:420px;}
+  .pos-panel .pos-row{display:flex;gap:10px;align-items:center;margin:0 0 6px;}
+  .pos-panel .pos-sel{flex:1;font:inherit;font-size:12.5px;padding:5px 8px;}
+  .pos-panel .pos-lab{display:block;font-size:11px;color:var(--sb-subtle,#6f7f74);margin:4px 0;}
+  .pos-panel input[type=range]{display:block;width:100%;}
+  .pos-panel .pos-empty{font-size:11.5px;color:var(--sb-subtle,#8a8478);margin:0;}
+  #t-topic .tb-row{align-items:center;margin:0 0 7px;}
+  #t-topic .tb-cat{flex:0 0 74px;font-size:11.5px;font-weight:700;}
+  #t-topic .tb-leaf{align-items:center;margin:0 0 9px 14px;padding:6px 8px;background:var(--sb-bg, #f6f4ee);border-radius:8px;}
+  #t-topic .tb-crumb{font-size:10.5px;color:var(--sb-subtle, #8a8478);}
   .pill{font-size:11.5px;padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:var(--panel);color:var(--muted);cursor:pointer;user-select:none;}
   .pill[data-on="1"]{border-color:var(--library);background:var(--library);color:var(--cream);}
   .drop{border:1px dashed var(--border-st);border-radius:8px;background:var(--panel);padding:18px;text-align:center;font-size:12.5px;color:var(--muted);cursor:pointer;}
@@ -836,18 +846,30 @@
     </div>
 
     <div id="tagBlock">
+    <!-- 2026-10-07: pieces use the image-library tag framework (topic / setting / season / mood).
+         Pre-filled from the tags of every library photo placed; adjust freely. Month stays the
+         issue month. The old subject/setting tags are no longer written. -->
+    <p class="hint" style="margin:0 0 8px;">Tags fill in from the photos you place. Adjust as needed.</p>
     <div class="field">
-      <label>Subject <span class="hint">choose one or more</span></label>
-      <div class="pills" id="t-subject"></div>
+      <label>Topic <span class="hint">pick a subcategory to see its topics</span></label>
+      <div id="t-topic"></div>
+    </div>
+    <div class="field">
+      <label>Month <span class="hint">issue month</span></label>
+      <div class="pills" id="t-month"></div>
+    </div>
+    <div class="field">
+      <label>Setting</label>
+      <div class="pills" id="t-scene"></div>
     </div>
     <div class="row2">
       <div class="field">
-        <label>Month</label>
-        <div class="pills" id="t-month"></div>
+        <label>Season</label>
+        <div class="pills" id="t-season"></div>
       </div>
       <div class="field">
-        <label>Setting</label>
-        <div class="pills" id="t-setting"></div>
+        <label>Mood</label>
+        <div class="pills" id="t-mood"></div>
       </div>
     </div>
     <div class="row2">
@@ -880,6 +902,8 @@
          aria-label="Pick the screen image from the image library"><div id="preview" class="vwl-screen"></div></div>
     <div class="dims" id="dims">No image yet. Click the preview to pick one from the image library.</div>
     <button type="button" class="linkish" onclick="document.getElementById('assetFile').click()">Or upload an image from your computer</button>
+    <div class="plabel" style="margin-top:14px;">Adjust position</div>
+    <div class="pos-panel" id="sc_posPanel"></div>
   </div>
   <!-- ===== Screen template rail (screen only, 3rd column) ===== -->
   <div id="sc_tplRail" class="screen-only">
@@ -938,6 +962,8 @@
   <!-- Newsletter build preview (scaled to fit; PDF renders from the unscaled #nl_print stage) -->
   <div class="previewwrap nl-build-only" id="nlPreviewWrap" style="display:none">
     <div class="plabel">Live preview · 2 pages</div>
+    <div class="plabel" style="margin:0 0 4px;">Photo position</div>
+    <div class="pos-panel" id="nl_posPanel" style="margin:0 0 12px;"></div>
     <div id="nl_fit"><div id="nl_stage" class="nl-scope"></div></div>
   </div>
   <div id="nl_print" class="nl-scope" aria-hidden="true"></div>
@@ -981,12 +1007,9 @@
         <div class="fl-tpl-desc">Photo banner + circle + 2 cards</div>
       </button>
     </div>
-    <div class="rail-label" style="margin-top:18px;">Banner position</div>
-    <p class="dhint" style="margin:0 0 8px;font-size:11px;color:#8a8478;">Slide to reframe the banner vertically (e.g. keep faces in view). Applies to the flyer and the companion screen.</p>
-    <div class="fld" id="fl_bannerYWrap" style="opacity:.5;">
-      <label style="font-size:11px;">Top ↔ Bottom</label>
-      <input type="range" id="fl_bannerY" min="0" max="100" value="50" step="1" style="width:100%;" disabled>
-    </div>
+    <div class="rail-label" style="margin-top:18px;">Photo position</div>
+    <p class="dhint" style="margin:0 0 8px;font-size:11px;color:#8a8478;">Pick a photo, then slide to reframe it (e.g. keep faces in view).</p>
+    <div class="pos-panel" id="fl_posPanel"></div>
     <div class="rail-label" style="margin-top:18px;">Image upload (fallback)</div>
     <p class="dhint" style="margin:0 0 10px;font-size:11px;color:#8a8478;">Temporary — prefer picking from the library by clicking a zone in the preview. Local uploads for testing only.</p>
     <div class="fld"><label style="font-size:11px;">Banner (local file)</label>
@@ -1086,23 +1109,61 @@ const FALLBACK_VOCAB = {
   setting:["floor","breakroom","office","any"],
   aspect:["5:2","16:9","square","portrait","9:16"]
 };
-const sel = { subject:new Set(), month:new Set(), setting:new Set(), aspect:new Set(["16:9"]) };   // tone retired 2026-09-30
+// subject/setting kept only so older code paths don't break; they are no longer shown or written.
+const sel = { subject:new Set(), month:new Set(), setting:new Set(), aspect:new Set(["16:9"]),
+              topic:new Set(), scene:new Set(), season:new Set(), mood:new Set() };   // tone retired 2026-09-30
 let imageDataUrl = null, imageDims = null;
 let VOCAB = Object.assign({}, FALLBACK_VOCAB);   // live vocab (fallback until /vocab loads)
 function currentVocab(){ return VOCAB; }
 
 function buildPills(vocab){
-  for(const g of ["subject","month","setting","aspect"]){
-    const host = document.getElementById("t-"+g);
+  for(const g of ["month","scene","season","mood","aspect"]){
+    const host = document.getElementById("t-"+g); if(!host) continue;
     host.innerHTML = (vocab[g]||[]).map(v=>
-      `<span class="pill" data-g="${g}" data-v="${v}" data-on="${sel[g].has(v)?1:0}" onclick="togPill(this)">${v}</span>`
+      `<span class="pill" data-g="${g}" data-v="${v}" data-on="${sel[g].has(v)?1:0}" onclick="togPill(this)">${g==="aspect"||g==="month"?v:tagLabel(g,v)}</span>`
     ).join("");
   }
+  const th = document.getElementById("t-topic"); if(th) th.innerHTML = assetTopicBlock(vocab);
 }
 function togPill(el){
   const g=el.dataset.g, v=el.dataset.v, on=el.dataset.on==="1";
   el.dataset.on = on?"0":"1"; on ? sel[g].delete(v) : sel[g].add(v);
   draw();
+}
+// Topic picker for pieces: a row of subcategories per category; a selected subcategory opens
+// its topics. Same structure as the image uploader. sel.topic holds subcategory and/or leaf paths.
+function assetTopicBlock(vocab){
+  const all = (vocab.topic||[]), cats = all.filter(v=>!v.includes("/"));
+  if(!all.length) return `<span class="hint">Topic list not loaded.</span>`;
+  const subOn = sub => sel.topic.has(sub) || [...sel.topic].some(v=>v.startsWith(sub+"/"));
+  let h = "";
+  for(const c of cats){
+    const subs = all.filter(v=>v.startsWith(c+"/") && v.split("/").length===2);
+    h += `<div class="pills tb-row"><span class="tb-cat">${tagLabel("topic",c)}</span>`
+      + subs.map(v=>`<span class="pill" data-on="${subOn(v)?1:0}" onclick="assetTopicTog('${tagEsc(v)}')">${tagLabel("topic",v)}</span>`).join("")
+      + `</div>`;
+    for(const sub of subs.filter(subOn)){
+      h += `<div class="pills tb-leaf"><span class="tb-crumb">${tagLabel("topic",sub)} ›</span>`
+        + all.filter(v=>v.startsWith(sub+"/")).map(v=>`<span class="pill" data-on="${sel.topic.has(v)?1:0}" onclick="assetTopicTog('${tagEsc(v)}')">${tagLabel("topic",v)}</span>`).join("")
+        + `</div>`;
+    }
+  }
+  return h;
+}
+function assetTopicTog(v){
+  if(v.split("/").length===2){
+    const on = sel.topic.has(v) || [...sel.topic].some(x=>x.startsWith(v+"/"));
+    if(on) [...sel.topic].forEach(x=>{ if(x===v || x.startsWith(v+"/")) sel.topic.delete(x); });
+    else sel.topic.add(v);
+  } else { sel.topic.has(v) ? sel.topic.delete(v) : sel.topic.add(v); }
+  buildPills(currentVocab());
+}
+// Merge a library photo's tags into the piece's tags (additive; never removes your choices).
+function tags_fromImage(r){
+  if(!r) return;
+  topicLeaves(r.topic||[]).filter(v=>v.includes("/")).forEach(v=>sel.topic.add(v));
+  ["scene","season","mood"].forEach(g=>(r[g]||[]).forEach(v=>sel[g].add(v)));
+  buildPills(currentVocab());
 }
 
 function slugify(s){
@@ -1137,6 +1198,60 @@ function sc_setTemplate(t){
   if(h) h.textContent = circles ? "shown in the small circle (subtitle if blank)" : (classic ? "" : "not shown on this template");
   draw();
 }
+// ===== Position panel (2026-10-07) =====
+// One reusable control: pick a photo or text block, then nudge it left/right and up/down.
+// Photos move their crop (background-position 0-100, centre 50). Text blocks shift by
+// -30..30 % of the screen (centre 0). Each builder supplies its own targets/get/set.
+const POS = {};
+function pos_mount(hostId, cfg){ POS[hostId] = { cfg, key:null }; pos_render(hostId); }
+function pos_render(hostId){
+  const P = POS[hostId], host = document.getElementById(hostId); if(!P || !host) return;
+  const tg = P.cfg.targets();
+  if(!tg.length){ host.dataset.sig=""; host.innerHTML = `<p class="pos-empty">${P.cfg.empty}</p>`; return; }
+  if(!tg.some(t=>t.key===P.key)) P.key = tg[0].key;
+  const t = tg.find(x=>x.key===P.key), isText = t.kind==="text";
+  const lo = isText?-30:0, hi = isText?30:100, mid = isText?0:50;
+  const v = Object.assign({x:mid,y:mid}, P.cfg.get(t.key)||{});
+  const sig = tg.map(x=>x.key+":"+x.label).join("|")+"#"+P.key;
+  if(host.dataset.sig !== sig){
+    host.dataset.sig = sig;
+    host.innerHTML =
+      `<div class="pos-row"><select class="pos-sel">${tg.map(x=>`<option value="${x.key}"${x.key===P.key?" selected":""}>${fl_esc(x.label)}</option>`).join("")}</select>`
+      + `<button type="button" class="linkish pos-reset">Reset</button></div>`
+      + `<label class="pos-lab">Left ↔ Right<input type="range" class="pos-x" min="${lo}" max="${hi}" step="1"></label>`
+      + `<label class="pos-lab">Up ↔ Down<input type="range" class="pos-y" min="${lo}" max="${hi}" step="1"></label>`;
+    const send = ()=>{ P.cfg.set(P.key, { x:+host.querySelector(".pos-x").value, y:+host.querySelector(".pos-y").value }); };
+    host.querySelector(".pos-sel").onchange = e=>{ P.key = e.target.value; host.dataset.sig=""; pos_render(hostId); };
+    host.querySelector(".pos-x").oninput = send;
+    host.querySelector(".pos-y").oninput = send;
+    host.querySelector(".pos-reset").onclick = ()=>{ P.cfg.set(P.key, { x:mid, y:mid }); host.dataset.sig=""; pos_render(hostId); };
+  }
+  const sx = host.querySelector(".pos-x"), sy = host.querySelector(".pos-y");
+  if(document.activeElement!==sx) sx.value = v.x;
+  if(document.activeElement!==sy) sy.value = v.y;
+}
+
+// Screen positions: photo crop + per-template text blocks. Saved in the screen's
+// source_manifest ({focus_x, layout}) plus the focus_y column; overlay.js applies them.
+let sc_focus = { x:50, y:50 };
+let sc_layout = {};
+const SC_TEXT_BLOCKS = {
+  "classic":     [["copy","Headline block"],["bullets","Bullet card"]],
+  "tpl-panel":   [["panel","Panel text"]],
+  "tpl-card":    [["card","Card"]],
+  "tpl-circles": [["c1","Big-circle text"],["c2","Small-circle text"]]
+};
+function sc_posTargets(){
+  const out = [];
+  if(imageDataUrl) out.push({ key:"photo", label:"Photo", kind:"photo" });
+  (SC_TEXT_BLOCKS[sc_tpl]||[]).forEach(([k,l])=>{
+    if(k==="bullets" && !sc_bullets().length) return;
+    out.push({ key:k, label:l, kind:"text" });
+  });
+  return out;
+}
+function sc_manifest(){ return { v:1, kind:"screen", focus_x:sc_focus.x, layout:JSON.parse(JSON.stringify(sc_layout)) }; }
+
 function currentScreen(){
   const bg = imageDataUrl ? imageDataUrl : "gradient:night";
   return {
@@ -1149,7 +1264,8 @@ function currentScreen(){
     accent:document.getElementById("accent").value,
     format:document.getElementById("format").value,
     qr_url:"preview",            // builder preview only: shows the QR spot; not saved
-    background:bg
+    background:bg,
+    focus_y: sc_focus.y, focus_x: sc_focus.x, layout: sc_layout
   };
 }
 function draw(){
@@ -1163,7 +1279,14 @@ function draw(){
     const tr = t==="classic" ? document.getElementById("treatment").value : t;
     if(m) renderScreen(m, Object.assign({}, sc, { treatment:tr, title: sc.title || "Your headline" }), { scale:0.16, chrome:true, qr:false });
   });
+  pos_render("sc_posPanel");
 }
+pos_mount("sc_posPanel", {
+  empty: "Pick a photo or add copy to adjust positions.",
+  targets: sc_posTargets,
+  get: k => k==="photo" ? sc_focus : (sc_layout[k] || {x:0,y:0}),
+  set: (k,v) => { if(k==="photo") sc_focus = v; else sc_layout[k] = v; draw(); }
+});
 
 // ===== Asset type switch =====
 function setAssetType(t){
@@ -1230,6 +1353,7 @@ function clearAsset(){
 // Screen image from the library picker (or a local upload): same state the upload set.
 function sc_setImage(dataUrl, name){
   imageDataUrl = dataUrl;
+  sc_focus = { x:50, y:50 };          // a new photo starts centred
   assetB64 = dataUrl.split(",")[1];
   assetMime = (/^data:([^;]+);/.exec(dataUrl)||[])[1] || "image/png";
   assetName = name || "library-image";
@@ -1324,7 +1448,8 @@ async function sc_draftCopy(){
     if(sc_tpl==="classic") set("eyebrow",d.eyebrow);
     set("sc_bullets",(d.bullets||[]).join("\n"));
     const tags=d.tags||{};
-    ["subject","month","setting"].forEach(g=>{ if(!sel[g]) return; sel[g].clear();
+    // drafted tags: month only (topic etc. come from the photos and the tag picker)
+    ["month"].forEach(g=>{ if(!sel[g]) return; sel[g].clear();
       (Array.isArray(tags[g])?tags[g]:[]).forEach(v=>sel[g].add(v)); });
     if(sel.aspect && sel.aspect.size===0) sel.aspect.add("16:9");
     buildPills(currentVocab()); onTitle(); draw();
@@ -1365,7 +1490,8 @@ function applyDraft(d){
   onTitle();
   // tags: replace selections with validated draft tags
   const tags=d.tags||{};
-  for(const g of Object.keys(sel)){
+  // drafted tags: month + aspect only (2026-10-07: subject/setting retired for pieces)
+  for(const g of ["month","aspect"]){
     sel[g].clear();
     (Array.isArray(tags[g])?tags[g]:[]).forEach(v=>sel[g].add(v));
   }
@@ -1420,6 +1546,9 @@ async function fl_captureManifest(){
     resource: { h: g("fl_in_res_h"), p: g("fl_in_res_p") },   // unbranded footer-zone content
     banner_ref, banner,     // one of the two is set (ref preferred; data URL only for local uploads)
     focus_y:  fl_bannerY,
+    focus_x:  fl_bannerX,                      // photo positions (2026-10-07)
+    subject_pos: fl_subjectPos,
+    item_img_pos: fl_imgPos,
     subject_ref, subject,   // twostep circle; ref preferred, else small data URL, else both null
     // authoring-time brand (fallback; download flow replaces these per client)
     colors: { primary: g("fl_in_c_primary_hex"), secondary: g("fl_in_c_secondary_hex") },
@@ -1540,7 +1669,9 @@ async function save(){
     qr_url:null,                 // generic: the real QR is minted per client at download
     description:document.getElementById("description").value.trim(),
     issue_date:document.getElementById("issue_date").value.trim() || null,
-    subject:[...sel.subject], month:[...sel.month], setting:[...sel.setting],
+    // 2026-10-07: pieces carry the image-library tags; subject/setting no longer written
+    subject:[], month:[...sel.month], setting:[],
+    topic:[...sel.topic], scene:[...sel.scene], season:[...sel.season], mood:[...sel.mood],
     tone: [],                    // tone retired (all asset types) 2026-09-30
     aspect:[...sel.aspect],
     // screens send the background image; docs send the PDF bytes (uploaded OR built). Both ride image_base64.
@@ -1549,7 +1680,12 @@ async function save(){
     thumb_base64: (isBuild||isNl) ? buildThumb : (docThumbB64 || null),
     mime: (isBuild||isNl) ? buildMime : (assetMime || null),
     // Flyer re-render source (white-label download). Only for built flyers; null otherwise.
-    source_manifest: isBuild ? await fl_captureManifest() : (isNl ? await nl_captureManifest() : null),
+    // Screens: their position adjustments (photo crop X + text-block offsets) ride the manifest;
+    // the vertical photo crop uses the focus_y column. Needs drl-screen-write to keep a
+    // screen's manifest (older versions dropped it for screens).
+    source_manifest: isBuild ? await fl_captureManifest() : (isNl ? await nl_captureManifest()
+                   : (assetType==="screen" ? sc_manifest() : null)),
+    focus_y: assetType==="screen" ? sc_focus.y : undefined,
     // RD-routed builder flyer: saved hidden until the RD approves (drl-screen-write honours this).
     hidden_from_drl: (isBuild && flRequireRd) ? true : undefined
   };
@@ -1649,7 +1785,9 @@ async function fl_publishBannerScreen(flyerId){
     hidden_from_drl: flRequireRd ? true : undefined,   // RD-routed: publishes with the flyer on approval
     overlay_bullets: bullets,
     // tags carried from the flyer so the screen is findable alongside it
-    subject:[...sel.subject], month:[...sel.month], setting:[...sel.setting],
+    // 2026-10-07: pieces carry the image-library tags; subject/setting no longer written
+    subject:[], month:[...sel.month], setting:[],
+    topic:[...sel.topic], scene:[...sel.scene], season:[...sel.season], mood:[...sel.mood],
     tone:[], aspect:["16:9"],
     // the banner photo (downscaled) becomes the screen background (16:9 center-crop via object-fit)
     image: screenImg,
@@ -1693,6 +1831,7 @@ function resetForm(){
   document.getElementById("format").value="still";
   clearAsset();
   for(const g in sel){ sel[g].clear(); } sel.aspect.add("16:9");
+  sc_focus = { x:50, y:50 }; sc_layout = {};
   buildPills(currentVocab()); sc_setTemplate("tpl-panel"); setMsg("","");
   setDraftMsg("","");
 }
@@ -1849,29 +1988,45 @@ function fl_fileToData(input,cb){
 // library picker, so the two paths never diverge.
 // fl_bannerY now declared in the shared flyer-render.js.
 function fl_applyBannerPos(){
-  const bg = fl_$("fl_bg"); if(bg) bg.style.backgroundPosition = "50% " + fl_bannerY + "%";
+  const bg = fl_$("fl_bg"); if(bg) bg.style.backgroundPosition = fl_bannerX + "% " + fl_bannerY + "%";
 }
+// Photo position panel (banner, 2-Step circle, per-tile photos)
+function fl_posTargets(){
+  const out = [];
+  if(fl_bannerData) out.push({ key:"banner", label:"Banner", kind:"photo" });
+  if(fl_template==="twostep" && fl_subjectData) out.push({ key:"subject", label:"Circle photo", kind:"photo" });
+  for(const i of (FL_IMG_SLOTS[fl_template]||[])) if(fl_imgData[i]) out.push({ key:"img"+i, label:"Item "+(i+1)+" photo", kind:"photo" });
+  return out;
+}
+pos_mount("fl_posPanel", {
+  empty: "Add a photo to adjust its framing.",
+  targets: fl_posTargets,
+  get: k => k==="banner" ? { x:fl_bannerX, y:fl_bannerY } : (k==="subject" ? fl_subjectPos : fl_imgPos[+k.slice(3)]),
+  set: (k,v) => {
+    if(k==="banner"){ fl_bannerX=v.x; fl_bannerY=v.y; fl_applyBannerPos(); }
+    else if(k==="subject") fl_subjectPos=v; else fl_imgPos[+k.slice(3)]=v;
+    fl_draw();
+  }
+});
 function fl_setBanner(dataUrl, libId){
   fl_bannerData = dataUrl;
   // Library id when the banner came from the image library (null for local-file uploads).
   // The manifest stores this ref instead of the ~2.4 MB bytes, so the download flow re-fetches
   // banner bytes by id at render time — keeps the manifest tiny.
   fl_bannerRef = libId || null;
+  fl_bannerX = 50; fl_bannerY = 50;     // a new banner starts centred
   const bg = fl_$("fl_bg"); if(bg) bg.style.backgroundImage = `url('${dataUrl}')`;
   fl_applyBannerPos();
   const bd = fl_$("fl_in_bannerDrop"); if(bd){ bd.textContent="✓ banner set (click to replace)"; bd.classList.add("have"); }
   const bs = fl_$("fl_in_briefBannerState"); if(bs) bs.textContent="banner set ✓";
-  // enable the vertical-position slider now that a banner exists
-  const sl=fl_$("fl_bannerY"), wr=fl_$("fl_bannerYWrap");
-  if(sl){ sl.disabled=false; } if(wr){ wr.style.opacity="1"; }
+  fl_draw();   // refreshes the position panel and the template minis
 }
 function fl_setSubject(dataUrl, libId){
   fl_subjectData = dataUrl;
   fl_subjectRef = libId || null;   // image-library id of the circle image, when picked from library
+  fl_subjectPos = { x:50, y:50 };
   fl_draw(); // circle is painted inside fl_renderBody from fl_subjectData
 }
-// banner vertical-position slider
-(function(){ const sl=fl_$("fl_bannerY"); if(sl) sl.addEventListener("input",()=>{ fl_bannerY=+sl.value; fl_applyBannerPos(); }); })();
 fl_$("fl_in_bannerDrop").onclick=()=>fl_$("fl_in_bannerFile").click();
 fl_$("fl_in_bannerFile").onchange=()=>fl_fileToData(fl_$("fl_in_bannerFile"),d=>fl_setBanner(d));
 fl_$("fl_in_logoDrop").onclick=()=>fl_$("fl_in_logoFile").click();
@@ -1971,6 +2126,7 @@ function fl_renderPickGrid(){
         else if(String(fl_pickZone).startsWith("nl:")) nl_setImage(fl_pickZone.slice(3), dataUrl, r.id);
         else if(String(fl_pickZone).startsWith("img:")) fl_setImg(+fl_pickZone.slice(4), dataUrl, r.id);
         else if(fl_pickZone==="subject") fl_setSubject(dataUrl, r.id); else fl_setBanner(dataUrl, r.id);
+        tags_fromImage(r);          // carry the photo's library tags onto the piece
         fl_closePicker();
       }catch(e){ msg.textContent="Couldn't load that image."; }
     };
@@ -2042,14 +2198,14 @@ document.addEventListener("click",e=>{
 // left out of the PDF. Kept by tile index, so a pick survives switching templates.
 function fl_setImg(i, dataUrl, libId){
   if(!(i>=0 && i<4)) return;
-  fl_imgData[i] = dataUrl; fl_imgRef[i] = libId || null;
+  fl_imgData[i] = dataUrl; fl_imgRef[i] = libId || null; fl_imgPos[i] = { x:50, y:50 };
   fl_draw();
 }
 
 // Live mini previews in the template rail: the current flyer, re-laid-out in every template.
 // Called after each fl_draw (hook in flyer-render.js); debounced so typing stays smooth.
 let fl_miniTimer = null;
-function fl_afterDraw(){ clearTimeout(fl_miniTimer); fl_miniTimer = setTimeout(fl_drawMinis, 200); }
+function fl_afterDraw(){ clearTimeout(fl_miniTimer); fl_miniTimer = setTimeout(fl_drawMinis, 200); pos_render("fl_posPanel"); }
 function fl_drawMinis(){
   const src = fl_$("fl_in_flyer"); if(!src) return;
   const eyebrow = fl_$("fl_in_eyebrow") ? fl_$("fl_in_eyebrow").value : "";
@@ -2565,9 +2721,8 @@ function fl_startNewFlyer(){
   // banner + logo
   fl_bannerData=null; fl_logoData=null; fl_subjectData=null; fl_bannerRef=null; fl_subjectRef=null;
   fl_imgData=[null,null,null,null]; fl_imgRef=[null,null,null,null];
-  fl_bannerY=50;
-  const slY=document.getElementById("fl_bannerY"); if(slY){ slY.value=50; slY.disabled=true; }
-  const slW=document.getElementById("fl_bannerYWrap"); if(slW) slW.style.opacity=".5";
+  fl_bannerY=50; fl_bannerX=50; fl_subjectPos={x:50,y:50};
+  fl_imgPos=[{x:50,y:50},{x:50,y:50},{x:50,y:50},{x:50,y:50}];
   const bg=document.getElementById("fl_bg"); if(bg) bg.style.backgroundImage="";
   const bd=document.getElementById("fl_in_bannerDrop"); if(bd){ bd.textContent="Click to add the banner image"; bd.classList.remove("have"); }
   const ld=document.getElementById("fl_in_logoDrop"); if(ld){ ld.textContent="Click to add a logo (PNG)"; ld.classList.remove("have"); }
@@ -3031,6 +3186,7 @@ function nl_collect(){
                                    img:(nl_imgs["tip"+i]||{}).data || null });
   return {
     v:1, template:nl_tpl,
+    img_pos: nl_imgPos(),        // photo crop positions (2026-10-07)
     bullets: nl_has("bullets") ? nl_v("nl_in_bullets") : "",
     actions: nl_has("actions") ? nl_v("nl_in_actions") : "",
     masthead:{ title:nl_v("nl_in_mastTitle"), volume:nl_v("nl_in_volume"), issue:nl_v("nl_in_issue") },
@@ -3079,13 +3235,32 @@ function nl_draw(){
   });
   // show only the tip editors in use
   for(let i=0;i<6;i++){ const b=document.getElementById("nl_tipblk"+i); if(b) b.style.display = i<nl_tipCount() ? "" : "none"; }
+  pos_render("nl_posPanel");
   requestAnimationFrame(nl_fitPreview);
 }
 window.addEventListener("resize", ()=>{ if(assetType==="newsletter") nl_fitPreview(); });
 
+function nl_imgPos(){
+  const o = {}; for(const z in nl_imgs){ if(nl_imgs[z] && nl_imgs[z].pos) o[z] = nl_imgs[z].pos; } return o;
+}
+const NL_ZONE_LABEL = { hero:"Cover photo", side:"Side photo", feature:"Feature photo" };
+function nl_posTargets(){
+  const out = [], has = z => nl_imgs[z] && nl_imgs[z].data;
+  if(has("hero")) out.push({ key:"hero", label:NL_ZONE_LABEL.hero, kind:"photo" });
+  if(nl_has("side") && has("side")) out.push({ key:"side", label:NL_ZONE_LABEL.side, kind:"photo" });
+  if(nl_has("feature") && nl_tipCount()<6 && has("feature")) out.push({ key:"feature", label:NL_ZONE_LABEL.feature, kind:"photo" });
+  for(let i=0;i<nl_tipCount();i++) if(has("tip"+i)) out.push({ key:"tip"+i, label:"Tip "+(i+1)+" photo", kind:"photo" });
+  return out;
+}
+pos_mount("nl_posPanel", {
+  empty: "Add a photo to adjust its framing.",
+  targets: nl_posTargets,
+  get: z => (nl_imgs[z] && nl_imgs[z].pos) || { x:50, y:50 },
+  set: (z,v) => { if(nl_imgs[z]){ nl_imgs[z].pos = v; nl_draw(); } }
+});
 function nl_setImage(zone, dataUrl, libId){
   if(!NL_ZONES.includes(zone)) return;
-  nl_imgs[zone] = { data:dataUrl, ref:libId || null };
+  nl_imgs[zone] = { data:dataUrl, ref:libId || null, pos:{ x:50, y:50 } };
   nl_draw();
 }
 
