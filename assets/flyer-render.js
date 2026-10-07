@@ -15,6 +15,11 @@ var fl_template   = "checklist";              // reassigned by admin's template 
 var fl_bannerData = null, fl_logoData = null, fl_subjectData = null;
 var fl_bannerRef  = null, fl_subjectRef = null;   // image-library ids when picked from library
 var fl_bannerY    = 50;                        // banner vertical crop (background-position Y%)
+var fl_bannerX    = 50;                        // banner horizontal crop (2026-10-07)
+var fl_subjectPos = { x:50, y:50 };            // 2-Step circle photo crop
+var fl_imgPos     = [{x:50,y:50},{x:50,y:50},{x:50,y:50},{x:50,y:50}];   // per-tile photo crop
+function fl_bgPos(p){ p = p || {}; const c = v => (v==null || isNaN(+v)) ? 50 : Math.max(0, Math.min(100, +v));
+  return `background-position:${c(p.x)}% ${c(p.y)}%;`; }
 // Optional per-item photos, indexed by TILE index (0-3) so picks carry across templates.
 // Used: checklist 0-3 (round), explainer 0-3 (square), segments 1-3 (column strip), twostep 1-2 (card strip).
 var fl_imgData    = [null,null,null,null];     // data URLs
@@ -48,7 +53,7 @@ function fl_bodyData(){
 function fl_imgSlot(i, cls){
   const img = fl_imgData[i];
   return `<div class="fl-img ${cls} fl-zone${img?"":" fl-img--empty"}" data-img="${i}"`+
-    (img ? ` style="background-image:url('${img}')"` : "") + `></div>`;
+    (img ? ` style="background-image:url('${img}');${fl_bgPos(fl_imgPos[i])}"` : "") + `></div>`;
 }
 function fl_bodyHTML(tpl){
   const { lead, items } = fl_bodyData();
@@ -80,7 +85,7 @@ function fl_bodyHTML(tpl){
     const title = fl_$("fl_in_headline") ? fl_$("fl_in_headline").value : "";
     const introHead = items[0] ? items[0].h : "";
     const introBody = items[0] ? items[0].p : "";
-    const circleStyle = fl_subjectData ? ` style="background-image:url('${fl_subjectData}')"` : "";
+    const circleStyle = fl_subjectData ? ` style="background-image:url('${fl_subjectData}');${fl_bgPos(fl_subjectPos)}"` : "";
     const cards = [1,2].filter(k=>items[k] && (items[k].h||items[k].p)).map((k,i)=>{ const t=items[k]; return `<div class="ts-card${fl_imgData[k]?" has-img":""}">${fl_imgSlot(k,"ts-card__img")}<div class="ts-badge">${i+1}</div>`+
       `<h4 class="ts-card__head">${fl_esc(t.h)}</h4>`+
       `<p class="ts-card__body">${fl_esc(t.p)}</p></div>`; }).join("");
