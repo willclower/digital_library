@@ -44,7 +44,7 @@
 /* overflow:hidden on tinted cards would let them shrink below their text; never clip copy */
 .flyer-scope .fl-flow__item, .flyer-scope .tile, .flyer-scope .fl-col{min-height:min-content;}
 .flyer-scope .fl-tail{flex:0.001 1 0 !important;}
-.flyer-scope .fl-gap{flex:1 1 0 !important;min-height:8px;max-height:34px;}
+.flyer-scope .fl-gap{flex:1 1 0 !important;min-height:4px;max-height:34px;}
 /* Brand tint without color-mix (html2canvas can't parse it): a ::before layer at low opacity. */
 .flyer-scope .fl-tint{position:relative;overflow:hidden;}
 .flyer-scope .fl-tint::before{content:"";position:absolute;inset:0;background:var(--brand-primary);opacity:.065;pointer-events:none;}
@@ -57,13 +57,14 @@
 .flyer-scope .fl-addr__line{font-size:10px;line-height:1.5;color:var(--ink-soft);}
 .flyer-scope .fl-addr__logo{justify-self:end;}
 .flyer-scope .fl-addr__logo img{max-height:40px;max-width:170px;object-fit:contain;}
-.flyer-scope .tile-grid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:14px;max-height:440px;}
-.flyer-scope .tile{display:flex;gap:13px;align-items:center;background:#fff;border:1px solid var(--tile-border);
-    border-radius:12px;padding:16px 16px 16px 20px;}
+.flyer-scope .tile-grid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:12px;max-height:470px;}
+.flyer-scope .tile{display:flex;flex-direction:column;gap:4px;background:#fff;border:1px solid var(--tile-border);
+    border-radius:12px;padding:10px 12px 8px 18px;}
 .flyer-scope .tile::after{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--brand-secondary);}
-.flyer-scope .tile .box{flex:0 0 auto;width:28px;height:28px;border-radius:7px;border:2.5px solid var(--brand-primary);background:#fff;}
-.flyer-scope .tile .tbody h4{margin:0 0 5px;font-size:16.5px;line-height:1.2;font-weight:700;color:var(--brand-primary);}
-.flyer-scope .tile .tbody p{margin:0;font-size:12.5px;line-height:1.5;color:var(--ink-soft);}
+.flyer-scope .tile .box{flex:0 0 auto;width:20px;height:20px;border-radius:5px;border:2px solid var(--brand-primary);background:#fff;
+    align-self:center;margin-top:auto;}
+.flyer-scope .tile .tbody h4{margin:0 0 4px;font-size:16px;line-height:1.2;font-weight:700;color:var(--brand-primary);}
+.flyer-scope .tile .tbody p{margin:0;font-size:12px;line-height:1.45;color:var(--ink-soft);}
 .flyer-scope .fl-flow{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;max-height:470px;}
 .flyer-scope .fl-flow__item{flex:1 1 auto;display:grid;grid-template-columns:40px 1fr;gap:16px;align-items:center;
     background:#fff;border:1px solid var(--tile-border);border-radius:12px;padding:8px 20px 8px 16px;}
@@ -89,18 +90,17 @@
 .flyer-scope .fl-img--empty{display:none;}
 .flyer-scope .flyer.fl-authoring .fl-img--empty{display:block;}
 .flyer-scope .flyer.fl-rendering .fl-img--empty{display:none !important;}
-/* Checklist: small round photo tucked in the tile's top-right corner; only the title wraps around it */
-.flyer-scope .tile__img{position:absolute !important;top:10px;right:10px;width:50px;height:50px;border-radius:50%;
-    border:3px solid #fff;box-shadow:0 2px 6px -2px rgba(0,0,0,.35);}
-.flyer-scope .tile .tbody{flex:1 1 auto;min-width:0;}
-.flyer-scope .tile.has-img .tbody h4, .flyer-scope .flyer.fl-authoring .tile .tbody h4{padding-right:50px;min-height:46px;display:flex;align-items:center;}
-.flyer-scope .flyer.fl-rendering .tile:not(.has-img) .tbody h4{padding-right:0;min-height:0;display:block;}
+/* Checklist: round photo floated top-right inside the text; title and body wrap around it */
+.flyer-scope .tile__img{float:right;width:72px;height:72px;border-radius:50%;margin:0 0 6px 10px;
+    border:3px solid #fff;box-shadow:0 2px 6px -2px rgba(0,0,0,.35);shape-outside:circle(50%);}
+.flyer-scope .tile .tbody{flex:0 0 auto;min-width:0;}
+.flyer-scope .tile .tbody::after{content:"";display:block;clear:both;}
 /* Explainer: rounded square photo on the right of each step */
 .flyer-scope .fl-flow__item.has-img, .flyer-scope .flyer.fl-authoring .fl-flow__item{grid-template-columns:40px 1fr 64px;}
 .flyer-scope .flyer.fl-rendering .fl-flow__item:not(.has-img){grid-template-columns:40px 1fr;}
 .flyer-scope .fl-flow__img{width:64px;height:64px;border-radius:10px;}
 /* 2 Steps: photo strip across the top of each card */
-.flyer-scope .ts-card__img{margin:-22px -20px 14px;aspect-ratio:3/1;border-radius:12px 12px 0 0;
+.flyer-scope .ts-card__img{margin:-22px -20px 12px;aspect-ratio:7/2;border-radius:12px 12px 0 0;
     border-bottom:3px solid var(--brand-secondary);}
 .flyer-scope .ts-card.has-img, .flyer-scope .flyer.fl-authoring .ts-card{border-top:none;}
 .flyer-scope .flyer.fl-rendering .ts-card:not(.has-img){border-top:4px solid var(--brand-secondary);}
