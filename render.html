@@ -152,10 +152,15 @@ async function renderFlyerFromManifest(manifest, brand){
   }
   fl_setInput("fl_in_footCode",     b.footCode || "");
 
-  fl_bannerY = (m.focus_y==null || isNaN(+m.focus_y)) ? 50 : Math.max(0,Math.min(100,+m.focus_y));
+  const clampP = v => (v==null || isNaN(+v)) ? 50 : Math.max(0,Math.min(100,+v));
+  fl_bannerY = clampP(m.focus_y);
+  fl_bannerX = clampP(m.focus_x);                       // photo positions (2026-10-07); absent = centred
+  fl_subjectPos = m.subject_pos || { x:50, y:50 };
+  fl_imgPos = Array.isArray(m.item_img_pos) ? m.item_img_pos.slice(0,4) : [];
+  while(fl_imgPos.length < 4) fl_imgPos.push({ x:50, y:50 });
   const bannerData = await fl_toDataUrl(m.banner_ref || m.banner);
   const bg = fl_$("fl_bg");
-  if(bg && bannerData){ bg.style.backgroundImage = `url('${bannerData}')`; bg.style.backgroundPosition = `50% ${fl_bannerY}%`; }
+  if(bg && bannerData){ bg.style.backgroundImage = `url('${bannerData}')`; bg.style.backgroundPosition = `${fl_bannerX}% ${fl_bannerY}%`; }
 
   fl_subjectData = (m.subject_ref || m.subject) ? await fl_toDataUrl(m.subject_ref || m.subject) : null;
 
