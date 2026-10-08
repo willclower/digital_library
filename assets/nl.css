@@ -126,7 +126,8 @@
 .nl-scope .nl-e-mast__title{font-weight:600;font-size:19px;line-height:1.05;}
 .nl-scope .nl-e-mast__sub{font-size:9.5px;opacity:.85;margin-top:3px;white-space:pre;}
 .nl-scope .nl-doc .nl-e-title{position:absolute;left:44px;top:124px;width:240px;margin:0;font-weight:700;font-size:46px;
-  line-height:1;letter-spacing:-.02em;color:var(--brand-primary);max-height:250px;overflow:hidden;}
+  line-height:1;letter-spacing:-.02em;color:var(--brand-primary);max-height:250px;overflow:hidden;
+  padding-bottom:6px;}   /* room for descenders (g, y, p) under the clip */
 .nl-scope .nl-e-hero{position:absolute;left:296px;top:120px;width:278px;height:250px;
   border-radius:58% 42% 46% 54% / 52% 48% 52% 48%;background:#e9edf0 center/cover no-repeat;}
 .nl-scope .nl-e-side{position:absolute;left:44px;top:404px;width:208px;max-height:330px;overflow:hidden;}
