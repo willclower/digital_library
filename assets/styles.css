@@ -74,10 +74,10 @@ body{margin:0;font-family:var(--font-sans);}
 
 /* Panel — photo left two-thirds, solid brand panel right third */
 .vwl-tpl[data-tpl="tpl-panel"] .vwl-t-photo{position:absolute;left:0;top:0;bottom:0;width:67%;overflow:hidden;}
-.vwl-tpl .vwl-t-panel{position:absolute;right:0;top:0;bottom:0;width:33%;padding:7cqw 2.6cqw 0 2.6cqw;z-index:2;}
-.vwl-tpl .vwl-t-panel .vwl-t-title{font-size:5.3cqw;}
-.vwl-tpl .vwl-t-bar{width:23cqw;height:3.1cqw;border-radius:99cqw;margin:1.8cqw 0 5cqw;}
-.vwl-tpl[data-tpl="tpl-panel"] .vwl-t-qr{right:2.6cqw;bottom:1.6cqw;}
+.vwl-tpl .vwl-t-panel{position:absolute;right:0;top:0;bottom:0;width:33%;padding:5cqw 2.6cqw 0 2.6cqw;z-index:2;}   /* 2026-10-07: top 7->5cqw, room for 4 bullets above the QR */
+.vwl-tpl .vwl-t-panel .vwl-t-title{font-size:4.9cqw;}
+.vwl-tpl .vwl-t-bar{width:23cqw;height:2.4cqw;border-radius:99cqw;margin:1.6cqw 0 3.2cqw;}
+.vwl-tpl[data-tpl="tpl-panel"] .vwl-t-qr{right:calc(33% + 1.6cqw);bottom:1.6cqw;}   /* 2026-10-07: QR on the photo's corner so the panel's full height holds text */
 
 /* Card — full-bleed photo, translucent brand card right-centre, secondary left rule */
 .vwl-tpl .vwl-t-card{position:absolute;left:46.5%;right:0;top:20.5%;height:60%;z-index:2;}
@@ -97,3 +97,6 @@ body{margin:0;font-family:var(--font-sans);}
 .vwl-tpl .vwl-t-c2txt{position:absolute;left:calc(65.5% - 8.75cqw);top:67%;transform:translateY(-50%);width:17.5cqw;z-index:3;
   text-align:center;font-family:var(--font-screen);font-weight:700;font-size:2.3cqw;line-height:1.18;}
 .vwl-tpl[data-tpl="tpl-circles"] .vwl-t-qr{right:5cqw;bottom:2.6cqw;width:11cqw;height:11cqw;}
+
+/* 2026-10-07: a line break typed in the builder shows on the screen */
+.vwl-head,.vwl-sub,.vwl-cta,.vwl-tpl .vwl-t-title,.vwl-tpl .vwl-t-sub,.vwl-tpl .vwl-t-c1txt,.vwl-tpl .vwl-t-c2txt{white-space:pre-line;}
