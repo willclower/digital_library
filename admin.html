@@ -1231,6 +1231,45 @@ function pos_render(hostId){
   if(document.activeElement!==sy) sy.value = v.y;
 }
 
+// ===== Screen character limits (2026-10-07) =====
+// Per template, verified in a browser on a 1280px frame: every field at its limit, four bullets,
+// text kept inside the TV safe area (2.5% / 3.5% in from the edges), clear of the QR and of each
+// other, card text inside the card, circle text inside its circle. bullet = per line (max 4 lines).
+// Panel / Card show the subtitle only when there are no bullets; Circles' small circle shows the
+// CTA, or the subtitle when the CTA is blank.
+const SC_CAPS_TPL = {
+  classic:       { eyebrow:36, title:70, subtitle:200, cta:55, bullet:55 },
+  "tpl-panel":   { title:23, subtitle:160, bullet:40 },
+  "tpl-card":    { title:29, subtitle:160, bullet:33 },
+  "tpl-circles": { title:42, subtitle:63, cta:63 }
+};
+const SC_CAP_FIELDS = { title:"title", subtitle:"subtitle", eyebrow:"eyebrow", cta:"cta", sc_bullets:"bullet" };
+function sc_lineCount(){ const el=document.getElementById("sc_bullets"); return el ? el.value.split("\n").filter(x=>x.trim()).length : 0; }
+function sc_caps(){ return SC_CAPS_TPL[sc_tpl] || SC_CAPS_TPL.classic; }
+function sc_len(id, v){ return id==="sc_bullets" ? Math.max(0, ...String(v||"").split("\n").map(x=>x.trim().length)) : String(v||"").length; }
+function sc_overCaps(){
+  if(assetType!=="screen") return [];
+  const c=sc_caps(), out=[];
+  for(const id in SC_CAP_FIELDS){ const el=document.getElementById(id), cap=c[SC_CAP_FIELDS[id]];
+    if(el && cap!=null && sc_len(id, el.value) > cap) out.push(id); }
+  if(sc_lineCount() > 4) out.push("sc_bullets");
+  return out;
+}
+function sc_refreshCounters(){
+  const c=sc_caps(), on=assetType==="screen";
+  for(const id in SC_CAP_FIELDS){
+    const el=document.getElementById(id); if(!el) continue;
+    let k=el.nextElementSibling && el.nextElementSibling.classList.contains("sc-count") ? el.nextElementSibling : null;
+    if(!k){ k=document.createElement("div"); k.className="sc-count";
+      k.style.cssText="font-size:10.5px;text-align:right;margin-top:2px;color:#8a8577;"; el.insertAdjacentElement("afterend",k); }
+    const cap=c[SC_CAP_FIELDS[id]];
+    if(!on || cap==null){ k.textContent=""; el.style.borderColor=""; continue; }
+    const n=sc_len(id, el.value), lines=id==="sc_bullets" ? sc_lineCount() : 0, bad = n>cap || lines>4;
+    k.textContent = id==="sc_bullets" ? `longest line ${n} / ${cap} · ${lines} / 4 lines` : `${n} / ${cap}`;
+    k.style.color = bad ? "#b3261e" : "#8a8577"; el.style.borderColor = bad ? "#b3261e" : "";
+  }
+}
+
 // Screen positions: photo crop + per-template text blocks. Saved in the screen's
 // source_manifest ({focus_x, layout}) plus the focus_y column; overlay.js applies them.
 let sc_focus = { x:50, y:50 };
@@ -1280,7 +1319,10 @@ function draw(){
     if(m) renderScreen(m, Object.assign({}, sc, { treatment:tr, title: sc.title || "Your headline" }), { scale:0.16, chrome:true, qr:false });
   });
   pos_render("sc_posPanel");
+  sc_refreshCounters();
 }
+// counters show only for screens; refresh whenever the asset type changes
+{ const _sat = setAssetType; setAssetType = function(t){ _sat(t); sc_refreshCounters(); }; }
 pos_mount("sc_posPanel", {
   empty: "Pick a photo or add copy to adjust positions.",
   targets: sc_posTargets,
@@ -1440,7 +1482,7 @@ async function sc_draftCopy(){
   try{
     const image=await sc_contextImage();
     const res=await fetch(SCREEN_DRAFT_URL,{ method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ brief, template: sc_tpl, image }) });
+      body:JSON.stringify({ brief, template: sc_tpl, image, caps: sc_caps(), max_bullets: 4 }) });
     if(!res.ok) throw new Error("draft "+res.status);
     const d=await res.json(); if(!d || !d.ok) throw new Error("bad draft");
     const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v||""; };
@@ -1571,6 +1613,9 @@ function fl_busySet(txt){ const t=document.getElementById("fl_busyTxt"); if(t) t
 function fl_busyOff(){ const b=document.getElementById("fl_busy"); if(b) b.classList.remove("on"); }
 
 async function save(){
+  if(assetType==="screen" && sc_overCaps().length){
+    setMsg("Some copy is over its limit for this template (red counters). Shorten it, then publish.","err"); return;
+  }
   const isBuild = (assetType==="flyer" && flyerMode==="build");
   const isNl    = (assetType==="newsletter");        // newsletter is always built (template magazine2)
   if(isNl){                                           // title/id default from the newsletter title
@@ -3169,7 +3214,7 @@ function nl_setTemplate(t){
   show("nl_f_tipCount", nl_T().tipsMin !== nl_T().tipsMax);
   const pl=document.querySelector("#nlPreviewWrap .plabel"); if(pl) pl.textContent = "Live preview · 2 pages · " + nl_T().name;
   if(changed && typeof nl_qcInvalidate==="function") nl_qcInvalidate();   // reviewed fields differ per template
-  nl_draw();
+  nl_draw(); nl_refreshCounters();
 }
 // Picker shape per photo spot, per template (the picker also offers "show all shapes").
 function nl_zoneAspect(z){
@@ -3332,8 +3377,43 @@ document.querySelectorAll("#nlBuild select").forEach(el=>el.addEventListener("ch
 // ---- AI draft (drl/draft-newsletter, Anthropic; Studio content — no member PHI) ----
 const NL_DRAFT_ENDPOINT = DRL_API + "/draft-newsletter";
 // Per-field character caps for the magazine2 layout; sent to the model as hard limits.
-const NL_CAPS = { headline:30, subhead:75, hook:270, intro:380, co_title:28, co_body:430, co_band:110,
-                  sec_title:36, sec_intro:260, tip_h:22, tip_p:125, runfoot:28, bullet:38, action:60 };
+// Per-template character limits (2026-10-07). Each set verified in a browser: both pages, every
+// field at its limit, every photo filled, max tips: nothing clipped, off the page, or under a photo.
+// The builder is the single source of truth: counters, the Finalize gate and the drafter all read
+// these. bullet / action = per line. Cover's callout band shows the callout body, so co_body = band.
+const NL_CAPS_TPL = {
+  magazine2: { headline:30, subhead:75, hook:270, intro:280, co_title:28, co_body:395,
+               sec_title:36, sec_intro:260, tip_h:22, tip_p:125, runfoot:28 },
+  editorial: { headline:30, subhead:65, hook:250, bullet:35, co_title:28, co_body:430,
+               sec_title:36, sec_intro:260, tip_h:22, tip_p:125, runfoot:28 },
+  cover:     { headline:30, subhead:45, hook:215, co_title:28, co_body:110,
+               sec_title:36, sec_intro:175, tip_h:22, tip_p:125, action:50, runfoot:28 }
+};
+function nl_caps(){ const c = Object.assign({}, NL_CAPS_TPL[nl_tpl] || NL_CAPS_TPL.magazine2); c.co_band = c.co_body; return c; }
+// field id -> limit key; "lines" = the limit applies to each line (one bullet / action per line)
+const NL_CAP_FIELDS = { nl_in_headline:"headline", nl_in_subhead:"subhead", nl_in_hook:"hook", nl_in_intro:"intro",
+  nl_in_coTitle:"co_title", nl_in_coBody:"co_body", nl_in_secTitle:"sec_title", nl_in_secIntro:"sec_intro",
+  nl_in_runfoot:"runfoot", nl_in_bullets:"bullet", nl_in_actions:"action" };
+for(let i=0;i<6;i++){ NL_CAP_FIELDS["nl_in_t"+i+"_h"]="tip_h"; NL_CAP_FIELDS["nl_in_t"+i+"_p"]="tip_p"; }
+const NL_PER_LINE = { nl_in_bullets:1, nl_in_actions:1 };
+function nl_lenFor(id, v){ return NL_PER_LINE[id] ? Math.max(0, ...String(v||"").split("\n").map(x=>x.trim().length)) : String(v||"").length; }
+function nl_overCap(id){ const el=document.getElementById(id), cap=nl_caps()[NL_CAP_FIELDS[id]];
+  return !!(el && cap!=null && el.offsetParent!==null && nl_lenFor(id, el.value) > cap); }
+function nl_refreshCounters(){
+  for(const id in NL_CAP_FIELDS){
+    const el=document.getElementById(id); if(!el) continue;
+    let c=el.nextElementSibling && el.nextElementSibling.classList.contains("nl-count") ? el.nextElementSibling : null;
+    if(!c){ c=document.createElement("div"); c.className="nl-count";
+      c.style.cssText="font-size:10.5px;text-align:right;margin-top:2px;color:#8a8577;";
+      el.insertAdjacentElement("afterend",c); el.addEventListener("input", nl_refreshCounters); }
+    const cap=nl_caps()[NL_CAP_FIELDS[id]];
+    if(cap==null){ c.textContent=""; el.style.borderColor=""; continue; }   // field not used by this template
+    const n=nl_lenFor(id, el.value);
+    c.textContent = (NL_PER_LINE[id] ? "longest line " : "") + n + " / " + cap;
+    c.style.color = n>cap ? "#b3261e" : "#8a8577"; el.style.borderColor = n>cap ? "#b3261e" : "";
+  }
+  if(typeof nl_updateFinalizeGate==="function") nl_updateFinalizeGate();
+}
 function nl_setFld(id, v){ const el=document.getElementById(id); if(el) el.value = (v==null ? "" : String(v)); }
 async function nl_draftCopy(){
   const brief = (nl_v("nl_in_brief")||"").trim();
@@ -3342,7 +3422,7 @@ async function nl_draftCopy(){
   btn.disabled = true; msg.textContent = "Drafting… (about 20–40 seconds)";
   try{
     const res = await fetch(NL_DRAFT_ENDPOINT, { method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ brief, template: nl_tpl, tip_count: nl_tipCount(), caps: NL_CAPS }) });
+      body: JSON.stringify({ brief, template: nl_tpl, tip_count: nl_tipCount(), caps: nl_caps() }) });
     const d = await res.json();
     if(!d || !d.ok) throw new Error("no draft returned");
     nl_setFld("nl_in_headline", d.headline);  nl_setFld("nl_in_subhead", d.subhead);
@@ -3356,7 +3436,7 @@ async function nl_draftCopy(){
     if(d.runfoot){ const vol = nl_v("nl_in_volume").trim();
       nl_setFld("nl_in_runfoot", vol ? `Volume ${vol} : ${d.runfoot}` : d.runfoot); }
     nl_qcInvalidate();
-    nl_draw();
+    nl_draw(); nl_refreshCounters();
     msg.textContent = "Drafted — review and edit below.";
   }catch(e){ msg.textContent = "Draft failed: " + e.message; }
   finally{ btn.disabled = false; }
@@ -3548,7 +3628,9 @@ async function nl_recordBuilderPass(savedId, code){
 }
 function nl_updateFinalizeGate(){
   const btn=document.getElementById("nl_finalizeBtn"); if(!btn) return;
-  const ready = !!nlQcReview && (nlQcReview.findings||[]).every(f=>!!f.disposition);
+  // over-limit copy blocks Finalize, the same as flyers
+  const over = Object.keys(NL_CAP_FIELDS).some(nl_overCap);
+  const ready = !over && !!nlQcReview && (nlQcReview.findings||[]).every(f=>!!f.disposition);
   btn.disabled=!ready; btn.style.opacity = ready ? "1" : ".5";
 }
 document.getElementById("nl_qcBtn").onclick = nl_sendToQC;
@@ -3556,7 +3638,9 @@ document.getElementById("nl_finalizeBtn").onclick = ()=>{ save(); };
 // Only reviewed copy fields invalidate (tip count changes which tips are reviewed, so it does too).
 Object.values(NL_QC_MAP).forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener("input", nl_qcInvalidate); });
 document.getElementById("nl_in_tipCount").addEventListener("change", nl_qcInvalidate);
+document.getElementById("nl_in_tipCount").addEventListener("change", ()=>setTimeout(nl_refreshCounters,0));
 nl_updateFinalizeGate();
+nl_refreshCounters();
 
 // photo spots in the preview open the shared image-library picker
 document.getElementById("nl_stage").addEventListener("click", e=>{
