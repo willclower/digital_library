@@ -85,7 +85,7 @@ async function nl_prepareBrand(brand){
 }
 
 function nl_esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-function nl_br(s){ return nl_esc(s).replace(/\n/g,"<br>"); }
+function nl_br(s){ return nl_esc(s).replace(/\n/g,"<br>"); }   // body copy: a typed line break shows (2026-10-07)
 function nl_paras(v){ return (Array.isArray(v)?v:String(v||"").split(/\n\s*\n/)).filter(x=>String(x).trim()); }
 // Photo crop positions (2026-10-07): d.img_pos = { <zone>: {x, y} } in % (centre 50/50),
 // set per render in nl_render. Saved in the manifest, so downloads keep the framing.
@@ -158,15 +158,15 @@ function nl_render(el, d, opts){
     <div class="nl-cover__text">
       <h1 class="nl-title">${nl_br(c.headline)}</h1>
       <div class="nl-rule"></div>
-      <p class="nl-sub">${nl_esc(c.subhead)}</p>
-      <p class="nl-hook">${nl_esc(c.hook)}</p>
+      <p class="nl-sub">${nl_br(c.subhead)}</p>
+      <p class="nl-hook">${nl_br(c.hook)}</p>
     </div>
     <div class="nl-lower">
-      <div class="nl-intro">${nl_paras(d.intro).map(p=>`<p>${nl_esc(p)}</p>`).join("")}</div>
+      <div class="nl-intro">${nl_paras(d.intro).map(p=>`<p>${nl_br(p)}</p>`).join("")}</div>
       <div class="nl-callout">
         <div class="nl-callout__head"><div class="nl-icon">${nl_icon(co.icon)}</div>
           <h3 class="nl-callout__title">${nl_br(co.title)}</h3></div>
-        ${nl_paras(co.body).map(p=>`<p>${nl_esc(p)}</p>`).join("")}
+        ${nl_paras(co.body).map(p=>`<p>${nl_br(p)}</p>`).join("")}
       </div>
     </div>
     <div class="nl-side${z}${d.side?"":" nl-empty"}" data-zone="side"${nl_bg(d.side,"side")}></div>
@@ -179,14 +179,14 @@ function nl_render(el, d, opts){
     const t = cell.tip, ti = tips.indexOf(t);
     return `<div class="nl-tip${cell.lastCol?" nl-last-col":""}">
       <div class="nl-tip__img${z}" data-zone="tip${ti}"${nl_bg(t.img,"tip"+ti)}></div>
-      <h4 class="nl-tip__h">${nl_esc(t.h)}</h4><p class="nl-tip__p">${nl_esc(t.p)}</p></div>`;
+      <h4 class="nl-tip__h">${nl_esc(t.h)}</h4><p class="nl-tip__p">${nl_br(t.p)}</p></div>`;
   }).join("");
 
   p2 = `
   <section class="nl-page nl-p2page nl-pg2${foot.cls}">
     <div class="nl-p2">
       <h2 class="nl-sec__title">${nl_esc(s.title)}</h2>
-      <p class="nl-sec__intro">${nl_esc(s.intro)}</p>
+      <p class="nl-sec__intro">${nl_br(s.intro)}</p>
       <div class="nl-grid">${cells}</div>
     </div>
     ${pgtab(2)}
@@ -213,13 +213,13 @@ function nl_p1Editorial(d, b, z, pgtab){
     <h1 class="nl-e-title">${nl_br(c.headline)}</h1>
     <div class="nl-e-hero${z}" data-zone="hero"${nl_bg(c.hero,"hero")}></div>
     <div class="nl-e-side">
-      ${c.subhead ? `<p class="nl-e-lead">${nl_esc(c.subhead)}</p>` : ""}
-      ${c.hook ? `<p class="nl-e-body">${nl_esc(c.hook)}</p>` : ""}
+      ${c.subhead ? `<p class="nl-e-lead">${nl_br(c.subhead)}</p>` : ""}
+      ${c.hook ? `<p class="nl-e-body">${nl_br(c.hook)}</p>` : ""}
       ${bullets.length ? `<ul class="nl-e-list">${bullets.map(x=>`<li>${nl_esc(x)}</li>`).join("")}</ul>` : ""}
     </div>
     <div class="nl-e-main">
       <h2 class="nl-e-h2">${nl_br(co.title)}</h2>
-      ${nl_paras(co.body).map(p=>`<p class="nl-e-body">${nl_esc(p)}</p>`).join("")}
+      ${nl_paras(co.body).map(p=>`<p class="nl-e-body">${nl_br(p)}</p>`).join("")}
     </div>
     <div class="nl-e-logo${lightLogo?" nl-e-logo--dark":""}">${b.logo ? `<img src="${b.logo}" alt="">` : ""}</div>
     ${pgtab(1)}
@@ -229,14 +229,14 @@ function nl_p2Editorial(d, tips, z, pgtab, foot){
   const s = d.section || {};
   const rows = tips.slice(0,3).map((t,i)=>{
     const img = `<div class="nl-e-img${z}" data-zone="tip${i}"${nl_bg(t.img,"tip"+i)}></div>`;
-    const txt = `<div class="nl-e-rowtxt${i%2===0?" r":""}"><h3 class="nl-e-h3">${nl_esc(t.h)}</h3><p class="nl-e-body">${nl_esc(t.p)}</p></div>`;
+    const txt = `<div class="nl-e-rowtxt${i%2===0?" r":""}"><h3 class="nl-e-h3">${nl_esc(t.h)}</h3><p class="nl-e-body">${nl_br(t.p)}</p></div>`;
     return `<div class="nl-e-row">${i%2===0 ? txt+img : img+txt}</div>`;
   }).join("");
   return `
   <section class="nl-page nl-p2page nl-pg2 nl-e2${foot.cls}">
     <div class="nl-e-p2">
       <h2 class="nl-e-sec">${nl_esc(s.title)}</h2>
-      <p class="nl-e-body nl-e-secintro">${nl_esc(s.intro)}</p>
+      <p class="nl-e-body nl-e-secintro">${nl_br(s.intro)}</p>
       <div class="nl-e-rows">${rows}</div>
     </div>
     ${pgtab(2)}
@@ -265,16 +265,16 @@ function nl_p1Cover(d, b, z, svg, P){
     <div class="nl-c-card">
       <div class="nl-c-card__bar"></div>
       <h1 class="nl-c-title">${nl_br(c.headline)}</h1>
-      ${c.subhead ? `<p class="nl-c-sub">${nl_esc(c.subhead)}</p>` : ""}
+      ${c.subhead ? `<p class="nl-c-sub">${nl_br(c.subhead)}</p>` : ""}
     </div>
-    <p class="nl-c-hook">${nl_esc(c.hook)}</p>
+    <p class="nl-c-hook">${nl_br(c.hook)}</p>
     <div class="nl-c-inside">
       <div class="nl-c-label">Inside this issue</div>
       ${items.map((x,i)=>`<div class="nl-c-item"><span class="n">0${i+1}</span><span>${nl_esc(x)}</span></div>`).join("")}
     </div>
     <div class="nl-c-band">
       <div class="nl-c-band__icon">${nl_icon(co.icon)}</div>
-      <p class="nl-c-band__text">${nl_esc(bandText)}</p>
+      <p class="nl-c-band__text">${nl_br(bandText)}</p>
     </div>
   </section>`;
 }
@@ -285,13 +285,13 @@ function nl_p2Cover(d, tips, z, pgtab, foot){
     <div class="nl-c-row${i%2 ? " flip" : ""}">
       <div class="nl-c-img${z}" data-zone="tip${i}"${nl_bg(t.img,"tip"+i)}></div>
       <div class="nl-c-cardtip"><div class="nl-c-num">${i+1}</div>
-        <h3 class="nl-c-h3">${nl_esc(t.h)}</h3><p class="nl-c-p">${nl_esc(t.p)}</p></div>
+        <h3 class="nl-c-h3">${nl_esc(t.h)}</h3><p class="nl-c-p">${nl_br(t.p)}</p></div>
     </div>`).join("");
   return `
   <section class="nl-page nl-p2page nl-pg2 nl-c2${foot.cls}">
     <div class="nl-c-p2">
       <h2 class="nl-c-sec">${nl_esc(s.title)}</h2>
-      ${s.intro ? `<p class="nl-c-secintro">${nl_esc(s.intro)}</p>` : ""}
+      ${s.intro ? `<p class="nl-c-secintro">${nl_br(s.intro)}</p>` : ""}
       <div class="nl-c-rows">${cards}</div>
       ${acts.length ? `<div class="nl-c-label">What you can do now</div>
       <div class="nl-c-acts">${acts.map(a=>`<div class="nl-c-act">${nl_esc(a)}</div>`).join("")}</div>` : ""}
