@@ -1127,6 +1127,7 @@ function buildPills(vocab){
 }
 function togPill(el){
   const g=el.dataset.g, v=el.dataset.v, on=el.dataset.on==="1";
+  if(TAG_AUTO_G.includes(g)){ tags_override(g, v, !on); tags_recompute(true); return; }
   el.dataset.on = on?"0":"1"; on ? sel[g].delete(v) : sel[g].add(v);
   draw();
 }
@@ -1153,17 +1154,65 @@ function assetTopicBlock(vocab){
 function assetTopicTog(v){
   if(v.split("/").length===2){
     const on = sel.topic.has(v) || [...sel.topic].some(x=>x.startsWith(v+"/"));
-    if(on) [...sel.topic].forEach(x=>{ if(x===v || x.startsWith(v+"/")) sel.topic.delete(x); });
-    else sel.topic.add(v);
-  } else { sel.topic.has(v) ? sel.topic.delete(v) : sel.topic.add(v); }
+    if(on) [...sel.topic].forEach(x=>{ if(x===v || x.startsWith(v+"/")) tags_override("topic", x, false); });
+    else tags_override("topic", v, true);
+  } else tags_override("topic", v, !sel.topic.has(v));
+  tags_recompute(true);
+}
+
+// ===== Photo-derived tags (2026-10-07 fix) =====
+// Each photo slot remembers the library tags of the photo now in it. The piece's topic / setting /
+// season / mood = the tags of the photos CURRENTLY placed (only slots the current builder and
+// template use) + tags you added − tags you removed. Swapping or dropping a photo drops its tags;
+// "Start new" clears everything. (Before this, tags only ever accumulated.)
+const TAG_AUTO_G = ["topic","scene","season","mood"];
+let photoTags = {};                                   // slot key -> { topic:[], scene:[], ... }
+const tagAdd = {}, tagDel = {};
+TAG_AUTO_G.forEach(g=>{ tagAdd[g]=new Set(); tagDel[g]=new Set(); });
+let tags_lastSig = "";
+function tags_slotKey(zone){
+  zone = String(zone||"");
+  if(zone==="screen") return "sc:photo";
+  if(zone==="banner" || zone==="subject") return "fl:"+zone;
+  if(zone.startsWith("img:")) return "fl:img"+zone.slice(4);
+  if(zone.startsWith("nl:")) return "nl:"+zone.slice(3);
+  return null;
+}
+function tags_activeSlots(){
+  if(assetType==="screen") return imageDataUrl ? ["sc:photo"] : [];
+  if(assetType==="flyer" && flyerMode==="build") return fl_posTargets().map(t=>"fl:"+t.key);
+  if(assetType==="newsletter") return nl_posTargets().map(t=>"nl:"+t.key);
+  return [];
+}
+function tags_override(g, v, on){
+  if(on){ tagAdd[g].add(v); tagDel[g].delete(v); } else { tagDel[g].add(v); tagAdd[g].delete(v); }
+}
+// Library row -> this slot's tags. A local upload (no row) clears the slot's tags.
+function tags_fromImage(r, zone){
+  const k = tags_slotKey(zone || fl_pickZone); if(!k) return;
+  photoTags[k] = r ? { topic: topicLeaves(r.topic||[]).filter(v=>v.includes("/")),
+                       scene: r.scene||[], season: r.season||[], mood: r.mood||[] } : null;
+  tags_recompute(true);
+}
+function tags_clearSlot(zone){ const k=tags_slotKey(zone); if(k && photoTags[k]){ delete photoTags[k]; } }
+function tags_recompute(force){
+  if(!sel.topic) return;
+  const slots = tags_activeSlots();
+  const sig = slots.join("|") + "#" + slots.map(k=>photoTags[k]?1:0).join("");
+  if(!force && sig===tags_lastSig) return;
+  tags_lastSig = sig;
+  for(const g of TAG_AUTO_G){
+    const out = new Set();
+    for(const k of slots) ((photoTags[k]||{})[g]||[]).forEach(v=>out.add(v));
+    tagAdd[g].forEach(v=>out.add(v)); tagDel[g].forEach(v=>out.delete(v));
+    sel[g].clear(); out.forEach(v=>sel[g].add(v));
+  }
   buildPills(currentVocab());
 }
-// Merge a library photo's tags into the piece's tags (additive; never removes your choices).
-function tags_fromImage(r){
-  if(!r) return;
-  topicLeaves(r.topic||[]).filter(v=>v.includes("/")).forEach(v=>sel.topic.add(v));
-  ["scene","season","mood"].forEach(g=>(r[g]||[]).forEach(v=>sel[g].add(v)));
-  buildPills(currentVocab());
+function tags_reset(){
+  photoTags = {}; TAG_AUTO_G.forEach(g=>{ tagAdd[g].clear(); tagDel[g].clear(); });
+  for(const g in sel){ if(g!=="aspect") sel[g].clear(); }
+  tags_lastSig = ""; tags_recompute(true);
 }
 
 function slugify(s){
@@ -1319,10 +1368,10 @@ function draw(){
     if(m) renderScreen(m, Object.assign({}, sc, { treatment:tr, title: sc.title || "Your headline" }), { scale:0.16, chrome:true, qr:false });
   });
   pos_render("sc_posPanel");
-  sc_refreshCounters();
+  sc_refreshCounters(); tags_recompute();
 }
 // counters show only for screens; refresh whenever the asset type changes
-{ const _sat = setAssetType; setAssetType = function(t){ _sat(t); sc_refreshCounters(); }; }
+{ const _sat = setAssetType; setAssetType = function(t){ _sat(t); sc_refreshCounters(); tags_recompute(true); }; }
 pos_mount("sc_posPanel", {
   empty: "Pick a photo or add copy to adjust positions.",
   targets: sc_posTargets,
@@ -1394,7 +1443,7 @@ function clearAsset(){
 
 // Screen image from the library picker (or a local upload): same state the upload set.
 function sc_setImage(dataUrl, name){
-  imageDataUrl = dataUrl;
+  imageDataUrl = dataUrl; tags_clearSlot("screen");
   sc_focus = { x:50, y:50 };          // a new photo starts centred
   assetB64 = dataUrl.split(",")[1];
   assetMime = (/^data:([^;]+);/.exec(dataUrl)||[])[1] || "image/png";
@@ -1876,6 +1925,7 @@ function resetForm(){
   document.getElementById("format").value="still";
   clearAsset();
   for(const g in sel){ sel[g].clear(); } sel.aspect.add("16:9");
+  photoTags = {}; TAG_AUTO_G.forEach(g=>{ tagAdd[g].clear(); tagDel[g].clear(); }); tags_lastSig = "";
   sc_focus = { x:50, y:50 }; sc_layout = {};
   buildPills(currentVocab()); sc_setTemplate("tpl-panel"); setMsg("","");
   setDraftMsg("","");
@@ -2054,6 +2104,7 @@ pos_mount("fl_posPanel", {
   }
 });
 function fl_setBanner(dataUrl, libId){
+  tags_clearSlot("banner");
   fl_bannerData = dataUrl;
   // Library id when the banner came from the image library (null for local-file uploads).
   // The manifest stores this ref instead of the ~2.4 MB bytes, so the download flow re-fetches
@@ -2067,6 +2118,7 @@ function fl_setBanner(dataUrl, libId){
   fl_draw();   // refreshes the position panel and the template minis
 }
 function fl_setSubject(dataUrl, libId){
+  tags_clearSlot("subject");
   fl_subjectData = dataUrl;
   fl_subjectRef = libId || null;   // image-library id of the circle image, when picked from library
   fl_subjectPos = { x:50, y:50 };
@@ -2171,7 +2223,7 @@ function fl_renderPickGrid(){
         else if(String(fl_pickZone).startsWith("nl:")) nl_setImage(fl_pickZone.slice(3), dataUrl, r.id);
         else if(String(fl_pickZone).startsWith("img:")) fl_setImg(+fl_pickZone.slice(4), dataUrl, r.id);
         else if(fl_pickZone==="subject") fl_setSubject(dataUrl, r.id); else fl_setBanner(dataUrl, r.id);
-        tags_fromImage(r);          // carry the photo's library tags onto the piece
+        tags_fromImage(r, fl_pickZone);   // this slot now carries this photo's library tags
         fl_closePicker();
       }catch(e){ msg.textContent="Couldn't load that image."; }
     };
@@ -2242,6 +2294,7 @@ document.addEventListener("click",e=>{
 // Photo for tile i (0-3), any template. Optional: an empty slot shows only while authoring and is
 // left out of the PDF. Kept by tile index, so a pick survives switching templates.
 function fl_setImg(i, dataUrl, libId){
+  tags_clearSlot("img:"+i);
   if(!(i>=0 && i<4)) return;
   fl_imgData[i] = dataUrl; fl_imgRef[i] = libId || null; fl_imgPos[i] = { x:50, y:50 };
   fl_draw();
@@ -2250,7 +2303,7 @@ function fl_setImg(i, dataUrl, libId){
 // Live mini previews in the template rail: the current flyer, re-laid-out in every template.
 // Called after each fl_draw (hook in flyer-render.js); debounced so typing stays smooth.
 let fl_miniTimer = null;
-function fl_afterDraw(){ clearTimeout(fl_miniTimer); fl_miniTimer = setTimeout(fl_drawMinis, 200); pos_render("fl_posPanel"); }
+function fl_afterDraw(){ clearTimeout(fl_miniTimer); fl_miniTimer = setTimeout(fl_drawMinis, 200); pos_render("fl_posPanel"); tags_recompute(); }
 function fl_drawMinis(){
   const src = fl_$("fl_in_flyer"); if(!src) return;
   const eyebrow = fl_$("fl_in_eyebrow") ? fl_$("fl_in_eyebrow").value : "";
@@ -2756,6 +2809,7 @@ async function fl_recordBuilderPass(savedId){
 // QC state, and the resource ID/description. Branding colors and issue lines are left as-is
 // (they're per-client config a user typically keeps between flyers).
 function fl_startNewFlyer(){
+  tags_reset();   // a new flyer starts with no tags (they refill from the photos you place)
   // copy fields (all reviewed fields + brief). Lead is per-flyer copy → cleared.
   // NOTE: the shared address footer (ftName/ftAddr1/2/ftPhone/ftHoursLabel/ftHours1/2) and
   // footPowered are CONSTANT per-client config, like branding colors — deliberately NOT
@@ -3280,7 +3334,7 @@ function nl_draw(){
   });
   // show only the tip editors in use
   for(let i=0;i<6;i++){ const b=document.getElementById("nl_tipblk"+i); if(b) b.style.display = i<nl_tipCount() ? "" : "none"; }
-  pos_render("nl_posPanel");
+  pos_render("nl_posPanel"); tags_recompute();
   requestAnimationFrame(nl_fitPreview);
 }
 window.addEventListener("resize", ()=>{ if(assetType==="newsletter") nl_fitPreview(); });
@@ -3304,6 +3358,7 @@ pos_mount("nl_posPanel", {
   set: (z,v) => { if(nl_imgs[z]){ nl_imgs[z].pos = v; nl_draw(); } }
 });
 function nl_setImage(zone, dataUrl, libId){
+  tags_clearSlot("nl:"+zone);
   if(!NL_ZONES.includes(zone)) return;
   nl_imgs[zone] = { data:dataUrl, ref:libId || null, pos:{ x:50, y:50 } };
   nl_draw();
