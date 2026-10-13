@@ -3437,8 +3437,9 @@ const NL_DRAFT_ENDPOINT = DRL_API + "/draft-newsletter";
 // The builder is the single source of truth: counters, the Finalize gate and the drafter all read
 // these. bullet / action = per line. Cover's callout band shows the callout body, so co_body = band.
 const NL_CAPS_TPL = {
-  magazine2: { headline:30, subhead:75, hook:270, intro:280, co_title:28, co_body:395,
-               sec_title:36, sec_intro:260, tip_h:22, tip_p:125, runfoot:28 },
+  // Diagonal: 2026-10 redesign (Trebuchet MS, larger type). Cover title auto-sizes 58→34px to fit.
+  magazine2: { headline:34, subhead:65, hook:240, intro:265, co_title:25, co_body:350,
+               sec_title:36, sec_intro:250, tip_h:22, tip_p:110, runfoot:28 },
   editorial: { headline:30, subhead:65, hook:250, bullet:35, co_title:28, co_body:430,
                sec_title:36, sec_intro:260, tip_h:22, tip_p:125, runfoot:28 },
   cover:     { headline:30, subhead:45, hook:215, co_title:28, co_body:110,
@@ -3489,7 +3490,7 @@ async function nl_draftCopy(){
     if(d.bullets) nl_setFld("nl_in_bullets", d.bullets);      // Editorial sidebar
     if(d.actions) nl_setFld("nl_in_actions", d.actions);      // Cover "What you can do now"
     if(d.runfoot){ const vol = nl_v("nl_in_volume").trim();
-      nl_setFld("nl_in_runfoot", vol ? `Volume ${vol} : ${d.runfoot}` : d.runfoot); }
+      nl_setFld("nl_in_runfoot", vol ? `Volume ${vol}: ${d.runfoot}` : d.runfoot); }
     nl_qcInvalidate();
     nl_draw(); nl_refreshCounters();
     msg.textContent = "Drafted — review and edit below.";
