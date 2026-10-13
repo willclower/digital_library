@@ -196,3 +196,55 @@
   max-height:62px;overflow:hidden;}
 /* template zones keep the pick-image hover inside their own shape */
 .nl-scope .nl-edit .nl-e-img{position:relative;}   /* the others are already absolutely positioned */
+
+/* =====================================================================================
+   Diagonal (magazine2) — 2026-10 redesign, from Medwell_NovemberNL.indd (Trebuchet MS).
+   Geometry taken from the PDF (pt = px at 612x792). Colours stay brand tokens:
+   primary = cover panel / headings / tip titles, secondary = masthead band / icon,
+   accent = title rule / callout border / tip dividers. Page 2 keeps the address band + QR,
+   so its grid is tighter than the InDesign file (which has no footer).
+   ===================================================================================== */
+.nl-scope .nl-doc.nl-t-magazine2{ --font-ui:"Trebuchet MS","Instrument Sans",system-ui,sans-serif; }
+.nl-scope .nl-t-magazine2 .nl-cover{height:453px;}
+.nl-scope .nl-t-magazine2 .nl-hero{left:240px;right:0;width:auto;height:453px;}
+.nl-scope .nl-t-magazine2 .nl-panel{width:392px;height:453px;}
+.nl-scope .nl-t-magazine2 .nl-logo{left:36px;top:30px;height:38px;}
+.nl-scope .nl-t-magazine2 .nl-logo img{max-height:38px;max-width:140px;}
+.nl-scope .nl-t-magazine2 .nl-logo.nl-chip{left:30px;top:26px;}
+.nl-scope .nl-t-magazine2 .nl-mast{left:183px;right:0;width:auto;top:22px;height:47px;
+  display:flex;align-items:center;gap:14px;padding-left:24px;padding-right:12px;overflow:hidden;box-sizing:border-box;}
+.nl-scope .nl-t-magazine2 .nl-mast > div{position:relative;left:auto;right:auto;top:auto;}
+.nl-scope .nl-t-magazine2 .nl-mast__title{font-weight:700;font-size:20px;letter-spacing:0;white-space:nowrap;}
+.nl-scope .nl-t-magazine2 .nl-mast__vol, .nl-scope .nl-t-magazine2 .nl-mast__date{font-weight:400;font-size:11px;
+  letter-spacing:.02em;text-transform:uppercase;white-space:nowrap;margin-top:4px;}
+.nl-scope .nl-t-magazine2 .nl-cover__text{left:36px;top:74px;width:290px;}
+.nl-scope .nl-doc.nl-t-magazine2 .nl-title{font-weight:700;font-size:58px;line-height:1.06;letter-spacing:-.01em;
+  width:272px;max-height:186px;overflow:hidden;padding-bottom:4px;}
+.nl-scope .nl-t-magazine2 .nl-rule{width:45px;height:3px;margin:8px 0 18px;}
+.nl-scope .nl-t-magazine2 .nl-sub{font-weight:700;font-size:14px;line-height:1.25;margin:0 0 14px;}
+.nl-scope .nl-t-magazine2 .nl-hook{font-size:14px;line-height:1.25;opacity:1;}
+/* lower half: intro column + side photo (left), callout box bleeding off the right edge */
+.nl-scope .nl-t-magazine2 .nl-lower{display:block;left:0;right:0;top:0;bottom:0;}
+.nl-scope .nl-t-magazine2 .nl-intro{position:absolute;left:36px;top:461px;width:250px;max-height:150px;overflow:hidden;}
+.nl-scope .nl-t-magazine2 .nl-intro p{font-size:13px;line-height:1.25;margin:0 0 14px;}
+.nl-scope .nl-t-magazine2 .nl-side{left:36px;top:623px;bottom:auto;width:252px;height:132px;border-radius:16px;}
+.nl-scope .nl-t-magazine2 .nl-callout{position:absolute;left:305px;right:-2px;top:465px;max-height:296px;
+  border:1.25px solid var(--brand-accent);border-right:0;border-radius:22px 0 0 22px;padding:12px 26px 14px 20px;}
+.nl-scope .nl-t-magazine2 .nl-callout__head{gap:14px;margin:0 0 14px;min-height:64px;}
+.nl-scope .nl-t-magazine2 .nl-icon{flex:0 0 64px;width:64px;height:64px;margin-left:-12px;}
+.nl-scope .nl-t-magazine2 .nl-icon svg{width:34px;height:34px;}
+.nl-scope .nl-t-magazine2 .nl-callout__title{font-weight:700;font-size:22px;line-height:1.25;}
+.nl-scope .nl-t-magazine2 .nl-callout p{font-size:14px;line-height:1.25;margin:0 0 14px;}
+.nl-scope .nl-t-magazine2 .nl-p1 .nl-pgtab{bottom:5px;}
+/* page 2: title + intro, 3-column tip grid with accent dividers, feature photo bleeding right */
+.nl-scope .nl-t-magazine2 .nl-p2{left:36px;right:36px;top:28px;}
+.nl-scope .nl-t-magazine2 .nl-sec__title{font-weight:700;font-size:26px;line-height:1.25;margin:0 0 4px;}
+.nl-scope .nl-t-magazine2 .nl-sec__intro{font-size:14px;line-height:1.25;margin:0 0 18px;max-width:490px;}
+.nl-scope .nl-t-magazine2 .nl-grid{grid-auto-rows:250px;row-gap:16px;}
+.nl-scope .nl-t-magazine2 .nl-tip{padding:0 12px;border-right:1.25px solid var(--brand-accent);overflow:hidden;}
+.nl-scope .nl-t-magazine2 .nl-tip__img{width:96px;height:96px;border:5px solid #fff;margin:0 auto 12px;
+  box-shadow:0 0 0 1px #e1e3e4, 0 3px 8px rgba(0,0,0,.16);}
+.nl-scope .nl-t-magazine2 .nl-tip__h{font-weight:700;font-size:16px;line-height:1.25;color:var(--brand-primary);margin:0 0 8px;}
+.nl-scope .nl-t-magazine2 .nl-tip__p{font-size:13px;line-height:1.25;}
+.nl-scope .nl-t-magazine2 .nl-feature{margin:0 -36px 0 14px;border-radius:40px 0 0 40px;}
+.nl-scope .nl-t-magazine2 .nl-runfoot{font-size:11px;font-weight:400;letter-spacing:.02em;color:var(--ink);border-bottom:0;padding:0;}
