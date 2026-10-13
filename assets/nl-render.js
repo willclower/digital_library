@@ -147,10 +147,10 @@ function nl_render(el, d, opts){
   <section class="nl-page nl-p1">
     <div class="nl-cover">
       <div class="nl-hero${z}" data-zone="hero"${nl_bg(c.hero,"hero")}></div>
-      <div class="nl-panel">${svg(410,490,"0,0 410,0 336,490 0,490",P)}</div>
+      <div class="nl-panel">${svg(392,453,"0,0 300,0 392,453 0,453",P)}</div>
     </div>
     <div class="nl-logo${coverChip?" nl-chip":""}">${b.logo ? `<img src="${b.logo}" alt="">` : ""}</div>
-    <div class="nl-mast">${svg(430,52,"24,0 430,0 430,52 0,52",S)}
+    <div class="nl-mast">${svg(429,47,"0,0 429,0 429,47 16,47",S)}
       <div class="nl-mast__title">${nl_esc(m.title || "Wellness Newsletter")}</div>
       <div class="nl-mast__vol">${nl_esc(m.volume ? "Volume " + m.volume : "")}</div>
       <div class="nl-mast__date">${nl_esc(m.issue || "")}</div>
@@ -196,6 +196,12 @@ function nl_render(el, d, opts){
   }
 
   el.innerHTML = `<div class="nl-doc nl-t-${T}${opts.edit?" nl-edit":""}${opts.print?" nl-print":""}" style="${style}">${p1}${p2}</div>`;
+  // Diagonal cover title: largest size that fits its three-line box (58px down to 34px), measured
+  // after layout so it works for any font the viewer has. Unmeasurable (hidden) -> left at 58px.
+  if(T === "magazine2"){
+    const t = el.querySelector(".nl-title");
+    if(t && t.clientHeight){ for(const px of [58,54,50,46,42,40,38,36,34]){ t.style.fontSize = px+"px"; if(t.scrollHeight <= t.clientHeight + 2 && t.scrollWidth <= t.clientWidth + 1) break; } }
+  }
 }
 
 
