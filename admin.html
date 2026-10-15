@@ -2132,6 +2132,9 @@ fl_$("fl_in_logoFile").onchange=()=>fl_fileToData(fl_$("fl_in_logoFile"),d=>{fl_
 
 /* ---------- Image library picker (click a zone in the preview) ---------- */
 const FL_IMG_ENDPOINT = DRL_API + "/image-library";   // GET, facet-filterable
+// Library display limits: show only the newest few until someone types a word or picks a filter.
+const IMG_SHOW_DEFAULT = 50;    // nothing typed, no filter -> newest 50
+const IMG_SHOW_SEARCH  = 200;   // typed a word / picked a filter -> up to 200 matches
 const FL_IMG_BYTES    = DRL_API + "/image?id=";        // bytes endpoint (resolveImage marker target)
 // Facet tabs shown in the picker (the aspect is fixed by the zone, so it's not a tab).
 const FL_PICK_FACETS = ["topic","scene","season","mood","people"];
@@ -2208,9 +2211,14 @@ function fl_renderPickGrid(){
   const terms=(fl_$("fl_pickQ").value||"").trim().toLowerCase().split(/\s+/).filter(Boolean);
   const rows = terms.length ? all.filter(r=>{ const h=libHay(r); return terms.every(t=>h.includes(t)); }) : all;
   if(rows.length===0){ msg.textContent="No images match that search. Try another word, or clear a filter."; return; }
-  msg.textContent = terms.length ? `Showing ${rows.length} of ${all.length}` : "";
+  const narrowedP = terms.length>0 || !!(fl_pickActiveFacet.key && fl_pickActiveFacet.val);
+  const shownP = rows.slice(0, narrowedP ? IMG_SHOW_SEARCH : IMG_SHOW_DEFAULT);
+  msg.textContent = rows.length>shownP.length
+    ? (narrowedP ? `Showing the first ${shownP.length} of ${rows.length} matches. Add another word to narrow.`
+                 : `Showing the newest ${shownP.length} of ${rows.length}. Type a word above to find others.`)
+    : (terms.length ? `Showing ${rows.length} of ${all.length}` : "");
   const sq = (fl_pickAspect==="square");
-  rows.forEach(r=>{
+  shownP.forEach(r=>{
     const d=document.createElement("div");
     d.className="fl-pick__thumb"+(sq?" sq":(fl_pickAspect==="portrait" && !fl_pickAllShapes ? " pt":""));
     d.innerHTML = `<img loading="lazy" src="${FL_IMG_BYTES+encodeURIComponent(r.id)}&thumb=1" alt="">`+
@@ -3145,10 +3153,14 @@ function libRenderGrid(){
   const terms=q.split(/\s+/).filter(Boolean);
   const out = terms.length ? libItems.filter(r=>{ const h=libHay(r); return terms.every(t=>h.includes(t)); }) : libItems;
   const narrowed = terms.length || LIB_FACETS.some(f=>libFilter[f]);
-  cnt.innerHTML = narrowed && out.length!==libItems.length
-    ? `Showing <b>${out.length}</b> of ${libItems.length} images`
-    : `<b>${out.length}</b> image${out.length===1?"":"s"}` + (narrowed ? " match" : "");
-  grid.innerHTML = out.map(libTile).join("") || `<div class="empty">No images match. Try another word, or clear the filters.</div>`;
+  const shownL = out.slice(0, narrowed ? IMG_SHOW_SEARCH : IMG_SHOW_DEFAULT);
+  cnt.innerHTML = out.length>shownL.length
+    ? (narrowed ? `Showing the first <b>${shownL.length}</b> of ${out.length} matches. Add another word to narrow.`
+                : `Showing the newest <b>${shownL.length}</b> of ${libItems.length} images. Type a word or pick a filter to find the rest.`)
+    : (narrowed && out.length!==libItems.length
+        ? `Showing <b>${out.length}</b> of ${libItems.length} images`
+        : `<b>${out.length}</b> image${out.length===1?"":"s"}` + (narrowed ? " match" : ""));
+  grid.innerHTML = shownL.map(libTile).join("") || `<div class="empty">No images match. Try another word, or clear the filters.</div>`;
 }
 function libTile(r){
   const tags = LIB_FACETS.flatMap(f=>(f==="topic" ? topicLeaves(r[f]) : (r[f]||[])).map(v=>tagLabel(f,v))).filter(Boolean);
